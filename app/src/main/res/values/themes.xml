@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.TyplxKeyboard" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/typlx_primary</item>
+        <item name="colorOnPrimary">@color/typlx_on_primary</item>
+        <item name="colorPrimaryContainer">@color/typlx_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/typlx_on_primary_container</item>
+        <item name="android:colorBackground">@color/typlx_background</item>
+        <item name="colorSurface">@color/typlx_surface</item>
+        <item name="colorOnSurface">@color/typlx_on_surface</item>
+    </style>
+</resources>

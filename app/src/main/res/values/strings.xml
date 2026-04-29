@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Typlx Keyboard</string>
+    <string name="ime_name">Typlx Keyboard</string>
+    <string name="subtype_generic">English (US)</string>
+    <string name="settings_title">Typlx Keyboard Settings</string>
+    <string name="settings_api_url_label">API URL</string>
+    <string name="settings_api_url_hint">https://api.openai.com</string>
+    <string name="settings_model_label">Model</string>
+    <string name="settings_model_hint">gpt-4o-mini</string>
+    <string name="settings_api_token_label">API Token</string>
+    <string name="settings_api_token_hint">sk-…</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="fix_grammar">Fix Grammar</string>
+    <string name="fixing_grammar">Fixing…</string>
+    <string name="grammar_error">API error</string>
+    <string name="grammar_fixed">Grammar fixed</string>
+    <string name="keyboard_ready">Typlx -- Tap \"Fix Grammar\" to correct text</string>
+    <string name="settings_icon">⚙</string>
+    <string name="error_no_text">No text found in the current field</string>
+    <string name="error_not_configured">Please configure API settings first</string>
+    <string name="error_url_required">API URL is required</string>
+    <string name="error_url_https">API URL must start with https://</string>
+    <string name="error_model_required">Model name is required</string>
+    <string name="error_token_required">API token is required</string>
+    <string name="enable_keyboard_hint">Enable Typlx Keyboard in Settings › General Management › Keyboard › On-screen keyboards</string>
+</resources>

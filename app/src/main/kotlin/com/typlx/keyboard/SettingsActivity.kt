@@ -1,38 +1,28 @@
 package com.typlx.keyboard
 
+import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
 
 /**
  * Settings screen for configuring the grammar keyboard's API connection.
@@ -46,12 +36,17 @@ class SettingsActivity : ComponentActivity() {
         val prefsManager = PreferencesManager(this)
 
         setContent {
-            MaterialTheme {
+            TyplxKeyboardTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+                    color = MaterialTheme.colorScheme.background,
                 ) {
-                    SettingsScreen(prefsManager = prefsManager)
+                    SettingsScreen(
+                        prefsManager = prefsManager,
+                        onOpenImeSettings = {
+                            startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                        },
+                    )
                 }
             }
         }
@@ -60,12 +55,16 @@ class SettingsActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SettingsScreen(prefsManager: PreferencesManager) {
+private fun SettingsScreen(
+    prefsManager: PreferencesManager,
+    onOpenImeSettings: () -> Unit,
+) {
     val context = LocalContext.current
 
     var apiUrl by remember { mutableStateOf(prefsManager.apiUrl) }
     var model by remember { mutableStateOf(prefsManager.model) }
     var apiToken by remember { mutableStateOf(prefsManager.apiToken) }
+    var tokenVisible by remember { mutableStateOf(false) }
 
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
@@ -123,7 +122,7 @@ private fun SettingsScreen(prefsManager: PreferencesManager) {
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // API Token field (masked)
+            // API Token field (masked, with visibility toggle)
             OutlinedTextField(
                 value = apiToken,
                 onValueChange = {
@@ -135,9 +134,19 @@ private fun SettingsScreen(prefsManager: PreferencesManager) {
                 isError = apiTokenError != null,
                 supportingText = apiTokenError?.let { error -> { Text(error) } },
                 singleLine = true,
-                visualTransformation = PasswordVisualTransformation(),
+                visualTransformation = if (tokenVisible) VisualTransformation.None
+                                       else PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                modifier = Modifier.fillMaxWidth()
+                trailingIcon = {
+                    IconButton(onClick = { tokenVisible = !tokenVisible }) {
+                        Icon(
+                            imageVector = if (tokenVisible) Icons.Default.VisibilityOff
+                                          else Icons.Default.Visibility,
+                            contentDescription = null,
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -150,9 +159,6 @@ private fun SettingsScreen(prefsManager: PreferencesManager) {
 
                     if (apiUrl.isBlank()) {
                         apiUrlError = context.getString(R.string.error_url_required)
-                        hasErrors = true
-                    } else if (!apiUrl.startsWith("https://")) {
-                        apiUrlError = context.getString(R.string.error_url_https)
                         hasErrors = true
                     }
 
@@ -185,12 +191,23 @@ private fun SettingsScreen(prefsManager: PreferencesManager) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Hint about enabling the keyboard
+            Divider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedButton(
+                onClick = onOpenImeSettings,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("Enable Typlx Keyboard in System Settings")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = stringResource(R.string.enable_keyboard_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                modifier = Modifier.padding(horizontal = 4.dp),
             )
 
             Spacer(modifier = Modifier.height(24.dp))

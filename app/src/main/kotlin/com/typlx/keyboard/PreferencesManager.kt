@@ -19,6 +19,7 @@ class PreferencesManager(context: Context) {
         private const val KEY_MODEL = "model"
         private const val KEY_API_TOKEN = "api_token"
 
+        private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
     }
 
@@ -40,7 +41,7 @@ class PreferencesManager(context: Context) {
     }
 
     var apiUrl: String
-        get() = prefs.getString(KEY_API_URL, "") ?: ""
+        get() = prefs.getString(KEY_API_URL, DEFAULT_API_URL) ?: DEFAULT_API_URL
         set(value) = prefs.edit().putString(KEY_API_URL, value).apply()
 
     var model: String

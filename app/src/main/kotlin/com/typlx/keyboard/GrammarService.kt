@@ -46,7 +46,10 @@ class GrammarService {
         token: String,
         text: String
     ): String = withContext(Dispatchers.IO) {
-        val url = "${apiUrl.trimEnd('/')}/chat/completions"
+        // Normalise: strip a trailing /v1 if present, then always add /v1/chat/completions
+        // so both "https://api.openai.com" and "https://api.openai.com/v1" work.
+        val normalised = apiUrl.trimEnd('/').removeSuffix("/v1")
+        val url = "$normalised/v1/chat/completions"
 
         val messages = JSONArray().apply {
             put(JSONObject().apply {

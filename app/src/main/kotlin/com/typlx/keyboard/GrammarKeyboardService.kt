@@ -1,123 +1,147 @@
 package com.typlx.keyboard
 
-import android.content.Intent
-import android.inputmethodservice.InputMethodService
+import android.os.Bundle
 import android.view.View
-import android.widget.Button
-import android.widget.TextView
-import android.widget.Toast
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
+import android.view.inputmethod.EditorInfo
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.inputmethodservice.InputMethodService
+import androidx.lifecycle.*
+import androidx.savedstate.SavedStateRegistry
+import androidx.savedstate.SavedStateRegistryController
+import androidx.savedstate.SavedStateRegistryOwner
+import com.typlx.keyboard.ui.KeyboardScreen
+import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
+import kotlinx.coroutines.*
 
-/**
- * Custom InputMethodService that provides a grammar-fix toolbar.
- *
- * The keyboard view displays a "Fix Grammar" button. When tapped, it reads the full text
- * from the currently focused input field, sends it to a configurable LLM API for correction,
- * and replaces the field content with the corrected text.
- */
-class GrammarKeyboardService : InputMethodService() {
+class GrammarKeyboardService : InputMethodService(),
+    LifecycleOwner,
+    ViewModelStoreOwner,
+    SavedStateRegistryOwner {
 
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
-    private val grammarService = GrammarService()
-    private lateinit var prefsManager: PreferencesManager
+    // --- Lifecycle plumbing required to host Compose inside an IME ---
+    private val lifecycleRegistry = LifecycleRegistry(this)
+    private val savedStateRegistryController = SavedStateRegistryController.create(this)
+    private val vmStore = ViewModelStore()
 
-    private var fixButton: Button? = null
-    private var settingsButton: Button? = null
-    private var statusText: TextView? = null
-    private var isProcessing = false
+    override val lifecycle: Lifecycle get() = lifecycleRegistry
+    override val viewModelStore: ViewModelStore get() = vmStore
+    override val savedStateRegistry: SavedStateRegistry
+        get() = savedStateRegistryController.savedStateRegistry
+
+    // --- State exposed to the Compose tree ---
+    var isFixingGrammar by mutableStateOf(false)
+        private set
+    var grammarError by mutableStateOf<String?>(null)
+        private set
+
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private lateinit var prefs: PreferencesManager
+    private lateinit var grammarService: GrammarService
 
     override fun onCreate() {
         super.onCreate()
-        prefsManager = PreferencesManager(this)
+        savedStateRegistryController.performRestore(null)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
+        prefs = PreferencesManager(applicationContext)
+        grammarService = GrammarService()
     }
 
     override fun onCreateInputView(): View {
-        val view = layoutInflater.inflate(R.layout.keyboard_view, null)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
-        fixButton = view.findViewById(R.id.fixGrammarButton)
-        settingsButton = view.findViewById(R.id.settingsButton)
-        statusText = view.findViewById(R.id.statusText)
+        return ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            ViewTreeLifecycleOwner.set(this, this@GrammarKeyboardService)
+            ViewTreeViewModelStoreOwner.set(this, this@GrammarKeyboardService)
+            ViewTreeSavedStateRegistryOwner.set(this, this@GrammarKeyboardService)
 
-        fixButton?.setOnClickListener { onFixGrammarClicked() }
-        settingsButton?.setOnClickListener { openSettings() }
-
-        return view
-    }
-
-    override fun onDestroy() {
-        serviceScope.cancel()
-        super.onDestroy()
-    }
-
-    private fun onFixGrammarClicked() {
-        if (isProcessing) return
-
-        if (!prefsManager.isConfigured) {
-            showToast(getString(R.string.error_not_configured))
-            openSettings()
-            return
-        }
-
-        val ic = currentInputConnection ?: return
-        val extracted = ic.getExtractedText(android.view.inputmethod.ExtractedTextRequest(), 0)
-        val text = extracted?.text?.toString()
-
-        if (text.isNullOrBlank()) {
-            showToast(getString(R.string.error_no_text))
-            return
-        }
-
-        setLoadingState(true)
-
-        serviceScope.launch {
-            try {
-                val corrected = grammarService.fixGrammar(
-                    apiUrl = prefsManager.apiUrl,
-                    model = prefsManager.model,
-                    token = prefsManager.apiToken,
-                    text = text
-                )
-
-                // Replace the entire content of the input field
-                ic.beginBatchEdit()
-                ic.performContextMenuAction(android.R.id.selectAll)
-                ic.commitText(corrected, 1)
-                ic.endBatchEdit()
-
-                statusText?.text = getString(R.string.grammar_fixed)
-            } catch (e: GrammarServiceException) {
-                val errorMsg = e.message ?: getString(R.string.grammar_error)
-                statusText?.text = errorMsg
-                showToast(errorMsg)
-            } finally {
-                setLoadingState(false)
+            setContent {
+                TyplxKeyboardTheme {
+                    KeyboardScreen(
+                        isFixingGrammar = isFixingGrammar,
+                        grammarError = grammarError,
+                        onKeyPress = ::commitText,
+                        onDelete = ::deleteChar,
+                        onFixGrammar = ::launchGrammarFix,
+                        onReturn = ::commitReturn,
+                        onErrorDismiss = { grammarError = null },
+                    )
+                }
             }
         }
     }
 
-    private fun setLoadingState(loading: Boolean) {
-        isProcessing = loading
-        fixButton?.isEnabled = !loading
-        fixButton?.text = getString(
-            if (loading) R.string.fixing_grammar else R.string.fix_grammar
-        )
-        if (loading) {
-            statusText?.text = getString(R.string.fixing_grammar)
+    override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
+        super.onStartInputView(info, restarting)
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
+        super.onFinishInputView(finishingInput)
+    }
+
+    override fun onDestroy() {
+        serviceScope.cancel()
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+        vmStore.clear()
+        super.onDestroy()
+    }
+
+    // --- Input helpers ---
+
+    private fun commitText(text: String) {
+        currentInputConnection?.commitText(text, 1)
+    }
+
+    private fun deleteChar() {
+        currentInputConnection?.deleteSurroundingText(1, 0)
+    }
+
+    private fun commitReturn() {
+        val ic = currentInputConnection ?: return
+        val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
+        if (action != null &&
+            action != EditorInfo.IME_ACTION_NONE &&
+            action != EditorInfo.IME_ACTION_UNSPECIFIED
+        ) {
+            ic.performEditorAction(action)
+        } else {
+            ic.commitText("\n", 1)
         }
     }
 
-    private fun openSettings() {
-        val intent = Intent(this, SettingsActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        }
-        startActivity(intent)
-    }
+    // --- Grammar fix ---
 
-    private fun showToast(message: String) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    private fun launchGrammarFix() {
+        if (isFixingGrammar) return
+        val ic = currentInputConnection ?: return
+
+        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        if (textBefore.isNullOrBlank()) return
+
+        isFixingGrammar = true
+        grammarError = null
+
+        serviceScope.launch {
+            try {
+                val fixed = grammarService.fixGrammar(
+                    apiUrl = prefs.apiUrl,
+                    model = prefs.model,
+                    token = prefs.apiToken,
+                    text = textBefore,
+                )
+                ic.deleteSurroundingText(textBefore.length, 0)
+                ic.commitText(fixed, 1)
+            } catch (e: GrammarServiceException) {
+                grammarError = e.message ?: getString(R.string.grammar_error)
+            } finally {
+                isFixingGrammar = false
+            }
+        }
     }
 }

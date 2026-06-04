@@ -13,6 +13,7 @@ import androidx.lifecycle.*
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
+import androidx.savedstate.ViewTreeSavedStateRegistryOwner
 import com.typlx.keyboard.ui.KeyboardScreen
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
 import kotlinx.coroutines.*

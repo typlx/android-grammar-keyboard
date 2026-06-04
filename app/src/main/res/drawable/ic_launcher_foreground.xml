@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Keyboard outline -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M24,36 C21.8,36 20,37.8 20,40 L20,68 C20,70.2 21.8,72 24,72 L84,72 C86.2,72 88,70.2 88,68 L88,40 C88,37.8 86.2,36 84,36 Z" />
+    <!-- Keys (blue tint rows) -->
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M28,43 L36,43 L36,51 L28,51 Z
+                          M40,43 L48,43 L48,51 L40,51 Z
+                          M52,43 L60,43 L60,51 L52,51 Z
+                          M64,43 L72,43 L72,51 L64,51 Z
+                          M28,55 L38,55 L38,63 L28,63 Z
+                          M42,55 L52,55 L52,63 L42,63 Z
+                          M56,55 L66,55 L66,63 L56,63 Z
+                          M70,55 L80,55 L80,63 L70,63 Z" />
+</vector>

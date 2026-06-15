@@ -1,5 +1,6 @@
 package com.typlx.keyboard
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -70,6 +71,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onFixGrammar = ::launchGrammarFix,
                         onReturn = ::commitReturn,
                         onErrorDismiss = { grammarError = null },
+                        onOpenSettings = ::openSettings,
                     )
                 }
             }
@@ -114,6 +116,15 @@ class GrammarKeyboardService : InputMethodService(),
         } else {
             ic.commitText("\n", 1)
         }
+    }
+
+    // --- Settings ---
+
+    private fun openSettings() {
+        val intent = Intent(this, SettingsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        startActivity(intent)
     }
 
     // --- Grammar fix ---

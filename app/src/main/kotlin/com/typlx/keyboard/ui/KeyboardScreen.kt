@@ -5,6 +5,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,6 +14,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -36,6 +40,7 @@ fun KeyboardScreen(
     onFixGrammar: () -> Unit,
     onReturn: () -> Unit,
     onErrorDismiss: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     var isCaps by remember { mutableStateOf(false) }
     var isSymbols by remember { mutableStateOf(false) }
@@ -59,6 +64,7 @@ fun KeyboardScreen(
             grammarError = grammarError,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
+            onOpenSettings = onOpenSettings,
         )
 
         if (isSymbols) {
@@ -94,6 +100,7 @@ private fun ToolbarRow(
     grammarError: String?,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -142,6 +149,18 @@ private fun ToolbarRow(
                 text = if (isFixingGrammar) "Fixing…" else "Fix Grammar",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
+            )
+        }
+
+        IconButton(
+            onClick = onOpenSettings,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = "Open Settings",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
             )
         }
     }
@@ -305,6 +324,7 @@ private fun KeyButton(
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val haptic = LocalHapticFeedback.current
     Box(
         modifier = modifier
             .height(height)
@@ -313,7 +333,10 @@ private fun KeyButton(
             .clickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(),
-                onClick = onClick,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                },
             ),
         contentAlignment = Alignment.Center,
     ) {

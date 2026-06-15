@@ -27,6 +27,8 @@ jobs:
 
       - name: Run unit tests
         run: ./gradlew test
+        env:
+          ORG_GRADLE_PROJECT_skipGoogleServices: "true"
 
       - name: Build debug APK
         run: ./gradlew assembleDebug

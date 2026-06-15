@@ -122,8 +122,16 @@ class GrammarKeyboardService : InputMethodService(),
         if (isFixingGrammar) return
         val ic = currentInputConnection ?: return
 
+        if (!prefs.isConfigured) {
+            grammarError = getString(R.string.error_not_configured)
+            return
+        }
+
         val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
-        if (textBefore.isNullOrBlank()) return
+        if (textBefore.isNullOrBlank()) {
+            grammarError = getString(R.string.error_no_text)
+            return
+        }
 
         isFixingGrammar = true
         grammarError = null

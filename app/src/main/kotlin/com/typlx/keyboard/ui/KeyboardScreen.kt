@@ -41,6 +41,12 @@ fun KeyboardScreen(
     var isSymbols by remember { mutableStateOf(false) }
     val colors = LocalKeyboardColors.current
 
+    // Wraps onKeyPress to auto-release shift-once after any printable character
+    val shiftOnceKeyPress: (String) -> Unit = { key ->
+        onKeyPress(key)
+        if (!isSymbols && isCaps) isCaps = false
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -56,20 +62,17 @@ fun KeyboardScreen(
         )
 
         if (isSymbols) {
-            KeyRow(SYM_ROW1, isCaps = false, onKeyPress = onKeyPress, colors = colors)
-            KeyRow(SYM_ROW2, isCaps = false, onKeyPress = onKeyPress, colors = colors)
-            SymbolRow3(SYM_ROW3, onKeyPress = onKeyPress, onDelete = onDelete, colors = colors)
+            KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
+            KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
+            SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, colors = colors)
         } else {
-            KeyRow(ROW1, isCaps = isCaps, onKeyPress = onKeyPress, colors = colors)
-            KeyRow(ROW2, isCaps = isCaps, onKeyPress = onKeyPress, colors = colors)
+            KeyRow(ROW1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
+            KeyRow(ROW2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
             AlphaRow3(
                 keys = ROW3,
                 isCaps = isCaps,
                 onCapsToggle = { isCaps = !isCaps },
-                onKeyPress = { key ->
-                    onKeyPress(key)
-                    if (isCaps) isCaps = false  // single-tap shift: revert after one key
-                },
+                onKeyPress = shiftOnceKeyPress,
                 onDelete = onDelete,
                 colors = colors,
             )
@@ -78,7 +81,7 @@ fun KeyboardScreen(
         BottomRow(
             isSymbols = isSymbols,
             onSymbolToggle = { isSymbols = !isSymbols },
-            onKeyPress = onKeyPress,
+            onKeyPress = shiftOnceKeyPress,
             onReturn = onReturn,
             colors = colors,
         )

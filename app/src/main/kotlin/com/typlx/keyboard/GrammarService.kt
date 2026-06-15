@@ -22,13 +22,15 @@ class GrammarService {
         private const val TEMPERATURE = 0.3
         private const val TIMEOUT_SECONDS = 30L
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-    }
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .build()
+        private val client: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .build()
+        }
+    }
 
     /**
      * Sends text to the grammar-fix API and returns the corrected text.

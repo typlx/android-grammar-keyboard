@@ -22,6 +22,8 @@
     <string name="error_not_configured">Please configure API settings first</string>
     <string name="error_url_required">API URL is required</string>
     <string name="error_url_https">API URL must start with https://</string>
+    <string name="error_url_scheme">API URL must start with http:// or https://</string>
+    <string name="settings_enable_keyboard_button">Enable Typlx Keyboard in System Settings</string>
     <string name="error_model_required">Model name is required</string>
     <string name="error_token_required">API token is required</string>
     <string name="enable_keyboard_hint">Enable Typlx Keyboard in Settings › General Management › Keyboard › On-screen keyboards</string>

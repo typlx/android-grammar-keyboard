@@ -14,7 +14,9 @@ import java.util.concurrent.TimeUnit
  * API client that sends text to an OpenAI-compatible chat completions endpoint
  * for grammar and spelling correction.
  */
-class GrammarService {
+class GrammarService(
+    private val httpClient: OkHttpClient = sharedClient
+) {
 
     companion object {
         private const val SYSTEM_PROMPT =
@@ -23,7 +25,7 @@ class GrammarService {
         private const val TIMEOUT_SECONDS = 30L
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
-        private val client: OkHttpClient by lazy {
+        private val sharedClient: OkHttpClient by lazy {
             OkHttpClient.Builder()
                 .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
@@ -78,7 +80,7 @@ class GrammarService {
             .build()
 
         try {
-            val response = client.newCall(request).execute()
+            val response = httpClient.newCall(request).execute()
             val responseBody = response.body?.string()
                 ?: throw GrammarServiceException("Empty response body")
 

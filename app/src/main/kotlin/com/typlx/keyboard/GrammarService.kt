@@ -83,13 +83,7 @@ class GrammarService {
                 ?: throw GrammarServiceException("Empty response body")
 
             if (!response.isSuccessful) {
-                val msg = when (response.code) {
-                    401, 403 -> "Invalid API token (${response.code})"
-                    429 -> "Rate limit reached — try again later"
-                    in 500..599 -> "Server error (${response.code}) — try again later"
-                    else -> "API error ${response.code}"
-                }
-                throw GrammarServiceException(msg)
+                throw GrammarServiceException(httpErrorMessage(response.code))
             }
 
             val json = JSONObject(responseBody)
@@ -120,3 +114,10 @@ class GrammarServiceException(
     message: String,
     cause: Throwable? = null
 ) : Exception(message, cause)
+
+internal fun httpErrorMessage(code: Int): String = when (code) {
+    401, 403 -> "Invalid API token ($code)"
+    429 -> "Rate limit reached — try again later"
+    in 500..599 -> "Server error ($code) — try again later"
+    else -> "API error $code"
+}

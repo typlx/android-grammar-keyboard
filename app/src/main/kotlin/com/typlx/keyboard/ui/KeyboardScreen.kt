@@ -16,6 +16,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -31,10 +35,13 @@ private val SYM_ROW1 = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 private val SYM_ROW2 = listOf("@", "#", "$", "%", "&", "-", "+", "(", ")")
 private val SYM_ROW3 = listOf("*", "\"", "'", ":", ";", "!", "?")
 
+internal enum class ShiftState { OFF, SHIFT_ONCE, CAPS_LOCK }
+
 @Composable
 fun KeyboardScreen(
     isFixingGrammar: Boolean,
     grammarError: String?,
+    returnKeyDescription: String = "Return",
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
     onFixGrammar: () -> Unit,
@@ -42,14 +49,35 @@ fun KeyboardScreen(
     onErrorDismiss: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
-    var isCaps by remember { mutableStateOf(false) }
+    var shiftState by remember { mutableStateOf(ShiftState.OFF) }
+    var lastShiftTapMs by remember { mutableLongStateOf(0L) }
     var isSymbols by remember { mutableStateOf(false) }
     val colors = LocalKeyboardColors.current
 
-    // Wraps onKeyPress to auto-release shift-once after any printable character
+    val isCaps = shiftState != ShiftState.OFF
+
+    val onShiftTap = {
+        val now = System.currentTimeMillis()
+        shiftState = when (shiftState) {
+            ShiftState.OFF -> {
+                lastShiftTapMs = now
+                ShiftState.SHIFT_ONCE
+            }
+            ShiftState.SHIFT_ONCE -> {
+                // Double-tap within 400ms activates caps lock
+                if (now - lastShiftTapMs < 400L) ShiftState.CAPS_LOCK
+                else { lastShiftTapMs = now; ShiftState.SHIFT_ONCE }
+            }
+            ShiftState.CAPS_LOCK -> ShiftState.OFF
+        }
+    }
+
+    // Auto-releases shift-once after any printable key; caps lock persists.
     val shiftOnceKeyPress: (String) -> Unit = { key ->
         onKeyPress(key)
-        if (!isSymbols && isCaps) isCaps = false
+        if (!isSymbols && shiftState == ShiftState.SHIFT_ONCE) {
+            shiftState = ShiftState.OFF
+        }
     }
 
     Column(
@@ -76,8 +104,8 @@ fun KeyboardScreen(
             KeyRow(ROW2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
             AlphaRow3(
                 keys = ROW3,
-                isCaps = isCaps,
-                onCapsToggle = { isCaps = !isCaps },
+                shiftState = shiftState,
+                onShiftTap = onShiftTap,
                 onKeyPress = shiftOnceKeyPress,
                 onDelete = onDelete,
                 colors = colors,
@@ -89,6 +117,7 @@ fun KeyboardScreen(
             onSymbolToggle = { isSymbols = !isSymbols },
             onKeyPress = shiftOnceKeyPress,
             onReturn = onReturn,
+            returnKeyDescription = returnKeyDescription,
             colors = colors,
         )
     }
@@ -122,7 +151,9 @@ private fun ToolbarRow(
                         fontSize = 12.sp,
                     )
                 },
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = "Error: $grammarError. Tap to dismiss." },
                 colors = SuggestionChipDefaults.suggestionChipColors(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                 ),
@@ -131,11 +162,14 @@ private fun ToolbarRow(
             Spacer(Modifier.weight(1f))
         }
 
+        val fixButtonDesc = if (isFixingGrammar) "Fixing grammar, please wait" else "Fix grammar"
         Button(
             onClick = onFixGrammar,
             enabled = !isFixingGrammar,
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
-            modifier = Modifier.height(36.dp),
+            modifier = Modifier
+                .height(36.dp)
+                .semantics { contentDescription = fixButtonDesc },
         ) {
             if (isFixingGrammar) {
                 CircularProgressIndicator(
@@ -154,11 +188,13 @@ private fun ToolbarRow(
 
         IconButton(
             onClick = onOpenSettings,
-            modifier = Modifier.size(36.dp),
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = "Open settings" },
         ) {
             Icon(
                 imageVector = Icons.Default.Settings,
-                contentDescription = "Open Settings",
+                contentDescription = null, // described by parent semantics
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
@@ -181,6 +217,7 @@ private fun KeyRow(
             val label = if (isCaps) key.uppercase() else key
             KeyButton(
                 label = label,
+                contentDescription = "Letter ${label.uppercase()}",
                 modifier = Modifier.weight(1f),
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
@@ -193,28 +230,38 @@ private fun KeyRow(
 @Composable
 private fun AlphaRow3(
     keys: List<String>,
-    isCaps: Boolean,
-    onCapsToggle: () -> Unit,
+    shiftState: ShiftState,
+    onShiftTap: () -> Unit,
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
 ) {
+    val isCaps = shiftState != ShiftState.OFF
+    val shiftLabel = if (shiftState == ShiftState.CAPS_LOCK) "⇪" else "⇧"
+    val shiftDesc = when (shiftState) {
+        ShiftState.OFF -> "Shift, double-tap for caps lock"
+        ShiftState.SHIFT_ONCE -> "Shift active, double-tap for caps lock, tap again to cancel"
+        ShiftState.CAPS_LOCK -> "Caps lock active, tap to disable"
+    }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         KeyButton(
-            label = "⇧",
+            label = shiftLabel,
+            contentDescription = shiftDesc,
             modifier = Modifier.weight(1.5f),
             bgColor = if (isCaps) MaterialTheme.colorScheme.primary else colors.keyActionBg,
             textColor = if (isCaps) MaterialTheme.colorScheme.onPrimary else colors.keyText,
-            onClick = onCapsToggle,
+            onClick = onShiftTap,
         )
         keys.forEach { key ->
             val label = if (isCaps) key.uppercase() else key
             KeyButton(
                 label = label,
+                contentDescription = "Letter ${label.uppercase()}",
                 modifier = Modifier.weight(1f),
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
@@ -223,6 +270,7 @@ private fun AlphaRow3(
         }
         KeyButton(
             label = "⌫",
+            contentDescription = "Delete",
             modifier = Modifier.weight(1.5f),
             bgColor = colors.keyActionBg,
             textColor = colors.keyText,
@@ -247,6 +295,7 @@ private fun SymbolRow3(
         keys.forEach { key ->
             KeyButton(
                 label = key,
+                contentDescription = key,
                 modifier = Modifier.weight(1f),
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
@@ -255,6 +304,7 @@ private fun SymbolRow3(
         }
         KeyButton(
             label = "⌫",
+            contentDescription = "Delete",
             modifier = Modifier.weight(1.5f),
             bgColor = colors.keyActionBg,
             textColor = colors.keyText,
@@ -269,6 +319,7 @@ private fun BottomRow(
     onSymbolToggle: () -> Unit,
     onKeyPress: (String) -> Unit,
     onReturn: () -> Unit,
+    returnKeyDescription: String,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
 ) {
     Row(
@@ -276,8 +327,10 @@ private fun BottomRow(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        val symbolToggleDesc = if (isSymbols) "Switch to letters" else "Switch to symbols"
         KeyButton(
             label = if (isSymbols) "ABC" else "?123",
+            contentDescription = symbolToggleDesc,
             modifier = Modifier.weight(1.5f),
             bgColor = colors.keyActionBg,
             textColor = colors.keyText,
@@ -285,6 +338,7 @@ private fun BottomRow(
         )
         KeyButton(
             label = ",",
+            contentDescription = "Comma",
             modifier = Modifier.weight(1f),
             bgColor = colors.keyBg,
             textColor = colors.keyText,
@@ -292,6 +346,7 @@ private fun BottomRow(
         )
         KeyButton(
             label = " ",
+            contentDescription = "Space",
             modifier = Modifier.weight(4f),
             bgColor = colors.keyBg,
             textColor = colors.keyText,
@@ -299,6 +354,7 @@ private fun BottomRow(
         )
         KeyButton(
             label = ".",
+            contentDescription = "Period",
             modifier = Modifier.weight(1f),
             bgColor = colors.keyBg,
             textColor = colors.keyText,
@@ -306,6 +362,7 @@ private fun BottomRow(
         )
         KeyButton(
             label = "↵",
+            contentDescription = returnKeyDescription,
             modifier = Modifier.weight(1.5f),
             bgColor = MaterialTheme.colorScheme.primary,
             textColor = MaterialTheme.colorScheme.onPrimary,
@@ -317,6 +374,7 @@ private fun BottomRow(
 @Composable
 private fun KeyButton(
     label: String,
+    contentDescription: String,
     modifier: Modifier = Modifier,
     bgColor: Color,
     textColor: Color,
@@ -330,6 +388,10 @@ private fun KeyButton(
             .height(height)
             .clip(RoundedCornerShape(6.dp))
             .background(bgColor)
+            .semantics {
+                this.contentDescription = contentDescription
+                this.role = Role.Button
+            }
             .clickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(),

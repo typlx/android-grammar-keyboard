@@ -133,6 +133,11 @@ class GrammarKeyboardService : InputMethodService(),
         if (isFixingGrammar) return
         val ic = currentInputConnection ?: return
 
+        if (!FeatureGate.isEnabled(FeatureGate.Feature.GRAMMAR_FIX)) {
+            grammarError = getString(R.string.error_premium_required)
+            return
+        }
+
         if (!prefs.isConfigured) {
             grammarError = getString(R.string.error_not_configured)
             return

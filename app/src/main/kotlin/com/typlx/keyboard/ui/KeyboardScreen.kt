@@ -37,6 +37,24 @@ private val SYM_ROW3 = listOf("*", "\"", "'", ":", ";", "!", "?")
 
 internal enum class ShiftState { OFF, SHIFT_ONCE, CAPS_LOCK }
 
+/**
+ * Pure state machine for shift key transitions. Returns the next (state, lastTapMs) pair.
+ * [now] and [lastTapMs] are epoch-millisecond timestamps; double-tap window is 400 ms.
+ */
+internal fun nextShiftState(
+    current: ShiftState,
+    now: Long,
+    lastTapMs: Long,
+): Pair<ShiftState, Long> = when (current) {
+    ShiftState.OFF -> Pair(ShiftState.SHIFT_ONCE, now)
+    ShiftState.SHIFT_ONCE -> if (now - lastTapMs < 400L) {
+        Pair(ShiftState.CAPS_LOCK, lastTapMs)
+    } else {
+        Pair(ShiftState.SHIFT_ONCE, now)
+    }
+    ShiftState.CAPS_LOCK -> Pair(ShiftState.OFF, lastTapMs)
+}
+
 @Composable
 fun KeyboardScreen(
     isFixingGrammar: Boolean,
@@ -57,19 +75,9 @@ fun KeyboardScreen(
     val isCaps = shiftState != ShiftState.OFF
 
     val onShiftTap = {
-        val now = System.currentTimeMillis()
-        shiftState = when (shiftState) {
-            ShiftState.OFF -> {
-                lastShiftTapMs = now
-                ShiftState.SHIFT_ONCE
-            }
-            ShiftState.SHIFT_ONCE -> {
-                // Double-tap within 400ms activates caps lock
-                if (now - lastShiftTapMs < 400L) ShiftState.CAPS_LOCK
-                else { lastShiftTapMs = now; ShiftState.SHIFT_ONCE }
-            }
-            ShiftState.CAPS_LOCK -> ShiftState.OFF
-        }
+        val (newState, newMs) = nextShiftState(shiftState, System.currentTimeMillis(), lastShiftTapMs)
+        shiftState = newState
+        lastShiftTapMs = newMs
     }
 
     // Auto-releases shift-once after any printable key; caps lock persists.

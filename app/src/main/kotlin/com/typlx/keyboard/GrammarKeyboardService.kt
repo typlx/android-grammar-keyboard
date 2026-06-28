@@ -39,8 +39,12 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var grammarError by mutableStateOf<String?>(null)
         private set
+    var canUndo by mutableStateOf(false)
+        private set
     var returnKeyDescription by mutableStateOf("Return")
         private set
+
+    private val undoState = GrammarUndoState()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -68,6 +72,7 @@ class GrammarKeyboardService : InputMethodService(),
                     KeyboardScreen(
                         isFixingGrammar = isFixingGrammar,
                         grammarError = grammarError,
+                        canUndo = canUndo,
                         returnKeyDescription = returnKeyDescription,
                         onKeyPress = ::commitText,
                         onDelete = ::deleteChar,
@@ -75,6 +80,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onFixGrammar = ::launchGrammarFix,
                         onReturn = ::commitReturn,
                         onErrorDismiss = { grammarError = null },
+                        onUndoGrammarFix = ::undoGrammarFix,
                         onOpenSettings = ::openSettings,
                     )
                 }
@@ -85,6 +91,7 @@ class GrammarKeyboardService : InputMethodService(),
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        clearUndoState()
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
             EditorInfo.IME_ACTION_SEND -> "Send"
@@ -111,14 +118,17 @@ class GrammarKeyboardService : InputMethodService(),
     // --- Input helpers ---
 
     private fun commitText(text: String) {
+        clearUndoState()
         currentInputConnection?.commitText(text, 1)
     }
 
     private fun deleteChar() {
+        clearUndoState()
         currentInputConnection?.deleteSurroundingText(1, 0)
     }
 
     private fun deleteWord() {
+        clearUndoState()
         val ic = currentInputConnection ?: return
         val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: return
         val count = wordDeleteCount(text)
@@ -126,6 +136,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     private fun commitReturn() {
+        clearUndoState()
         val ic = currentInputConnection ?: return
         val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
         if (action != null &&
@@ -136,6 +147,19 @@ class GrammarKeyboardService : InputMethodService(),
         } else {
             ic.commitText("\n", 1)
         }
+    }
+
+    private fun clearUndoState() {
+        undoState.clear()
+        canUndo = false
+    }
+
+    fun undoGrammarFix() {
+        val (original, fixed) = undoState.consume() ?: return
+        canUndo = false
+        val ic = currentInputConnection ?: return
+        ic.deleteSurroundingText(fixed.length, 0)
+        ic.commitText(original, 1)
     }
 
     // --- Settings ---
@@ -171,6 +195,7 @@ class GrammarKeyboardService : InputMethodService(),
 
         isFixingGrammar = true
         grammarError = null
+        clearUndoState()
 
         serviceScope.launch {
             try {
@@ -182,6 +207,8 @@ class GrammarKeyboardService : InputMethodService(),
                 )
                 ic.deleteSurroundingText(textBefore.length, 0)
                 ic.commitText(fixed, 1)
+                undoState.recordFix(original = textBefore, fixed = fixed)
+                canUndo = true
             } catch (e: GrammarServiceException) {
                 grammarError = e.message ?: getString(R.string.grammar_error)
             } finally {

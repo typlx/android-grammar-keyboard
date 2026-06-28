@@ -64,6 +64,7 @@ internal fun nextShiftState(
 fun KeyboardScreen(
     isFixingGrammar: Boolean,
     grammarError: String?,
+    canUndo: Boolean = false,
     returnKeyDescription: String = "Return",
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
@@ -71,6 +72,7 @@ fun KeyboardScreen(
     onFixGrammar: () -> Unit,
     onReturn: () -> Unit,
     onErrorDismiss: () -> Unit,
+    onUndoGrammarFix: () -> Unit = {},
     onOpenSettings: () -> Unit,
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
@@ -104,8 +106,10 @@ fun KeyboardScreen(
         ToolbarRow(
             isFixingGrammar = isFixingGrammar,
             grammarError = grammarError,
+            canUndo = canUndo,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
+            onUndoGrammarFix = onUndoGrammarFix,
             onOpenSettings = onOpenSettings,
         )
 
@@ -144,8 +148,10 @@ fun KeyboardScreen(
 private fun ToolbarRow(
     isFixingGrammar: Boolean,
     grammarError: String?,
+    canUndo: Boolean,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
+    onUndoGrammarFix: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Row(
@@ -156,8 +162,8 @@ private fun ToolbarRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        if (grammarError != null) {
-            SuggestionChip(
+        when {
+            grammarError != null -> SuggestionChip(
                 onClick = onErrorDismiss,
                 label = {
                     Text(
@@ -175,8 +181,20 @@ private fun ToolbarRow(
                     containerColor = MaterialTheme.colorScheme.errorContainer,
                 ),
             )
-        } else {
-            Spacer(Modifier.weight(1f))
+            canUndo -> SuggestionChip(
+                onClick = onUndoGrammarFix,
+                label = {
+                    Text(
+                        text = "↩ Undo fix",
+                        maxLines = 1,
+                        fontSize = 12.sp,
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = "Undo grammar fix. Tap to restore original text." },
+            )
+            else -> Spacer(Modifier.weight(1f))
         }
 
         val fixButtonDesc = if (isFixingGrammar) "Fixing grammar, please wait" else "Fix grammar"

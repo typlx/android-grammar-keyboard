@@ -3,6 +3,7 @@ package com.typlx.keyboard
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.compose.runtime.getValue
@@ -88,6 +89,18 @@ class GrammarKeyboardService : InputMethodService(),
                         onErrorDismiss = { grammarError = null },
                         onUndoGrammarFix = ::undoGrammarFix,
                         onEmojiPress = ::commitEmoji,
+                        onMoveCursorLeft = { moveCursor(KeyEvent.KEYCODE_DPAD_LEFT) },
+                        onMoveCursorRight = { moveCursor(KeyEvent.KEYCODE_DPAD_RIGHT) },
+                        onMoveCursorUp = { moveCursor(KeyEvent.KEYCODE_DPAD_UP) },
+                        onMoveCursorDown = { moveCursor(KeyEvent.KEYCODE_DPAD_DOWN) },
+                        onMoveCursorWordLeft = { moveCursorWord(forward = false) },
+                        onMoveCursorWordRight = { moveCursorWord(forward = true) },
+                        onCursorHome = { moveCursor(KeyEvent.KEYCODE_MOVE_HOME) },
+                        onCursorEnd = { moveCursor(KeyEvent.KEYCODE_MOVE_END) },
+                        onSelectAll = { currentInputConnection?.performContextMenuAction(android.R.id.selectAll) },
+                        onCopyText = { currentInputConnection?.performContextMenuAction(android.R.id.copy) },
+                        onCutText = { currentInputConnection?.performContextMenuAction(android.R.id.cut) },
+                        onPasteText = { currentInputConnection?.performContextMenuAction(android.R.id.paste) },
                         onOpenSettings = ::openSettings,
                     )
                 }
@@ -198,6 +211,20 @@ class GrammarKeyboardService : InputMethodService(),
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         startActivity(intent)
+    }
+
+    private fun moveCursor(keyCode: Int) {
+        val ic = currentInputConnection ?: return
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, keyCode))
+        ic.sendKeyEvent(KeyEvent(KeyEvent.ACTION_UP, keyCode))
+    }
+
+    private fun moveCursorWord(forward: Boolean) {
+        val ic = currentInputConnection ?: return
+        val metaState = KeyEvent.META_CTRL_ON
+        val keyCode = if (forward) KeyEvent.KEYCODE_DPAD_RIGHT else KeyEvent.KEYCODE_DPAD_LEFT
+        ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
+        ic.sendKeyEvent(KeyEvent(0L, 0L, KeyEvent.ACTION_UP, keyCode, 0, metaState))
     }
 
     companion object {

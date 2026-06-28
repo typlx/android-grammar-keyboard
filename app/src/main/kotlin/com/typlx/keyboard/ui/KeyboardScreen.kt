@@ -1,7 +1,8 @@
 package com.typlx.keyboard.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -12,6 +13,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -36,10 +39,30 @@ fun KeyboardScreen(
     onFixGrammar: () -> Unit,
     onReturn: () -> Unit,
     onErrorDismiss: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onMoveCursorLeft: () -> Unit,
+    onMoveCursorRight: () -> Unit,
+    onMoveCursorUp: () -> Unit,
+    onMoveCursorDown: () -> Unit,
+    onMoveCursorHome: () -> Unit,
+    onMoveCursorEnd: () -> Unit,
+    onMoveCursorWordLeft: () -> Unit,
+    onMoveCursorWordRight: () -> Unit,
+    onSelectAll: () -> Unit,
+    onCopy: () -> Unit,
+    onCut: () -> Unit,
+    onPaste: () -> Unit,
 ) {
     var isCaps by remember { mutableStateOf(false) }
     var isSymbols by remember { mutableStateOf(false) }
+    var isNav by remember { mutableStateOf(false) }
     val colors = LocalKeyboardColors.current
+
+    // Wraps onKeyPress to auto-release shift-once after any printable character
+    val shiftOnceKeyPress: (String) -> Unit = { key ->
+        onKeyPress(key)
+        if (!isSymbols && isCaps) isCaps = false
+    }
 
     Column(
         modifier = Modifier
@@ -51,37 +74,55 @@ fun KeyboardScreen(
         ToolbarRow(
             isFixingGrammar = isFixingGrammar,
             grammarError = grammarError,
+            isNav = isNav,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
+            onOpenSettings = onOpenSettings,
+            onNavToggle = { isNav = !isNav },
         )
 
-        if (isSymbols) {
-            KeyRow(SYM_ROW1, isCaps = false, onKeyPress = onKeyPress, colors = colors)
-            KeyRow(SYM_ROW2, isCaps = false, onKeyPress = onKeyPress, colors = colors)
-            SymbolRow3(SYM_ROW3, onKeyPress = onKeyPress, onDelete = onDelete, colors = colors)
+        if (isNav) {
+            CursorNavPanel(
+                onLeft = onMoveCursorLeft,
+                onRight = onMoveCursorRight,
+                onUp = onMoveCursorUp,
+                onDown = onMoveCursorDown,
+                onHome = onMoveCursorHome,
+                onEnd = onMoveCursorEnd,
+                onWordLeft = onMoveCursorWordLeft,
+                onWordRight = onMoveCursorWordRight,
+                onSelectAll = onSelectAll,
+                onCopy = onCopy,
+                onCut = onCut,
+                onPaste = onPaste,
+                colors = colors,
+            )
         } else {
-            KeyRow(ROW1, isCaps = isCaps, onKeyPress = onKeyPress, colors = colors)
-            KeyRow(ROW2, isCaps = isCaps, onKeyPress = onKeyPress, colors = colors)
-            AlphaRow3(
-                keys = ROW3,
-                isCaps = isCaps,
-                onCapsToggle = { isCaps = !isCaps },
-                onKeyPress = { key ->
-                    onKeyPress(key)
-                    if (isCaps) isCaps = false  // single-tap shift: revert after one key
-                },
-                onDelete = onDelete,
+            if (isSymbols) {
+                KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
+                KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
+                SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, colors = colors)
+            } else {
+                KeyRow(ROW1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
+                KeyRow(ROW2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
+                AlphaRow3(
+                    keys = ROW3,
+                    isCaps = isCaps,
+                    onCapsToggle = { isCaps = !isCaps },
+                    onKeyPress = shiftOnceKeyPress,
+                    onDelete = onDelete,
+                    colors = colors,
+                )
+            }
+
+            BottomRow(
+                isSymbols = isSymbols,
+                onSymbolToggle = { isSymbols = !isSymbols },
+                onKeyPress = shiftOnceKeyPress,
+                onReturn = onReturn,
                 colors = colors,
             )
         }
-
-        BottomRow(
-            isSymbols = isSymbols,
-            onSymbolToggle = { isSymbols = !isSymbols },
-            onKeyPress = onKeyPress,
-            onReturn = onReturn,
-            colors = colors,
-        )
     }
 }
 
@@ -89,8 +130,11 @@ fun KeyboardScreen(
 private fun ToolbarRow(
     isFixingGrammar: Boolean,
     grammarError: String?,
+    isNav: Boolean,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onNavToggle: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -139,6 +183,151 @@ private fun ToolbarRow(
                 text = if (isFixingGrammar) "Fixing…" else "Fix Grammar",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
+            )
+        }
+
+        IconButton(
+            onClick = onNavToggle,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Text(
+                text = "↕",
+                fontSize = 18.sp,
+                color = if (isNav)
+                    MaterialTheme.colorScheme.primary
+                else
+                    MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        IconButton(
+            onClick = onOpenSettings,
+            modifier = Modifier.size(36.dp),
+        ) {
+            Icon(
+                imageVector = androidx.compose.material.icons.Icons.Default.Settings,
+                contentDescription = "Open Settings",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CursorNavPanel(
+    onLeft: () -> Unit,
+    onRight: () -> Unit,
+    onUp: () -> Unit,
+    onDown: () -> Unit,
+    onHome: () -> Unit,
+    onEnd: () -> Unit,
+    onWordLeft: () -> Unit,
+    onWordRight: () -> Unit,
+    onSelectAll: () -> Unit,
+    onCopy: () -> Unit,
+    onCut: () -> Unit,
+    onPaste: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        // Edit action buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            KeyButton(
+                label = "Select All",
+                modifier = Modifier.weight(1f),
+                bgColor = colors.keyActionBg,
+                textColor = colors.keyText,
+                onClick = onSelectAll,
+            )
+            KeyButton(
+                label = "Copy",
+                modifier = Modifier.weight(1f),
+                bgColor = colors.keyActionBg,
+                textColor = colors.keyText,
+                onClick = onCopy,
+            )
+            KeyButton(
+                label = "Cut",
+                modifier = Modifier.weight(1f),
+                bgColor = colors.keyActionBg,
+                textColor = colors.keyText,
+                onClick = onCut,
+            )
+            KeyButton(
+                label = "Paste",
+                modifier = Modifier.weight(1f),
+                bgColor = colors.keyActionBg,
+                textColor = colors.keyText,
+                onClick = onPaste,
+            )
+        }
+
+        // Arrow keys — long-press ← / → moves word-by-word
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Spacer(Modifier.weight(1f))
+            KeyButton(
+                label = "←",
+                modifier = Modifier.weight(2f),
+                bgColor = colors.keyBg,
+                textColor = colors.keyText,
+                onClick = onLeft,
+                onLongClick = onWordLeft,
+            )
+            KeyButton(
+                label = "↑",
+                modifier = Modifier.weight(2f),
+                bgColor = colors.keyBg,
+                textColor = colors.keyText,
+                onClick = onUp,
+            )
+            KeyButton(
+                label = "↓",
+                modifier = Modifier.weight(2f),
+                bgColor = colors.keyBg,
+                textColor = colors.keyText,
+                onClick = onDown,
+            )
+            KeyButton(
+                label = "→",
+                modifier = Modifier.weight(2f),
+                bgColor = colors.keyBg,
+                textColor = colors.keyText,
+                onClick = onRight,
+                onLongClick = onWordRight,
+            )
+            Spacer(Modifier.weight(1f))
+        }
+
+        // Home / End
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(5.dp),
+        ) {
+            KeyButton(
+                label = "Home",
+                modifier = Modifier.weight(2f),
+                bgColor = colors.keyActionBg,
+                textColor = colors.keyText,
+                onClick = onHome,
+            )
+            Spacer(Modifier.weight(6f))
+            KeyButton(
+                label = "End",
+                modifier = Modifier.weight(2f),
+                bgColor = colors.keyActionBg,
+                textColor = colors.keyText,
+                onClick = onEnd,
             )
         }
     }
@@ -292,6 +481,7 @@ private fun BottomRow(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun KeyButton(
     label: String,
@@ -299,18 +489,29 @@ private fun KeyButton(
     bgColor: Color,
     textColor: Color,
     height: Dp = 46.dp,
+    onLongClick: (() -> Unit)? = null,
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
+    val haptic = LocalHapticFeedback.current
     Box(
         modifier = modifier
             .height(height)
             .clip(RoundedCornerShape(6.dp))
             .background(bgColor)
-            .clickable(
+            .combinedClickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(),
-                onClick = onClick,
+                onClick = {
+                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                    onClick()
+                },
+                onLongClick = if (onLongClick != null) {
+                    {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
+                } else null,
             ),
         contentAlignment = Alignment.Center,
     ) {

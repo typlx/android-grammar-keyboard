@@ -3,7 +3,6 @@ package com.typlx.keyboard
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
@@ -23,11 +22,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
+import kotlinx.coroutines.launch
 
-/**
- * Settings screen for configuring the grammar keyboard's API connection.
- * Uses Jetpack Compose with Material3 for the UI.
- */
 class SettingsActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,6 +56,8 @@ private fun SettingsScreen(
     onOpenImeSettings: () -> Unit,
 ) {
     val context = LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     var apiUrl by remember { mutableStateOf(prefsManager.apiUrl) }
     var model by remember { mutableStateOf(prefsManager.model) }
@@ -71,6 +69,7 @@ private fun SettingsScreen(
     var apiTokenError by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) }
@@ -154,11 +153,13 @@ private fun SettingsScreen(
             // Save button
             Button(
                 onClick = {
-                    // Validate
                     var hasErrors = false
 
                     if (apiUrl.isBlank()) {
                         apiUrlError = context.getString(R.string.error_url_required)
+                        hasErrors = true
+                    } else if (!apiUrl.startsWith("http://") && !apiUrl.startsWith("https://")) {
+                        apiUrlError = context.getString(R.string.error_url_scheme)
                         hasErrors = true
                     }
 
@@ -177,11 +178,12 @@ private fun SettingsScreen(
                         prefsManager.model = model.trim()
                         prefsManager.apiToken = apiToken.trim()
 
-                        Toast.makeText(
-                            context,
-                            context.getString(R.string.settings_saved),
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        scope.launch {
+                            snackbarHostState.showSnackbar(
+                                message = context.getString(R.string.settings_saved),
+                                duration = SnackbarDuration.Short,
+                            )
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
@@ -198,7 +200,7 @@ private fun SettingsScreen(
                 onClick = onOpenImeSettings,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Enable Typlx Keyboard in System Settings")
+                Text(stringResource(R.string.settings_enable_keyboard_button))
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -211,6 +213,40 @@ private fun SettingsScreen(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.about_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = stringResource(
+                    R.string.about_version,
+                    BuildConfig.VERSION_NAME,
+                    BuildConfig.VERSION_CODE,
+                ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Text(
+                text = stringResource(R.string.about_license),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
         }
     }
 }

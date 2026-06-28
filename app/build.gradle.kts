@@ -1,16 +1,18 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
+    id("com.google.firebase.appdistribution")
 }
 
 android {
     namespace = "com.typlx.keyboard"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.typlx.keyboard"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 26
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -23,6 +25,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            firebaseAppDistribution {
+                artifactType = "APK"
+                groups = "qa-testers"
+                releaseNotes = "Release build for QA testing"
+            }
+        }
+        debug {
+            firebaseAppDistribution {
+                artifactType = "APK"
+                groups = "qa-testers"
+                releaseNotes = "Debug build for testing"
+            }
         }
     }
 
@@ -37,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -60,6 +75,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.savedstate:savedstate-ktx:1.2.1")
 
+    // Monetization — uncomment when TYP-124 is approved and RevenueCat API key is available
+    // implementation("com.revenuecat.purchases:purchases:7.12.0")
+
     // HTTP client for API calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
@@ -68,6 +86,10 @@ dependencies {
 
     // Encrypted storage for API credentials
     implementation("androidx.security:security-crypto:1.0.0")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

@@ -4,19 +4,40 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Keyboard outline -->
+
+    <!-- Keyboard body: rounded rect, centered in adaptive icon safe zone (18–90) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M24,36 C21.8,36 20,37.8 20,40 L20,68 C20,70.2 21.8,72 24,72 L84,72 C86.2,72 88,70.2 88,68 L88,40 C88,37.8 86.2,36 84,36 Z" />
-    <!-- Keys (blue tint rows) -->
+        android:pathData="M27,46 L81,46 Q86,46 86,51 L86,74 Q86,79 81,79 L27,79 Q22,79 22,74 L22,51 Q22,46 27,46 Z" />
+
+    <!-- Top key row — 5 keys, blue so background colour shows through as key faces -->
     <path
         android:fillColor="#1A73E8"
-        android:pathData="M28,43 L36,43 L36,51 L28,51 Z
-                          M40,43 L48,43 L48,51 L40,51 Z
-                          M52,43 L60,43 L60,51 L52,51 Z
-                          M64,43 L72,43 L72,51 L64,51 Z
-                          M28,55 L38,55 L38,63 L28,63 Z
-                          M42,55 L52,55 L52,63 L42,63 Z
-                          M56,55 L66,55 L66,63 L56,63 Z
-                          M70,55 L80,55 L80,63 L70,63 Z" />
+        android:pathData="M25,49 L33,49 L33,57 L25,57 Z
+                          M37,49 L45,49 L45,57 L37,57 Z
+                          M49,49 L59,49 L59,57 L49,57 Z
+                          M63,49 L71,49 L71,57 L63,57 Z
+                          M75,49 L83,49 L83,57 L75,57 Z" />
+
+    <!-- Bottom key row — 4 keys + space bar -->
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M25,61 L35,61 L35,69 L25,69 Z
+                          M39,61 L53,61 L53,69 L39,69 Z
+                          M57,61 L71,61 L71,69 L57,69 Z
+                          M75,61 L83,61 L83,69 L75,69 Z" />
+
+    <!-- Space bar -->
+    <path
+        android:fillColor="#1A73E8"
+        android:pathData="M32,72 L76,72 L76,77 L32,77 Z" />
+
+    <!-- Grammar-check mark floating above keyboard (top-right quadrant) -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M69,28 L75,35 L87,20" />
 </vector>

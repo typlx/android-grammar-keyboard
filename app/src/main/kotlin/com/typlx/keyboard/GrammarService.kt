@@ -22,13 +22,15 @@ class GrammarService {
         private const val TEMPERATURE = 0.3
         private const val TIMEOUT_SECONDS = 30L
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
-    }
 
-    private val client = OkHttpClient.Builder()
-        .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
-        .build()
+        private val client: OkHttpClient by lazy {
+            OkHttpClient.Builder()
+                .connectTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .readTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .build()
+        }
+    }
 
     /**
      * Sends text to the grammar-fix API and returns the corrected text.
@@ -81,9 +83,13 @@ class GrammarService {
                 ?: throw GrammarServiceException("Empty response body")
 
             if (!response.isSuccessful) {
-                throw GrammarServiceException(
-                    "API returned ${response.code}: $responseBody"
-                )
+                val msg = when (response.code) {
+                    401, 403 -> "Invalid API token (${response.code})"
+                    429 -> "Rate limit reached — try again later"
+                    in 500..599 -> "Server error (${response.code}) — try again later"
+                    else -> "API error ${response.code}"
+                }
+                throw GrammarServiceException(msg)
             }
 
             val json = JSONObject(responseBody)
@@ -98,6 +104,12 @@ class GrammarService {
                 .trim()
         } catch (e: GrammarServiceException) {
             throw e
+        } catch (e: java.net.UnknownHostException) {
+            throw GrammarServiceException("No internet connection", e)
+        } catch (e: java.net.ConnectException) {
+            throw GrammarServiceException("Could not connect to server", e)
+        } catch (e: java.net.SocketTimeoutException) {
+            throw GrammarServiceException("Request timed out — check your connection", e)
         } catch (e: Exception) {
             throw GrammarServiceException("Request failed: ${e.message}", e)
         }

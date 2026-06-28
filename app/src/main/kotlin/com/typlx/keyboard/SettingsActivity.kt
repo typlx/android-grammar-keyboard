@@ -65,6 +65,7 @@ private fun SettingsScreen(
     var apiToken by remember { mutableStateOf(prefsManager.apiToken) }
     var tokenVisible by remember { mutableStateOf(false) }
     var hapticEnabled by remember { mutableStateOf(prefsManager.hapticFeedbackEnabled) }
+    var autoSuggestEnabled by remember { mutableStateOf(prefsManager.autoSuggestEnabled) }
 
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
@@ -174,6 +175,34 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         hapticEnabled = it
                         prefsManager.hapticFeedbackEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Auto-suggest toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_auto_suggest_label),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_auto_suggest_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = autoSuggestEnabled,
+                    onCheckedChange = {
+                        autoSuggestEnabled = it
+                        prefsManager.autoSuggestEnabled = it
                     },
                 )
             }

@@ -47,6 +47,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var emojiRecents by mutableStateOf<List<String>>(emptyList())
         private set
+    var suggestionState by mutableStateOf<SuggestionState>(SuggestionState.Idle)
+        private set
 
     private val undoState = GrammarUndoState()
     private val emojiRecentsMgr = EmojiRecents()
@@ -56,6 +58,11 @@ class GrammarKeyboardService : InputMethodService(),
     private lateinit var grammarService: GrammarService
     private lateinit var hapticHelper: HapticHelper
     private var keyboardView: View? = null
+
+    private var suggestionDebounceJob: Job? = null
+    // Counts how many upcoming onUpdateSelection callbacks to suppress (caused by our own
+    // deleteSurroundingText / commitText calls when applying a suggestion).
+    private var suppressSuggestionTriggerCount = 0
 
     override fun onCreate() {
         super.onCreate()
@@ -84,6 +91,7 @@ class GrammarKeyboardService : InputMethodService(),
                         canUndo = canUndo,
                         returnKeyDescription = returnKeyDescription,
                         emojiRecents = emojiRecents,
+                        suggestionState = suggestionState,
                         onKeyPress = ::commitText,
                         onDelete = ::deleteChar,
                         onDeleteWord = ::deleteWord,
@@ -92,6 +100,8 @@ class GrammarKeyboardService : InputMethodService(),
                         onErrorDismiss = { grammarError = null },
                         onUndoGrammarFix = ::undoGrammarFix,
                         onEmojiPress = ::commitEmoji,
+                        onAcceptSuggestion = ::acceptSuggestion,
+                        onDismissSuggestion = ::dismissSuggestion,
                         onMoveCursorLeft = { moveCursor(KeyEvent.KEYCODE_DPAD_LEFT) },
                         onMoveCursorRight = { moveCursor(KeyEvent.KEYCODE_DPAD_RIGHT) },
                         onMoveCursorUp = { moveCursor(KeyEvent.KEYCODE_DPAD_UP) },
@@ -111,6 +121,66 @@ class GrammarKeyboardService : InputMethodService(),
         }
     }
 
+    override fun onUpdateSelection(
+        oldSelStart: Int, oldSelEnd: Int,
+        newSelStart: Int, newSelEnd: Int,
+        candidatesStart: Int, candidatesEnd: Int,
+    ) {
+        super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        if (suppressSuggestionTriggerCount > 0) {
+            suppressSuggestionTriggerCount--
+            return
+        }
+        scheduleAutoSuggest()
+    }
+
+    private fun scheduleAutoSuggest() {
+        if (!prefs.autoSuggestEnabled || !prefs.isConfigured || isFixingGrammar) return
+        suggestionDebounceJob?.cancel()
+        suggestionDebounceJob = serviceScope.launch {
+            delay(1500L)
+            runAutoSuggest()
+        }
+    }
+
+    private suspend fun runAutoSuggest() {
+        val ic = currentInputConnection ?: return
+        val text = ic.getTextBeforeCursor(5000, 0)?.toString()
+        if (text.isNullOrBlank()) {
+            suggestionState = SuggestionState.Idle
+            return
+        }
+        suggestionState = SuggestionState.Loading
+        try {
+            val fixed = grammarService.fixGrammar(
+                apiUrl = prefs.apiUrl,
+                model = prefs.model,
+                token = prefs.apiToken,
+                text = text,
+            )
+            suggestionState = if (fixed != text) SuggestionState.Available(text, fixed)
+                             else SuggestionState.Idle
+        } catch (_: GrammarServiceException) {
+            suggestionState = SuggestionState.Idle
+        }
+    }
+
+    fun acceptSuggestion() {
+        val state = suggestionState as? SuggestionState.Available ?: return
+        val ic = currentInputConnection ?: return
+        suggestionState = SuggestionState.Idle
+        suppressSuggestionTriggerCount = 2
+        ic.deleteSurroundingText(state.original.length, 0)
+        ic.commitText(state.corrected, 1)
+        undoState.recordFix(original = state.original, fixed = state.corrected)
+        canUndo = true
+    }
+
+    fun dismissSuggestion() {
+        suggestionState = SuggestionState.Idle
+        suggestionDebounceJob?.cancel()
+    }
+
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
@@ -128,6 +198,8 @@ class GrammarKeyboardService : InputMethodService(),
 
     override fun onFinishInputView(finishingInput: Boolean) {
         keyboardView = null
+        suggestionDebounceJob?.cancel()
+        suggestionState = SuggestionState.Idle
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         super.onFinishInputView(finishingInput)
     }
@@ -266,6 +338,7 @@ class GrammarKeyboardService : InputMethodService(),
         isFixingGrammar = true
         grammarError = null
         clearUndoState()
+        dismissSuggestion()
 
         serviceScope.launch {
             try {

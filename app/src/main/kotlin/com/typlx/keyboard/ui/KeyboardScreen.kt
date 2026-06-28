@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.typlx.keyboard.SuggestionState
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
 private val NUM_ROW = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
@@ -74,6 +75,7 @@ fun KeyboardScreen(
     canUndo: Boolean = false,
     returnKeyDescription: String = "Return",
     emojiRecents: List<String> = emptyList(),
+    suggestionState: SuggestionState = SuggestionState.Idle,
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
     onDeleteWord: () -> Unit,
@@ -82,6 +84,8 @@ fun KeyboardScreen(
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit = {},
     onEmojiPress: (String) -> Unit = {},
+    onAcceptSuggestion: () -> Unit = {},
+    onDismissSuggestion: () -> Unit = {},
     onMoveCursorLeft: () -> Unit = {},
     onMoveCursorRight: () -> Unit = {},
     onMoveCursorUp: () -> Unit = {},
@@ -209,6 +213,12 @@ fun KeyboardScreen(
             onEmojiToggle = { isEmoji = true },
             onNavToggle = { isNav = true },
             onOpenSettings = onOpenSettings,
+        )
+
+        SuggestionStrip(
+            state = suggestionState,
+            onAccept = onAcceptSuggestion,
+            onDismiss = onDismissSuggestion,
         )
 
         NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors)
@@ -813,6 +823,71 @@ private fun NavKeyButton(
                 maxLines = 2,
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+}
+
+@Composable
+private fun SuggestionStrip(
+    state: SuggestionState,
+    onAccept: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    when (state) {
+        SuggestionState.Idle -> return
+        SuggestionState.Loading -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 1.5.dp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "Checking grammar…",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        is SuggestionState.Available -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            SuggestionChip(
+                onClick = onAccept,
+                label = {
+                    Text(
+                        text = state.corrected,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 12.sp,
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = "Grammar suggestion: ${state.corrected}. Tap to accept." },
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(28.dp)
+                    .semantics { contentDescription = "Dismiss grammar suggestion" },
+            ) {
+                Text(
+                    text = "✕",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

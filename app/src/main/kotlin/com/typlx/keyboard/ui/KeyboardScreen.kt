@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEmotions
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
@@ -23,7 +27,9 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -76,12 +82,25 @@ fun KeyboardScreen(
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit = {},
     onEmojiPress: (String) -> Unit = {},
+    onMoveCursorLeft: () -> Unit = {},
+    onMoveCursorRight: () -> Unit = {},
+    onMoveCursorUp: () -> Unit = {},
+    onMoveCursorDown: () -> Unit = {},
+    onMoveCursorWordLeft: () -> Unit = {},
+    onMoveCursorWordRight: () -> Unit = {},
+    onCursorHome: () -> Unit = {},
+    onCursorEnd: () -> Unit = {},
+    onSelectAll: () -> Unit = {},
+    onCopyText: () -> Unit = {},
+    onCutText: () -> Unit = {},
+    onPasteText: () -> Unit = {},
     onOpenSettings: () -> Unit,
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
     var isSymbols by remember { mutableStateOf(false) }
     var isEmoji by remember { mutableStateOf(false) }
+    var isNav by remember { mutableStateOf(false) }
     val colors = LocalKeyboardColors.current
 
     val isCaps = shiftState != ShiftState.OFF
@@ -100,6 +119,46 @@ fun KeyboardScreen(
         }
     }
 
+    if (isNav) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ToolbarRow(
+                isFixingGrammar = isFixingGrammar,
+                grammarError = grammarError,
+                canUndo = canUndo,
+                isEmoji = false,
+                isNav = true,
+                onFixGrammar = onFixGrammar,
+                onErrorDismiss = onErrorDismiss,
+                onUndoGrammarFix = onUndoGrammarFix,
+                onEmojiToggle = { isEmoji = true },
+                onNavToggle = { isNav = false },
+                onOpenSettings = onOpenSettings,
+            )
+            CursorNavPanel(
+                onLeft = onMoveCursorLeft,
+                onRight = onMoveCursorRight,
+                onUp = onMoveCursorUp,
+                onDown = onMoveCursorDown,
+                onWordLeft = onMoveCursorWordLeft,
+                onWordRight = onMoveCursorWordRight,
+                onHome = onCursorHome,
+                onEnd = onCursorEnd,
+                onSelectAll = onSelectAll,
+                onCopy = onCopyText,
+                onCut = onCutText,
+                onPaste = onPasteText,
+                colors = colors,
+            )
+        }
+        return
+    }
+
     if (isEmoji) {
         Column(
             modifier = Modifier
@@ -112,10 +171,12 @@ fun KeyboardScreen(
                 grammarError = grammarError,
                 canUndo = canUndo,
                 isEmoji = true,
+                isNav = false,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
                 onUndoGrammarFix = onUndoGrammarFix,
                 onEmojiToggle = { isEmoji = false },
+                onNavToggle = { isNav = true },
                 onOpenSettings = onOpenSettings,
             )
             EmojiKeyboard(
@@ -141,10 +202,12 @@ fun KeyboardScreen(
             grammarError = grammarError,
             canUndo = canUndo,
             isEmoji = false,
+            isNav = false,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
             onUndoGrammarFix = onUndoGrammarFix,
             onEmojiToggle = { isEmoji = true },
+            onNavToggle = { isNav = true },
             onOpenSettings = onOpenSettings,
         )
 
@@ -185,10 +248,12 @@ private fun ToolbarRow(
     grammarError: String?,
     canUndo: Boolean,
     isEmoji: Boolean,
+    isNav: Boolean,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit,
     onEmojiToggle: () -> Unit,
+    onNavToggle: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Row(
@@ -270,6 +335,20 @@ private fun ToolbarRow(
                 contentDescription = null,
                 tint = if (isEmoji) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
+            )
+        }
+
+        val navDesc = if (isNav) "Switch to keyboard" else "Open cursor navigation"
+        IconButton(
+            onClick = onNavToggle,
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = navDesc },
+        ) {
+            Text(
+                text = "↕",
+                fontSize = 16.sp,
+                color = if (isNav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -551,6 +630,190 @@ private fun DeleteButton(
             fontWeight = FontWeight.Normal,
             maxLines = 1,
         )
+    }
+}
+
+@Composable
+private fun CursorNavPanel(
+    onLeft: () -> Unit,
+    onRight: () -> Unit,
+    onUp: () -> Unit,
+    onDown: () -> Unit,
+    onWordLeft: () -> Unit,
+    onWordRight: () -> Unit,
+    onHome: () -> Unit,
+    onEnd: () -> Unit,
+    onSelectAll: () -> Unit,
+    onCopy: () -> Unit,
+    onCut: () -> Unit,
+    onPaste: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        // Arrow row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            NavKeyButton(
+                label = "⇤",
+                contentDescription = "Move to start of line",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onHome,
+            )
+            NavKeyButton(
+                icon = Icons.Default.KeyboardArrowLeft,
+                contentDescription = "Move cursor left, long-press for word",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onLeft,
+                onLongClick = onWordLeft,
+            )
+            NavKeyButton(
+                icon = Icons.Default.KeyboardArrowUp,
+                contentDescription = "Move cursor up",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onUp,
+            )
+            NavKeyButton(
+                icon = Icons.Default.KeyboardArrowDown,
+                contentDescription = "Move cursor down",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onDown,
+            )
+            NavKeyButton(
+                icon = Icons.Default.KeyboardArrowRight,
+                contentDescription = "Move cursor right, long-press for word",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onRight,
+                onLongClick = onWordRight,
+            )
+            NavKeyButton(
+                label = "⇥",
+                contentDescription = "Move to end of line",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onEnd,
+            )
+        }
+
+        // Edit action row
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            NavKeyButton(
+                label = "Select\nAll",
+                contentDescription = "Select all text",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onSelectAll,
+            )
+            NavKeyButton(
+                label = "Cut",
+                contentDescription = "Cut selected text",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onCut,
+            )
+            NavKeyButton(
+                label = "Copy",
+                contentDescription = "Copy selected text",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onCopy,
+            )
+            NavKeyButton(
+                label = "Paste",
+                contentDescription = "Paste from clipboard",
+                modifier = Modifier.weight(1f),
+                colors = colors,
+                onClick = onPaste,
+            )
+        }
+    }
+}
+
+@Composable
+private fun NavKeyButton(
+    modifier: Modifier = Modifier,
+    label: String? = null,
+    icon: ImageVector? = null,
+    contentDescription: String,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
+) {
+    val haptic = LocalHapticFeedback.current
+    Box(
+        modifier = modifier
+            .height(46.dp)
+            .clip(RoundedCornerShape(6.dp))
+            .background(colors.keyActionBg)
+            .semantics {
+                this.contentDescription = contentDescription
+                role = Role.Button
+            }
+            .then(
+                if (onLongClick != null) {
+                    Modifier.pointerInput(onClick, onLongClick) {
+                        val scope = this
+                        awaitPointerEventScope {
+                            while (true) {
+                                awaitFirstDown(requireUnconsumed = false)
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                var longPressed = false
+                                val job = scope.launch {
+                                    delay(500L)
+                                    longPressed = true
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onLongClick()
+                                }
+                                do {
+                                    val event = awaitPointerEvent()
+                                } while (event.changes.any { it.pressed })
+                                job.cancel()
+                                if (!longPressed) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onClick()
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Modifier.clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = rememberRipple(),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onClick()
+                        },
+                    )
+                }
+            ),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = colors.keyText,
+                modifier = Modifier.size(22.dp),
+            )
+        } else if (label != null) {
+            Text(
+                text = label,
+                color = colors.keyText,
+                fontSize = if (label.length <= 2) 18.sp else 11.sp,
+                fontWeight = FontWeight.Normal,
+                maxLines = 2,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }
 

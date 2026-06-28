@@ -31,13 +31,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
+private val NUM_ROW = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 private val ROW1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
 private val ROW2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
 private val ROW3 = listOf("z", "x", "c", "v", "b", "n", "m")
 
-private val SYM_ROW1 = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
-private val SYM_ROW2 = listOf("@", "#", "$", "%", "&", "-", "+", "(", ")")
-private val SYM_ROW3 = listOf("*", "\"", "'", ":", ";", "!", "?")
+private val SYM_ROW1 = listOf("@", "#", "$", "%", "&", "-", "+", "(", ")")
+private val SYM_ROW2 = listOf("*", "\"", "'", ":", ";", "!", "?", "~", "/", "\\")
+private val SYM_ROW3 = listOf("<", ">", "[", "]", "{", "}", "=")
 
 internal enum class ShiftState { OFF, SHIFT_ONCE, CAPS_LOCK }
 
@@ -107,6 +108,8 @@ fun KeyboardScreen(
             onErrorDismiss = onErrorDismiss,
             onOpenSettings = onOpenSettings,
         )
+
+        NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors)
 
         if (isSymbols) {
             KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
@@ -211,6 +214,30 @@ private fun ToolbarRow(
                 contentDescription = null, // described by parent semantics
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun NumberRow(
+    keys: List<String>,
+    onKeyPress: (String) -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally),
+    ) {
+        keys.forEach { key ->
+            KeyButton(
+                label = key,
+                contentDescription = "Digit $key",
+                modifier = Modifier.weight(1f),
+                height = 38.dp,
+                bgColor = colors.keyBg,
+                textColor = colors.keyText,
+                onClick = { onKeyPress(key) },
             )
         }
     }

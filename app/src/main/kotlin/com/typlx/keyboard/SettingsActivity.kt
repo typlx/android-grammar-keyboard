@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
+import androidx.compose.ui.Alignment
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -63,6 +64,7 @@ private fun SettingsScreen(
     var model by remember { mutableStateOf(prefsManager.model) }
     var apiToken by remember { mutableStateOf(prefsManager.apiToken) }
     var tokenVisible by remember { mutableStateOf(false) }
+    var hapticEnabled by remember { mutableStateOf(prefsManager.hapticFeedbackEnabled) }
 
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
@@ -147,6 +149,34 @@ private fun SettingsScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Haptic feedback toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_haptic_label),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_haptic_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = hapticEnabled,
+                    onCheckedChange = {
+                        hapticEnabled = it
+                        prefsManager.hapticFeedbackEnabled = it
+                    },
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

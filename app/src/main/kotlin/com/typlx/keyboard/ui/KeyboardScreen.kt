@@ -13,8 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -493,7 +491,6 @@ private fun KeyButton(
     onClick: () -> Unit,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
-    val haptic = LocalHapticFeedback.current
     Box(
         modifier = modifier
             .height(height)
@@ -502,16 +499,8 @@ private fun KeyButton(
             .combinedClickable(
                 interactionSource = interactionSource,
                 indication = rememberRipple(),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onClick()
-                },
-                onLongClick = if (onLongClick != null) {
-                    {
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        onLongClick()
-                    }
-                } else null,
+                onClick = onClick,
+                onLongClick = onLongClick,
             ),
         contentAlignment = Alignment.Center,
     ) {

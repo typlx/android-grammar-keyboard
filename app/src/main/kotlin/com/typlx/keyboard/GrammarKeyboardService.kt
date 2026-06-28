@@ -44,6 +44,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
     private lateinit var grammarService: GrammarService
+    private lateinit var hapticHelper: HapticHelper
 
     override fun onCreate() {
         super.onCreate()
@@ -51,6 +52,7 @@ class GrammarKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         prefs = PreferencesManager(applicationContext)
         grammarService = GrammarService()
+        hapticHelper = HapticHelper.create(applicationContext, prefs)
     }
 
     override fun onCreateInputView(): View {
@@ -61,13 +63,14 @@ class GrammarKeyboardService : InputMethodService(),
             ViewTreeLifecycleOwner.set(this, this@GrammarKeyboardService)
             ViewTreeViewModelStoreOwner.set(this, this@GrammarKeyboardService)
             ViewTreeSavedStateRegistryOwner.set(this, this@GrammarKeyboardService)
+            hapticHelper.attachView(this)
 
             setContent {
                 TyplxKeyboardTheme {
                     KeyboardScreen(
                         isFixingGrammar = isFixingGrammar,
                         grammarError = grammarError,
-                        onKeyPress = ::commitText,
+                        onKeyPress = { text -> hapticHelper.tapRegularKey(); commitText(text) },
                         onDelete = ::deleteChar,
                         onFixGrammar = ::launchGrammarFix,
                         onReturn = ::commitReturn,
@@ -115,11 +118,14 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     private fun deleteChar() {
-        currentInputConnection?.deleteSurroundingText(1, 0)
+        val ic = currentInputConnection ?: return
+        hapticHelper.tapSpecialKey()
+        ic.deleteSurroundingText(1, 0)
     }
 
     private fun commitReturn() {
         val ic = currentInputConnection ?: return
+        hapticHelper.tapSpecialKey()
         val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
         if (action != null &&
             action != EditorInfo.IME_ACTION_NONE &&
@@ -143,23 +149,32 @@ class GrammarKeyboardService : InputMethodService(),
     private fun moveCursorWordRight() = sendKey(KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.META_CTRL_ON)
 
     private fun selectAll() {
-        currentInputConnection?.performContextMenuAction(android.R.id.selectAll)
+        val ic = currentInputConnection ?: return
+        hapticHelper.tapSpecialKey()
+        ic.performContextMenuAction(android.R.id.selectAll)
     }
 
     private fun copyText() {
-        currentInputConnection?.performContextMenuAction(android.R.id.copy)
+        val ic = currentInputConnection ?: return
+        hapticHelper.tapSpecialKey()
+        ic.performContextMenuAction(android.R.id.copy)
     }
 
     private fun cutText() {
-        currentInputConnection?.performContextMenuAction(android.R.id.cut)
+        val ic = currentInputConnection ?: return
+        hapticHelper.tapSpecialKey()
+        ic.performContextMenuAction(android.R.id.cut)
     }
 
     private fun pasteText() {
-        currentInputConnection?.performContextMenuAction(android.R.id.paste)
+        val ic = currentInputConnection ?: return
+        hapticHelper.tapSpecialKey()
+        ic.performContextMenuAction(android.R.id.paste)
     }
 
     private fun sendKey(keyCode: Int, metaState: Int = 0) {
         val ic = currentInputConnection ?: return
+        hapticHelper.tapSpecialKey()
         val now = System.currentTimeMillis()
         ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_DOWN, keyCode, 0, metaState))
         ic.sendKeyEvent(KeyEvent(now, now, KeyEvent.ACTION_UP, keyCode, 0, metaState))

@@ -3,6 +3,7 @@ package com.typlx.keyboard
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
@@ -49,6 +50,9 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var suggestionState by mutableStateOf<SuggestionState>(SuggestionState.Idle)
         private set
+    // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
+    private val _autoShiftSignal = mutableStateOf(0L)
+    val autoShiftSignal: Long by _autoShiftSignal
 
     private val undoState = GrammarUndoState()
     private val emojiRecentsMgr = EmojiRecents()
@@ -58,6 +62,9 @@ class GrammarKeyboardService : InputMethodService(),
     private lateinit var grammarService: GrammarService
     private lateinit var hapticHelper: HapticHelper
     private var keyboardView: View? = null
+
+    // Epoch-ms of the last committed space (for double-space-to-period detection).
+    private var lastSpacePressMs = 0L
 
     private var suggestionDebounceJob: Job? = null
     // Counts how many upcoming onUpdateSelection callbacks to suppress (caused by our own
@@ -92,7 +99,9 @@ class GrammarKeyboardService : InputMethodService(),
                         returnKeyDescription = returnKeyDescription,
                         emojiRecents = emojiRecents,
                         suggestionState = suggestionState,
+                        autoShiftSignal = autoShiftSignal,
                         onKeyPress = ::commitText,
+                        onSpacePress = ::onSpacePress,
                         onDelete = ::deleteChar,
                         onDeleteWord = ::deleteWord,
                         onFixGrammar = ::launchGrammarFix,
@@ -185,6 +194,7 @@ class GrammarKeyboardService : InputMethodService(),
         super.onStartInputView(info, restarting)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         clearUndoState()
+        lastSpacePressMs = 0L
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
             EditorInfo.IME_ACTION_SEND -> "Send"
@@ -193,6 +203,10 @@ class GrammarKeyboardService : InputMethodService(),
             EditorInfo.IME_ACTION_NEXT -> "Next field"
             EditorInfo.IME_ACTION_PREVIOUS -> "Previous field"
             else -> "Return"
+        }
+        // Auto-capitalise first character when the field caps flags say to do so.
+        if (shouldAutoCapOnFieldFocus(info?.inputType ?: 0)) {
+            requestAutoShift()
         }
     }
 
@@ -211,12 +225,53 @@ class GrammarKeyboardService : InputMethodService(),
         super.onDestroy()
     }
 
+    // --- Auto-cap ---
+
+    private fun requestAutoShift() {
+        _autoShiftSignal.value++
+    }
+
     // --- Input helpers ---
 
     private fun commitText(text: String) {
         hapticHelper.tap(keyboardView)
         clearUndoState()
         currentInputConnection?.commitText(text, 1)
+        if (text != " ") lastSpacePressMs = 0L
+    }
+
+    fun onSpacePress() {
+        val ic = currentInputConnection
+        val now = System.currentTimeMillis()
+        val inputType = currentInputEditorInfo?.inputType ?: 0
+        val variation = inputType and InputType.TYPE_MASK_VARIATION
+        val skipDoublespace =
+            variation == InputType.TYPE_TEXT_VARIATION_PASSWORD ||
+            variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
+            variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
+            variation == InputType.TYPE_TEXT_VARIATION_URI
+
+        if (!skipDoublespace && ic != null && now - lastSpacePressMs < 500L) {
+            val before = ic.getTextBeforeCursor(2, 0)?.toString() ?: ""
+            // Replace the previous space with ". " when non-whitespace precedes it.
+            if (before.length >= 2 && !before[before.length - 2].isWhitespace()) {
+                hapticHelper.tap(keyboardView)
+                clearUndoState()
+                suppressSuggestionTriggerCount += 2
+                ic.deleteSurroundingText(1, 0)
+                ic.commitText(". ", 1)
+                requestAutoShift()
+                lastSpacePressMs = 0L
+                return
+            }
+        }
+
+        commitText(" ")
+        lastSpacePressMs = now
+
+        // Auto-cap after sentence-ending punctuation followed by the space we just committed.
+        val before = currentInputConnection?.getTextBeforeCursor(3, 0)?.toString() ?: return
+        if (shouldShiftAfterSpace(before)) requestAutoShift()
     }
 
     private fun deleteChar() {

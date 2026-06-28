@@ -54,6 +54,8 @@ class GrammarKeyboardService : InputMethodService(),
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
     private lateinit var grammarService: GrammarService
+    private lateinit var hapticHelper: HapticHelper
+    private var keyboardView: View? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -61,13 +63,14 @@ class GrammarKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         prefs = PreferencesManager(applicationContext)
         grammarService = GrammarService()
+        hapticHelper = HapticHelper { prefs.hapticFeedbackEnabled }
         loadEmojiRecents()
     }
 
     override fun onCreateInputView(): View {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
-        return ComposeView(this).apply {
+        return ComposeView(this).also { keyboardView = it }.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             ViewTreeLifecycleOwner.set(this, this@GrammarKeyboardService)
             ViewTreeViewModelStoreOwner.set(this, this@GrammarKeyboardService)
@@ -124,6 +127,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
+        keyboardView = null
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         super.onFinishInputView(finishingInput)
     }
@@ -138,16 +142,19 @@ class GrammarKeyboardService : InputMethodService(),
     // --- Input helpers ---
 
     private fun commitText(text: String) {
+        hapticHelper.tap(keyboardView)
         clearUndoState()
         currentInputConnection?.commitText(text, 1)
     }
 
     private fun deleteChar() {
+        hapticHelper.tap(keyboardView)
         clearUndoState()
         currentInputConnection?.deleteSurroundingText(1, 0)
     }
 
     private fun deleteWord() {
+        hapticHelper.tap(keyboardView)
         clearUndoState()
         val ic = currentInputConnection ?: return
         val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: return
@@ -156,6 +163,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     private fun commitReturn() {
+        hapticHelper.tap(keyboardView)
         clearUndoState()
         val ic = currentInputConnection ?: return
         val action = currentInputEditorInfo?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)
@@ -170,6 +178,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     private fun commitEmoji(emoji: String) {
+        hapticHelper.tap(keyboardView)
         clearUndoState()
         currentInputConnection?.commitText(emoji, 1)
         emojiRecentsMgr.add(emoji)

@@ -18,6 +18,7 @@ class PreferencesManager(context: Context) {
         private const val KEY_API_URL = "api_url"
         private const val KEY_MODEL = "model"
         private const val KEY_API_TOKEN = "api_token"
+        const val KEY_HAPTIC = "haptic_feedback_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -51,6 +52,10 @@ class PreferencesManager(context: Context) {
     var apiToken: String
         get() = encryptedPrefs.getString(KEY_API_TOKEN, "") ?: ""
         set(value) = encryptedPrefs.edit().putString(KEY_API_TOKEN, value).apply()
+
+    var hapticFeedbackEnabled: Boolean
+        get() = prefs.getBoolean(KEY_HAPTIC, true)
+        set(value) = prefs.edit().putBoolean(KEY_HAPTIC, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

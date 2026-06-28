@@ -36,6 +36,10 @@
     <!-- Premium / feature gating -->
     <string name="error_premium_required">This feature requires a premium subscription</string>
 
+    <!-- Haptic feedback setting -->
+    <string name="settings_haptic_label">Haptic feedback</string>
+    <string name="settings_haptic_description">Vibrate on key press</string>
+
     <!-- Network / API error messages -->
     <string name="error_no_network">No internet connection</string>
     <string name="error_timeout">Request timed out — check your connection</string>

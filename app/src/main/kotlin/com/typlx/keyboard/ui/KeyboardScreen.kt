@@ -76,7 +76,9 @@ fun KeyboardScreen(
     returnKeyDescription: String = "Return",
     emojiRecents: List<String> = emptyList(),
     suggestionState: SuggestionState = SuggestionState.Idle,
+    autoShiftSignal: Long = 0L,
     onKeyPress: (String) -> Unit,
+    onSpacePress: () -> Unit = {},
     onDelete: () -> Unit,
     onDeleteWord: () -> Unit,
     onFixGrammar: () -> Unit,
@@ -108,6 +110,13 @@ fun KeyboardScreen(
     val colors = LocalKeyboardColors.current
 
     val isCaps = shiftState != ShiftState.OFF
+
+    // When the service signals an auto-shift (field entry caps, sentence end), activate SHIFT_ONCE.
+    LaunchedEffect(autoShiftSignal) {
+        if (autoShiftSignal > 0L && shiftState == ShiftState.OFF) {
+            shiftState = ShiftState.SHIFT_ONCE
+        }
+    }
 
     val onShiftTap = {
         val (newState, newMs) = nextShiftState(shiftState, System.currentTimeMillis(), lastShiftTapMs)
@@ -245,6 +254,7 @@ fun KeyboardScreen(
             isSymbols = isSymbols,
             onSymbolToggle = { isSymbols = !isSymbols },
             onKeyPress = shiftOnceKeyPress,
+            onSpacePress = onSpacePress,
             onReturn = onReturn,
             returnKeyDescription = returnKeyDescription,
             colors = colors,
@@ -516,6 +526,7 @@ private fun BottomRow(
     isSymbols: Boolean,
     onSymbolToggle: () -> Unit,
     onKeyPress: (String) -> Unit,
+    onSpacePress: () -> Unit,
     onReturn: () -> Unit,
     returnKeyDescription: String,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
@@ -548,7 +559,7 @@ private fun BottomRow(
             modifier = Modifier.weight(4f),
             bgColor = colors.keyBg,
             textColor = colors.keyText,
-            onClick = { onKeyPress(" ") },
+            onClick = onSpacePress,
         )
         KeyButton(
             label = ".",

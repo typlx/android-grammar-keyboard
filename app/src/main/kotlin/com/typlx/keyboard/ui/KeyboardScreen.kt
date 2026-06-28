@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
@@ -66,6 +67,7 @@ fun KeyboardScreen(
     grammarError: String?,
     canUndo: Boolean = false,
     returnKeyDescription: String = "Return",
+    emojiRecents: List<String> = emptyList(),
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
     onDeleteWord: () -> Unit,
@@ -73,11 +75,13 @@ fun KeyboardScreen(
     onReturn: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit = {},
+    onEmojiPress: (String) -> Unit = {},
     onOpenSettings: () -> Unit,
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
     var isSymbols by remember { mutableStateOf(false) }
+    var isEmoji by remember { mutableStateOf(false) }
     val colors = LocalKeyboardColors.current
 
     val isCaps = shiftState != ShiftState.OFF
@@ -96,6 +100,35 @@ fun KeyboardScreen(
         }
     }
 
+    if (isEmoji) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+        ) {
+            ToolbarRow(
+                isFixingGrammar = isFixingGrammar,
+                grammarError = grammarError,
+                canUndo = canUndo,
+                isEmoji = true,
+                onFixGrammar = onFixGrammar,
+                onErrorDismiss = onErrorDismiss,
+                onUndoGrammarFix = onUndoGrammarFix,
+                onEmojiToggle = { isEmoji = false },
+                onOpenSettings = onOpenSettings,
+            )
+            EmojiKeyboard(
+                recents = emojiRecents,
+                onEmojiClick = onEmojiPress,
+                onDelete = onDelete,
+                onBack = { isEmoji = false },
+                colors = colors,
+            )
+        }
+        return
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -107,9 +140,11 @@ fun KeyboardScreen(
             isFixingGrammar = isFixingGrammar,
             grammarError = grammarError,
             canUndo = canUndo,
+            isEmoji = false,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
             onUndoGrammarFix = onUndoGrammarFix,
+            onEmojiToggle = { isEmoji = true },
             onOpenSettings = onOpenSettings,
         )
 
@@ -149,9 +184,11 @@ private fun ToolbarRow(
     isFixingGrammar: Boolean,
     grammarError: String?,
     canUndo: Boolean,
+    isEmoji: Boolean,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit,
+    onEmojiToggle: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Row(
@@ -218,6 +255,21 @@ private fun ToolbarRow(
                 text = if (isFixingGrammar) "Fixing…" else "Fix Grammar",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
+            )
+        }
+
+        val emojiDesc = if (isEmoji) "Switch to keyboard" else "Open emoji keyboard"
+        IconButton(
+            onClick = onEmojiToggle,
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = emojiDesc },
+        ) {
+            Icon(
+                imageVector = Icons.Default.EmojiEmotions,
+                contentDescription = null,
+                tint = if (isEmoji) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
             )
         }
 

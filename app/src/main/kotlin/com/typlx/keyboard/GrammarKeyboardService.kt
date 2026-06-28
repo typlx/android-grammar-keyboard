@@ -1,5 +1,6 @@
 package com.typlx.keyboard
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.view.View
@@ -43,8 +44,11 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var returnKeyDescription by mutableStateOf("Return")
         private set
+    var emojiRecents by mutableStateOf<List<String>>(emptyList())
+        private set
 
     private val undoState = GrammarUndoState()
+    private val emojiRecentsMgr = EmojiRecents()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -56,6 +60,7 @@ class GrammarKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         prefs = PreferencesManager(applicationContext)
         grammarService = GrammarService()
+        loadEmojiRecents()
     }
 
     override fun onCreateInputView(): View {
@@ -74,6 +79,7 @@ class GrammarKeyboardService : InputMethodService(),
                         grammarError = grammarError,
                         canUndo = canUndo,
                         returnKeyDescription = returnKeyDescription,
+                        emojiRecents = emojiRecents,
                         onKeyPress = ::commitText,
                         onDelete = ::deleteChar,
                         onDeleteWord = ::deleteWord,
@@ -81,6 +87,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onReturn = ::commitReturn,
                         onErrorDismiss = { grammarError = null },
                         onUndoGrammarFix = ::undoGrammarFix,
+                        onEmojiPress = ::commitEmoji,
                         onOpenSettings = ::openSettings,
                     )
                 }
@@ -149,6 +156,28 @@ class GrammarKeyboardService : InputMethodService(),
         }
     }
 
+    private fun commitEmoji(emoji: String) {
+        clearUndoState()
+        currentInputConnection?.commitText(emoji, 1)
+        emojiRecentsMgr.add(emoji)
+        emojiRecents = emojiRecentsMgr.recents
+        saveEmojiRecents()
+    }
+
+    private fun loadEmojiRecents() {
+        val json = getSharedPreferences(EMOJI_PREFS, Context.MODE_PRIVATE)
+            .getString(EMOJI_RECENTS_KEY, null) ?: return
+        emojiRecentsMgr.loadFromJson(json)
+        emojiRecents = emojiRecentsMgr.recents
+    }
+
+    private fun saveEmojiRecents() {
+        getSharedPreferences(EMOJI_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(EMOJI_RECENTS_KEY, emojiRecentsMgr.toJson())
+            .apply()
+    }
+
     private fun clearUndoState() {
         undoState.clear()
         canUndo = false
@@ -169,6 +198,11 @@ class GrammarKeyboardService : InputMethodService(),
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         startActivity(intent)
+    }
+
+    companion object {
+        private const val EMOJI_PREFS = "emoji_prefs"
+        private const val EMOJI_RECENTS_KEY = "emoji_recents"
     }
 
     // --- Grammar fix ---

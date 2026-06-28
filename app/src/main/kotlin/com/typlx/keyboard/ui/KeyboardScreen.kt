@@ -2,6 +2,7 @@ package com.typlx.keyboard.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -15,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -25,6 +27,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
 private val ROW1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
@@ -62,6 +66,7 @@ fun KeyboardScreen(
     returnKeyDescription: String = "Return",
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
+    onDeleteWord: () -> Unit,
     onFixGrammar: () -> Unit,
     onReturn: () -> Unit,
     onErrorDismiss: () -> Unit,
@@ -106,7 +111,7 @@ fun KeyboardScreen(
         if (isSymbols) {
             KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
             KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
-            SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, colors = colors)
+            SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors)
         } else {
             KeyRow(ROW1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
             KeyRow(ROW2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
@@ -116,6 +121,7 @@ fun KeyboardScreen(
                 onShiftTap = onShiftTap,
                 onKeyPress = shiftOnceKeyPress,
                 onDelete = onDelete,
+                onDeleteWord = onDeleteWord,
                 colors = colors,
             )
         }
@@ -242,6 +248,7 @@ private fun AlphaRow3(
     onShiftTap: () -> Unit,
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
+    onDeleteWord: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
 ) {
     val isCaps = shiftState != ShiftState.OFF
@@ -276,13 +283,11 @@ private fun AlphaRow3(
                 onClick = { onKeyPress(label) },
             )
         }
-        KeyButton(
-            label = "⌫",
-            contentDescription = "Delete",
+        DeleteButton(
             modifier = Modifier.weight(1.5f),
-            bgColor = colors.keyActionBg,
-            textColor = colors.keyText,
-            onClick = onDelete,
+            colors = colors,
+            onDelete = onDelete,
+            onDeleteWord = onDeleteWord,
         )
     }
 }
@@ -292,6 +297,7 @@ private fun SymbolRow3(
     keys: List<String>,
     onKeyPress: (String) -> Unit,
     onDelete: () -> Unit,
+    onDeleteWord: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
 ) {
     Row(
@@ -310,13 +316,11 @@ private fun SymbolRow3(
                 onClick = { onKeyPress(key) },
             )
         }
-        KeyButton(
-            label = "⌫",
-            contentDescription = "Delete",
+        DeleteButton(
             modifier = Modifier.weight(1.5f),
-            bgColor = colors.keyActionBg,
-            textColor = colors.keyText,
-            onClick = onDelete,
+            colors = colors,
+            onDelete = onDelete,
+            onDeleteWord = onDeleteWord,
         )
     }
 }
@@ -375,6 +379,80 @@ private fun BottomRow(
             bgColor = MaterialTheme.colorScheme.primary,
             textColor = MaterialTheme.colorScheme.onPrimary,
             onClick = onReturn,
+        )
+    }
+}
+
+/**
+ * Backspace key with long-press repeat behavior:
+ * - Tap: delete one character
+ * - Hold 400ms: repeat character delete every 50ms
+ * - Hold 1500ms: switch to word delete every 400ms with extra haptic
+ */
+@Composable
+private fun DeleteButton(
+    modifier: Modifier = Modifier,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    height: Dp = 46.dp,
+    onDelete: () -> Unit,
+    onDeleteWord: () -> Unit,
+) {
+    val haptic = LocalHapticFeedback.current
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(6.dp))
+            .background(colors.keyActionBg)
+            .semantics {
+                contentDescription = "Delete, hold to delete word"
+                role = Role.Button
+            }
+            .pointerInput(onDelete, onDeleteWord) {
+                val pointerScope = this
+                awaitPointerEventScope {
+                    while (true) {
+                        awaitFirstDown(requireUnconsumed = false)
+                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                        var repeatFired = false
+                        val job = pointerScope.launch {
+                            delay(400L)
+                            repeatFired = true
+                            var elapsed = 400L
+                            var wordMode = false
+                            while (true) {
+                                if (elapsed >= 1500L) {
+                                    if (!wordMode) {
+                                        wordMode = true
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    }
+                                    onDeleteWord()
+                                    delay(400L)
+                                    elapsed += 400L
+                                } else {
+                                    onDelete()
+                                    delay(50L)
+                                    elapsed += 50L
+                                }
+                            }
+                        }
+                        do {
+                            val event = awaitPointerEvent()
+                        } while (event.changes.any { it.pressed })
+                        job.cancel()
+                        if (!repeatFired) {
+                            onDelete()
+                        }
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "⌫",
+            color = colors.keyText,
+            fontSize = 18.sp,
+            fontWeight = FontWeight.Normal,
+            maxLines = 1,
         )
     }
 }

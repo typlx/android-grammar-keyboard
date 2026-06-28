@@ -71,6 +71,7 @@ class GrammarKeyboardService : InputMethodService(),
                         returnKeyDescription = returnKeyDescription,
                         onKeyPress = ::commitText,
                         onDelete = ::deleteChar,
+                        onDeleteWord = ::deleteWord,
                         onFixGrammar = ::launchGrammarFix,
                         onReturn = ::commitReturn,
                         onErrorDismiss = { grammarError = null },
@@ -115,6 +116,13 @@ class GrammarKeyboardService : InputMethodService(),
 
     private fun deleteChar() {
         currentInputConnection?.deleteSurroundingText(1, 0)
+    }
+
+    private fun deleteWord() {
+        val ic = currentInputConnection ?: return
+        val text = ic.getTextBeforeCursor(200, 0)?.toString() ?: return
+        val count = wordDeleteCount(text)
+        if (count > 0) ic.deleteSurroundingText(count, 0)
     }
 
     private fun commitReturn() {

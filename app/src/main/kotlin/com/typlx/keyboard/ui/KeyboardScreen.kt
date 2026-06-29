@@ -3,8 +3,10 @@ package com.typlx.keyboard.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.EmojiEmotions
@@ -37,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.typlx.keyboard.SuggestionState
+import com.typlx.keyboard.getAlternatives
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
 private val NUM_ROW = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
@@ -107,6 +110,8 @@ fun KeyboardScreen(
     var isSymbols by remember { mutableStateOf(false) }
     var isEmoji by remember { mutableStateOf(false) }
     var isNav by remember { mutableStateOf(false) }
+    // Triple: (displayLabel, isCaps, alternatives) — non-null when the alternatives bar is visible.
+    var activeAlternatives by remember { mutableStateOf<Triple<String, Boolean, List<String>>?>(null) }
     val colors = LocalKeyboardColors.current
 
     val isCaps = shiftState != ShiftState.OFF
@@ -125,11 +130,17 @@ fun KeyboardScreen(
     }
 
     // Auto-releases shift-once after any printable key; caps lock persists.
+    // Also clears the alternatives bar on every key press.
     val shiftOnceKeyPress: (String) -> Unit = { key ->
+        activeAlternatives = null
         onKeyPress(key)
         if (!isSymbols && shiftState == ShiftState.SHIFT_ONCE) {
             shiftState = ShiftState.OFF
         }
+    }
+
+    val showAlternatives: (String, Boolean, List<String>) -> Unit = { label, caps, alts ->
+        activeAlternatives = Triple(label, caps, alts)
     }
 
     if (isNav) {
@@ -230,6 +241,16 @@ fun KeyboardScreen(
             onDismiss = onDismissSuggestion,
         )
 
+        activeAlternatives?.let { (label, _, alts) ->
+            AlternativesBar(
+                originalKey = label,
+                alternatives = alts,
+                colors = colors,
+                onSelectAlternative = { char -> shiftOnceKeyPress(char) },
+                onDismiss = { activeAlternatives = null },
+            )
+        }
+
         NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors)
 
         if (isSymbols) {
@@ -237,8 +258,8 @@ fun KeyboardScreen(
             KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
             SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors)
         } else {
-            KeyRow(ROW1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
-            KeyRow(ROW2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors)
+            KeyRow(ROW1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives)
+            KeyRow(ROW2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives)
             AlphaRow3(
                 keys = ROW3,
                 shiftState = shiftState,
@@ -246,6 +267,7 @@ fun KeyboardScreen(
                 onKeyPress = shiftOnceKeyPress,
                 onDelete = onDelete,
                 onDeleteWord = onDeleteWord,
+                onShowAlternatives = showAlternatives,
                 colors = colors,
             )
         }
@@ -418,6 +440,7 @@ private fun KeyRow(
     isCaps: Boolean,
     onKeyPress: (String) -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    onShowAlternatives: ((String, Boolean, List<String>) -> Unit)? = null,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -425,6 +448,7 @@ private fun KeyRow(
     ) {
         keys.forEach { key ->
             val label = if (isCaps) key.uppercase() else key
+            val alts = onShowAlternatives?.let { getAlternatives(key, isCaps) }
             KeyButton(
                 label = label,
                 contentDescription = "Letter ${label.uppercase()}",
@@ -432,6 +456,9 @@ private fun KeyRow(
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
                 onClick = { onKeyPress(label) },
+                onLongPress = if (alts != null) {
+                    { onShowAlternatives!!(label, isCaps, alts) }
+                } else null,
             )
         }
     }
@@ -446,6 +473,7 @@ private fun AlphaRow3(
     onDelete: () -> Unit,
     onDeleteWord: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    onShowAlternatives: ((String, Boolean, List<String>) -> Unit)? = null,
 ) {
     val isCaps = shiftState != ShiftState.OFF
     val shiftLabel = if (shiftState == ShiftState.CAPS_LOCK) "⇪" else "⇧"
@@ -470,6 +498,7 @@ private fun AlphaRow3(
         )
         keys.forEach { key ->
             val label = if (isCaps) key.uppercase() else key
+            val alts = onShowAlternatives?.let { getAlternatives(key, isCaps) }
             KeyButton(
                 label = label,
                 contentDescription = "Letter ${label.uppercase()}",
@@ -477,6 +506,9 @@ private fun AlphaRow3(
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
                 onClick = { onKeyPress(label) },
+                onLongPress = if (alts != null) {
+                    { onShowAlternatives!!(label, isCaps, alts) }
+                } else null,
             )
         }
         DeleteButton(
@@ -903,6 +935,94 @@ private fun SuggestionStrip(
     }
 }
 
+/**
+ * Horizontal bar showing accent/variant alternatives for a long-pressed key.
+ * Horizontally scrollable so it accommodates keys with many alternatives (e.g. 'a' has 7).
+ */
+@Composable
+private fun AlternativesBar(
+    originalKey: String,
+    alternatives: List<String>,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    onSelectAlternative: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(46.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.keyActionBg),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        // Original key (highlighted to show source)
+        Box(
+            modifier = Modifier
+                .width(42.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(6.dp))
+                .background(MaterialTheme.colorScheme.primary)
+                .clickable { onSelectAlternative(originalKey) }
+                .semantics { contentDescription = "$originalKey (original)" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = originalKey,
+                color = MaterialTheme.colorScheme.onPrimary,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+        Spacer(Modifier.width(4.dp))
+        // Scrollable alternatives
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            alternatives.forEach { alt ->
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(colors.keyBg)
+                        .clickable { onSelectAlternative(alt) }
+                        .semantics { contentDescription = alt },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = alt,
+                        color = colors.keyText,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Normal,
+                    )
+                }
+            }
+        }
+        Spacer(Modifier.width(4.dp))
+        // Dismiss button
+        Box(
+            modifier = Modifier
+                .width(38.dp)
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(6.dp))
+                .background(colors.keyBg)
+                .clickable { onDismiss() }
+                .semantics { contentDescription = "Dismiss alternatives" },
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = "✕",
+                color = colors.keyText,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Normal,
+            )
+        }
+    }
+}
+
 @Composable
 private fun KeyButton(
     label: String,
@@ -912,9 +1032,11 @@ private fun KeyButton(
     textColor: Color,
     height: Dp = 46.dp,
     onClick: () -> Unit,
+    onLongPress: (() -> Unit)? = null,
 ) {
-    val interactionSource = remember { MutableInteractionSource() }
     val haptic = LocalHapticFeedback.current
+    val interactionSource = remember { MutableInteractionSource() }
+
     Box(
         modifier = modifier
             .height(height)
@@ -924,13 +1046,41 @@ private fun KeyButton(
                 this.contentDescription = contentDescription
                 this.role = Role.Button
             }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = rememberRipple(),
-                onClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                    onClick()
-                },
+            .then(
+                if (onLongPress != null) {
+                    // Use pointerInput to detect both tap and 400ms long-press.
+                    Modifier.pointerInput(onClick, onLongPress) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                awaitFirstDown(requireUnconsumed = false)
+                                var longFired = false
+                                val job = launch {
+                                    delay(400L)
+                                    longFired = true
+                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                    onLongPress()
+                                }
+                                do {
+                                    val event = awaitPointerEvent()
+                                } while (event.changes.any { it.pressed })
+                                job.cancel()
+                                if (!longFired) {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onClick()
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    Modifier.clickable(
+                        interactionSource = interactionSource,
+                        indication = rememberRipple(),
+                        onClick = {
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onClick()
+                        },
+                    )
+                }
             ),
         contentAlignment = Alignment.Center,
     ) {

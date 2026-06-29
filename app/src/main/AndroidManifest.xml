@@ -38,6 +38,12 @@
         </activity>
 
         <activity
+            android:name=".OnboardingActivity"
+            android:label="@string/onboarding_title"
+            android:exported="false"
+            android:theme="@style/Theme.TyplxKeyboard" />
+
+        <activity
             android:name=".WordListActivity"
             android:label="Personal word list"
             android:exported="false"

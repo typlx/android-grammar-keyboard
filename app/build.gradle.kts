@@ -80,6 +80,9 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
     implementation("androidx.savedstate:savedstate-ktx:1.2.1")
 
+    // Monetization — uncomment when TYP-124 is approved and RevenueCat API key is available
+    // implementation("com.revenuecat.purchases:purchases:7.12.0")
+
     // HTTP client for API calls
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
 

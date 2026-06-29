@@ -39,6 +39,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var grammarError by mutableStateOf<String?>(null)
         private set
+    var returnKeyDescription by mutableStateOf("Return")
+        private set
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -66,6 +68,7 @@ class GrammarKeyboardService : InputMethodService(),
                     KeyboardScreen(
                         isFixingGrammar = isFixingGrammar,
                         grammarError = grammarError,
+                        returnKeyDescription = returnKeyDescription,
                         onKeyPress = ::commitText,
                         onDelete = ::deleteChar,
                         onFixGrammar = ::launchGrammarFix,
@@ -81,6 +84,15 @@ class GrammarKeyboardService : InputMethodService(),
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {
         super.onStartInputView(info, restarting)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
+        returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
+            EditorInfo.IME_ACTION_SEARCH -> "Search"
+            EditorInfo.IME_ACTION_SEND -> "Send"
+            EditorInfo.IME_ACTION_GO -> "Go"
+            EditorInfo.IME_ACTION_DONE -> "Done"
+            EditorInfo.IME_ACTION_NEXT -> "Next field"
+            EditorInfo.IME_ACTION_PREVIOUS -> "Previous field"
+            else -> "Return"
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -132,6 +144,11 @@ class GrammarKeyboardService : InputMethodService(),
     private fun launchGrammarFix() {
         if (isFixingGrammar) return
         val ic = currentInputConnection ?: return
+
+        if (!FeatureGate.isEnabled(FeatureGate.Feature.GRAMMAR_FIX)) {
+            grammarError = getString(R.string.error_premium_required)
+            return
+        }
 
         if (!prefs.isConfigured) {
             grammarError = getString(R.string.error_not_configured)

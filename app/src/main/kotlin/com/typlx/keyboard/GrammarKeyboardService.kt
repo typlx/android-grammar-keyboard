@@ -60,6 +60,12 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var toneError by mutableStateOf<String?>(null)
         private set
+    var isTranslatePanel by mutableStateOf(false)
+        private set
+    var isApplyingTranslation by mutableStateOf(false)
+        private set
+    var translateError by mutableStateOf<String?>(null)
+        private set
     var isVoiceListening by mutableStateOf(false)
         private set
     var voicePartialText by mutableStateOf("")
@@ -142,6 +148,9 @@ class GrammarKeyboardService : InputMethodService(),
                         isTonePanel = isTonePanel,
                         isApplyingTone = isApplyingTone,
                         toneError = toneError,
+                        isTranslatePanel = isTranslatePanel,
+                        isApplyingTranslation = isApplyingTranslation,
+                        translateError = translateError,
                         clipboardItems = clipboardItems,
                         isVoiceListening = isVoiceListening,
                         voicePartialText = voicePartialText,
@@ -161,6 +170,10 @@ class GrammarKeyboardService : InputMethodService(),
                         onToneDismiss = ::dismissTonePanel,
                         onToneSelect = ::launchToneRewrite,
                         onToneErrorDismiss = { toneError = null },
+                        onTranslateToggle = { if (isTranslatePanel) dismissTranslatePanel() else openTranslatePanel() },
+                        onTranslateDismiss = ::dismissTranslatePanel,
+                        onTranslateSelect = ::launchTranslation,
+                        onTranslateErrorDismiss = { translateError = null },
                         onClipboardPaste = ::pasteClipboardItem,
                         onClipboardClear = ::clearClipboardHistory,
                         onMoveCursorLeft = { moveCursor(KeyEvent.KEYCODE_DPAD_LEFT) },
@@ -276,6 +289,8 @@ class GrammarKeyboardService : InputMethodService(),
         suggestionState = SuggestionState.Idle
         isTonePanel = false
         toneError = null
+        isTranslatePanel = false
+        translateError = null
         voiceInputManager.stop()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         super.onFinishInputView(finishingInput)
@@ -544,6 +559,60 @@ class GrammarKeyboardService : InputMethodService(),
                 toneError = e.message ?: getString(R.string.grammar_error)
             } finally {
                 isApplyingTone = false
+            }
+        }
+    }
+
+    // --- Translation ---
+
+    fun openTranslatePanel() {
+        isTranslatePanel = true
+        translateError = null
+    }
+
+    fun dismissTranslatePanel() {
+        isTranslatePanel = false
+        translateError = null
+    }
+
+    fun launchTranslation(language: TranslationLanguage) {
+        if (isApplyingTranslation || isFixingGrammar) return
+        val ic = currentInputConnection ?: return
+
+        if (!prefs.isConfigured) {
+            translateError = getString(R.string.error_not_configured)
+            return
+        }
+
+        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        if (textBefore.isNullOrBlank()) {
+            translateError = getString(R.string.error_no_text)
+            return
+        }
+
+        isApplyingTranslation = true
+        translateError = null
+        clearUndoState()
+        dismissSuggestion()
+
+        serviceScope.launch {
+            try {
+                val translated = grammarService.fixGrammar(
+                    apiUrl = prefs.apiUrl,
+                    model = prefs.model,
+                    token = prefs.apiToken,
+                    text = textBefore,
+                    systemPrompt = language.systemPrompt,
+                )
+                ic.deleteSurroundingText(textBefore.length, 0)
+                ic.commitText(translated, 1)
+                undoState.recordFix(original = textBefore, fixed = translated)
+                canUndo = true
+                isTranslatePanel = false
+            } catch (e: GrammarServiceException) {
+                translateError = e.message ?: getString(R.string.grammar_error)
+            } finally {
+                isApplyingTranslation = false
             }
         }
     }

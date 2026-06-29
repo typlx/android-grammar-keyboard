@@ -36,6 +36,13 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".WordListActivity"
+            android:label="Personal word list"
+            android:exported="false"
+            android:theme="@style/Theme.TyplxKeyboard"
+            android:parentActivityName=".SettingsActivity" />
+
     </application>
 
 </manifest>

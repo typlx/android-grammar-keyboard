@@ -73,6 +73,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val undoState = GrammarUndoState()
     private val emojiRecentsMgr = EmojiRecents()
     private val clipboardHistory = ClipboardHistory()
+    private val personalWordList = PersonalWordList()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -97,6 +98,7 @@ class GrammarKeyboardService : InputMethodService(),
         hapticHelper = HapticHelper { prefs.hapticFeedbackEnabled }
         loadEmojiRecents()
         loadClipboardHistory()
+        loadPersonalWordList()
     }
 
     override fun onCreateInputView(): View {
@@ -199,7 +201,8 @@ class GrammarKeyboardService : InputMethodService(),
                 token = prefs.apiToken,
                 text = text,
             )
-            suggestionState = if (fixed != text) SuggestionState.Available(text, fixed)
+            suggestionState = if (fixed != text && !personalWordList.shouldSuppressCorrection(text, fixed))
+                                 SuggestionState.Available(text, fixed)
                              else SuggestionState.Idle
         } catch (_: GrammarServiceException) {
             suggestionState = SuggestionState.Idle
@@ -229,6 +232,7 @@ class GrammarKeyboardService : InputMethodService(),
         toneError = null
         lastSpacePressMs = 0L
         reloadThemePrefs()
+        reloadPersonalWordList()
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
             EditorInfo.IME_ACTION_SEND -> "Send"
@@ -459,6 +463,8 @@ class GrammarKeyboardService : InputMethodService(),
         private const val EMOJI_RECENTS_KEY = "emoji_recents"
         private const val CLIPBOARD_PREFS = "clipboard_prefs"
         private const val CLIPBOARD_HISTORY_KEY = "clipboard_history"
+        const val WORD_LIST_PREFS = "personal_word_list_prefs"
+        const val WORD_LIST_KEY = "words_json"
     }
 
     // --- Tone rewriter ---
@@ -555,15 +561,29 @@ class GrammarKeyboardService : InputMethodService(),
                     token = prefs.apiToken,
                     text = textBefore,
                 )
-                ic.deleteSurroundingText(textBefore.length, 0)
-                ic.commitText(fixed, 1)
-                undoState.recordFix(original = textBefore, fixed = fixed)
-                canUndo = true
+                if (!personalWordList.shouldSuppressCorrection(textBefore, fixed)) {
+                    ic.deleteSurroundingText(textBefore.length, 0)
+                    ic.commitText(fixed, 1)
+                    undoState.recordFix(original = textBefore, fixed = fixed)
+                    canUndo = true
+                }
             } catch (e: GrammarServiceException) {
                 grammarError = e.message ?: getString(R.string.grammar_error)
             } finally {
                 isFixingGrammar = false
             }
         }
+    }
+
+    // --- Personal word list persistence ---
+
+    fun reloadPersonalWordList() {
+        val json = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+            .getString(WORD_LIST_KEY, null) ?: return
+        personalWordList.loadFromJson(json)
+    }
+
+    private fun loadPersonalWordList() {
+        reloadPersonalWordList()
     }
 }

@@ -1,15 +1,18 @@
 package com.typlx.keyboard
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -71,6 +74,13 @@ private fun SettingsScreen(
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
     var apiTokenError by remember { mutableStateOf<String?>(null) }
+
+    var wordListCount by remember {
+        val prefs = context.getSharedPreferences(GrammarKeyboardService.WORD_LIST_PREFS, Context.MODE_PRIVATE)
+        val wl = PersonalWordList()
+        prefs.getString(GrammarKeyboardService.WORD_LIST_KEY, null)?.let { wl.loadFromJson(it) }
+        mutableIntStateOf(wl.size)
+    }
 
     var themePreset by remember { mutableStateOf(prefsManager.themePreset) }
     var cornerRadiusDp by remember { mutableIntStateOf(prefsManager.cornerRadiusDp) }
@@ -212,7 +222,39 @@ private fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Personal word list navigation row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        context.startActivity(Intent(context, WordListActivity::class.java))
+                    }
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Personal word list",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = if (wordListCount == 0) "No custom words yet"
+                               else "$wordListCount word${if (wordListCount == 1) "" else "s"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))

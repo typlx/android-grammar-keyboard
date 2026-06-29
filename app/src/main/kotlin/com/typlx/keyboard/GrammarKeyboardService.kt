@@ -50,6 +50,12 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var suggestionState by mutableStateOf<SuggestionState>(SuggestionState.Idle)
         private set
+    var isTonePanel by mutableStateOf(false)
+        private set
+    var isApplyingTone by mutableStateOf(false)
+        private set
+    var toneError by mutableStateOf<String?>(null)
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -100,6 +106,9 @@ class GrammarKeyboardService : InputMethodService(),
                         emojiRecents = emojiRecents,
                         suggestionState = suggestionState,
                         autoShiftSignal = autoShiftSignal,
+                        isTonePanel = isTonePanel,
+                        isApplyingTone = isApplyingTone,
+                        toneError = toneError,
                         onKeyPress = ::commitText,
                         onSpacePress = ::onSpacePress,
                         onDelete = ::deleteChar,
@@ -111,6 +120,10 @@ class GrammarKeyboardService : InputMethodService(),
                         onEmojiPress = ::commitEmoji,
                         onAcceptSuggestion = ::acceptSuggestion,
                         onDismissSuggestion = ::dismissSuggestion,
+                        onToneToggle = { if (isTonePanel) dismissTonePanel() else openTonePanel() },
+                        onToneDismiss = ::dismissTonePanel,
+                        onToneSelect = ::launchToneRewrite,
+                        onToneErrorDismiss = { toneError = null },
                         onMoveCursorLeft = { moveCursor(KeyEvent.KEYCODE_DPAD_LEFT) },
                         onMoveCursorRight = { moveCursor(KeyEvent.KEYCODE_DPAD_RIGHT) },
                         onMoveCursorUp = { moveCursor(KeyEvent.KEYCODE_DPAD_UP) },
@@ -194,6 +207,7 @@ class GrammarKeyboardService : InputMethodService(),
         super.onStartInputView(info, restarting)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         clearUndoState()
+        toneError = null
         lastSpacePressMs = 0L
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
@@ -214,6 +228,8 @@ class GrammarKeyboardService : InputMethodService(),
         keyboardView = null
         suggestionDebounceJob?.cancel()
         suggestionState = SuggestionState.Idle
+        isTonePanel = false
+        toneError = null
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         super.onFinishInputView(finishingInput)
     }
@@ -366,6 +382,65 @@ class GrammarKeyboardService : InputMethodService(),
     companion object {
         private const val EMOJI_PREFS = "emoji_prefs"
         private const val EMOJI_RECENTS_KEY = "emoji_recents"
+    }
+
+    // --- Tone rewriter ---
+
+    fun openTonePanel() {
+        isTonePanel = true
+        toneError = null
+    }
+
+    fun dismissTonePanel() {
+        isTonePanel = false
+        toneError = null
+    }
+
+    fun launchToneRewrite(tone: ToneOption) {
+        if (isApplyingTone || isFixingGrammar) return
+        val ic = currentInputConnection ?: return
+
+        if (!FeatureGate.isEnabled(FeatureGate.Feature.TONE_SUGGESTIONS)) {
+            toneError = getString(R.string.error_premium_required)
+            return
+        }
+
+        if (!prefs.isConfigured) {
+            toneError = getString(R.string.error_not_configured)
+            return
+        }
+
+        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        if (textBefore.isNullOrBlank()) {
+            toneError = getString(R.string.error_no_text)
+            return
+        }
+
+        isApplyingTone = true
+        toneError = null
+        clearUndoState()
+        dismissSuggestion()
+
+        serviceScope.launch {
+            try {
+                val rewritten = grammarService.fixGrammar(
+                    apiUrl = prefs.apiUrl,
+                    model = prefs.model,
+                    token = prefs.apiToken,
+                    text = textBefore,
+                    systemPrompt = tone.systemPrompt,
+                )
+                ic.deleteSurroundingText(textBefore.length, 0)
+                ic.commitText(rewritten, 1)
+                undoState.recordFix(original = textBefore, fixed = rewritten)
+                canUndo = true
+                isTonePanel = false
+            } catch (e: GrammarServiceException) {
+                toneError = e.message ?: getString(R.string.grammar_error)
+            } finally {
+                isApplyingTone = false
+            }
+        }
     }
 
     // --- Grammar fix ---

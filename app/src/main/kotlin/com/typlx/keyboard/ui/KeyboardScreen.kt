@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.typlx.keyboard.SuggestionState
+import com.typlx.keyboard.ToneOption
 import com.typlx.keyboard.getAlternatives
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
@@ -80,6 +81,9 @@ fun KeyboardScreen(
     emojiRecents: List<String> = emptyList(),
     suggestionState: SuggestionState = SuggestionState.Idle,
     autoShiftSignal: Long = 0L,
+    isTonePanel: Boolean = false,
+    isApplyingTone: Boolean = false,
+    toneError: String? = null,
     onKeyPress: (String) -> Unit,
     onSpacePress: () -> Unit = {},
     onDelete: () -> Unit,
@@ -91,6 +95,10 @@ fun KeyboardScreen(
     onEmojiPress: (String) -> Unit = {},
     onAcceptSuggestion: () -> Unit = {},
     onDismissSuggestion: () -> Unit = {},
+    onToneToggle: () -> Unit = {},
+    onToneDismiss: () -> Unit = {},
+    onToneSelect: (ToneOption) -> Unit = {},
+    onToneErrorDismiss: () -> Unit = {},
     onMoveCursorLeft: () -> Unit = {},
     onMoveCursorRight: () -> Unit = {},
     onMoveCursorUp: () -> Unit = {},
@@ -157,11 +165,14 @@ fun KeyboardScreen(
                 canUndo = canUndo,
                 isEmoji = false,
                 isNav = true,
+                isTonePanel = false,
+                isApplyingTone = isApplyingTone,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
                 onUndoGrammarFix = onUndoGrammarFix,
                 onEmojiToggle = { isEmoji = true },
                 onNavToggle = { isNav = false },
+                onToneToggle = onToneToggle,
                 onOpenSettings = onOpenSettings,
             )
             CursorNavPanel(
@@ -196,11 +207,14 @@ fun KeyboardScreen(
                 canUndo = canUndo,
                 isEmoji = true,
                 isNav = false,
+                isTonePanel = false,
+                isApplyingTone = isApplyingTone,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
                 onUndoGrammarFix = onUndoGrammarFix,
                 onEmojiToggle = { isEmoji = false },
                 onNavToggle = { isNav = true },
+                onToneToggle = onToneToggle,
                 onOpenSettings = onOpenSettings,
             )
             EmojiKeyboard(
@@ -227,19 +241,33 @@ fun KeyboardScreen(
             canUndo = canUndo,
             isEmoji = false,
             isNav = false,
+            isTonePanel = isTonePanel,
+            isApplyingTone = isApplyingTone,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
             onUndoGrammarFix = onUndoGrammarFix,
             onEmojiToggle = { isEmoji = true },
             onNavToggle = { isNav = true },
+            onToneToggle = onToneToggle,
             onOpenSettings = onOpenSettings,
         )
 
-        SuggestionStrip(
-            state = suggestionState,
-            onAccept = onAcceptSuggestion,
-            onDismiss = onDismissSuggestion,
-        )
+        if (isTonePanel) {
+            TonePanel(
+                isApplying = isApplyingTone,
+                error = toneError,
+                onToneSelect = onToneSelect,
+                onDismiss = onToneDismiss,
+                onErrorDismiss = onToneErrorDismiss,
+                colors = colors,
+            )
+        } else {
+            SuggestionStrip(
+                state = suggestionState,
+                onAccept = onAcceptSuggestion,
+                onDismiss = onDismissSuggestion,
+            )
+        }
 
         activeAlternatives?.let { (label, _, alts) ->
             AlternativesBar(
@@ -291,11 +319,14 @@ private fun ToolbarRow(
     canUndo: Boolean,
     isEmoji: Boolean,
     isNav: Boolean,
+    isTonePanel: Boolean,
+    isApplyingTone: Boolean,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit,
     onEmojiToggle: () -> Unit,
     onNavToggle: () -> Unit,
+    onToneToggle: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
     Row(
@@ -344,7 +375,7 @@ private fun ToolbarRow(
         val fixButtonDesc = if (isFixingGrammar) "Fixing grammar, please wait" else "Fix grammar"
         Button(
             onClick = onFixGrammar,
-            enabled = !isFixingGrammar,
+            enabled = !isFixingGrammar && !isApplyingTone,
             contentPadding = PaddingValues(horizontal = 14.dp, vertical = 0.dp),
             modifier = Modifier
                 .height(36.dp)
@@ -361,6 +392,25 @@ private fun ToolbarRow(
             Text(
                 text = if (isFixingGrammar) "Fixing…" else "Fix Grammar",
                 fontSize = 13.sp,
+                fontWeight = FontWeight.Medium,
+            )
+        }
+
+        val toneButtonDesc = if (isTonePanel) "Close tone panel" else "Open tone rewriter"
+        OutlinedButton(
+            onClick = onToneToggle,
+            enabled = !isFixingGrammar && !isApplyingTone,
+            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+            modifier = Modifier
+                .height(36.dp)
+                .semantics { contentDescription = toneButtonDesc },
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = if (isTonePanel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            ),
+        ) {
+            Text(
+                text = "Tone",
+                fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
             )
         }
@@ -1019,6 +1069,111 @@ private fun AlternativesBar(
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal,
             )
+        }
+    }
+}
+
+@Composable
+private fun TonePanel(
+    isApplying: Boolean,
+    error: String?,
+    onToneSelect: (ToneOption) -> Unit,
+    onDismiss: () -> Unit,
+    onErrorDismiss: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.keyActionBg)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (error != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 11.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = onErrorDismiss,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .semantics { contentDescription = "Dismiss tone error" },
+                ) {
+                    Text("✕", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        if (isApplying) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 1.5.dp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Rewriting tone…",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.weight(1f))
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .semantics { contentDescription = "Close tone panel" },
+                ) {
+                    Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                ToneOption.entries.forEach { tone ->
+                    FilterChip(
+                        selected = false,
+                        onClick = { onToneSelect(tone) },
+                        label = {
+                            Text(
+                                text = tone.displayLabel,
+                                fontSize = 12.sp,
+                            )
+                        },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Rewrite in ${tone.displayLabel} tone"
+                        },
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .semantics { contentDescription = "Close tone panel" },
+                ) {
+                    Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
         }
     }
 }

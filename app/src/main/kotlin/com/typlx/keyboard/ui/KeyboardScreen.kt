@@ -135,6 +135,10 @@ fun KeyboardScreen(
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit = {},
     onVoiceErrorDismiss: () -> Unit = {},
+    isNumPad: Boolean = false,
+    isNumPadPhoneMode: Boolean = false,
+    isNumPadDecimal: Boolean = false,
+    isNumPadSigned: Boolean = false,
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
@@ -173,6 +177,21 @@ fun KeyboardScreen(
 
     val showAlternatives: (String, Boolean, List<String>) -> Unit = { label, caps, alts ->
         activeAlternatives = Triple(label, caps, alts)
+    }
+
+    if (isNumPad) {
+        NumPadKeyboard(
+            isPhoneMode = isNumPadPhoneMode,
+            isDecimalAllowed = isNumPadDecimal,
+            isSignedAllowed = isNumPadSigned,
+            returnKeyDescription = returnKeyDescription,
+            onKeyPress = onKeyPress,
+            onDelete = onDelete,
+            onDeleteWord = onDeleteWord,
+            onReturn = onReturn,
+            colors = colors,
+        )
+        return
     }
 
     if (isClipboard) {
@@ -822,7 +841,7 @@ private fun BottomRow(
  * - Hold 1500ms: switch to word delete every 400ms with extra haptic
  */
 @Composable
-private fun DeleteButton(
+internal fun DeleteButton(
     modifier: Modifier = Modifier,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
     height: Dp = 46.dp,
@@ -1599,7 +1618,7 @@ private fun ClipboardPanel(
 }
 
 @Composable
-private fun KeyButton(
+internal fun KeyButton(
     label: String,
     contentDescription: String,
     modifier: Modifier = Modifier,

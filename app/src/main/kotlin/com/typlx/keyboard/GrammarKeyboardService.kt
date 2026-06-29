@@ -573,6 +573,7 @@ class GrammarKeyboardService : InputMethodService(),
                     text = textBefore,
                     systemPrompt = tone.systemPrompt,
                 )
+                suppressSuggestionTriggerCount += 2
                 ic.deleteSurroundingText(textBefore.length, 0)
                 ic.commitText(rewritten, 1)
                 undoState.recordFix(original = textBefore, fixed = rewritten)
@@ -627,6 +628,7 @@ class GrammarKeyboardService : InputMethodService(),
                     text = textBefore,
                     systemPrompt = language.systemPrompt,
                 )
+                suppressSuggestionTriggerCount += 2
                 ic.deleteSurroundingText(textBefore.length, 0)
                 ic.commitText(translated, 1)
                 undoState.recordFix(original = textBefore, fixed = translated)
@@ -676,6 +678,7 @@ class GrammarKeyboardService : InputMethodService(),
                     text = textBefore,
                 )
                 if (!personalWordList.shouldSuppressCorrection(textBefore, fixed)) {
+                    suppressSuggestionTriggerCount += 2
                     ic.deleteSurroundingText(textBefore.length, 0)
                     ic.commitText(fixed, 1)
                     undoState.recordFix(original = textBefore, fixed = fixed)

@@ -1,8 +1,10 @@
 package com.typlx.keyboard
 
+import android.Manifest
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.InputType
 import android.view.KeyEvent
@@ -58,6 +60,12 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var toneError by mutableStateOf<String?>(null)
         private set
+    var isVoiceListening by mutableStateOf(false)
+        private set
+    var voicePartialText by mutableStateOf("")
+        private set
+    var voiceError by mutableStateOf<String?>(null)
+        private set
     var clipboardItems by mutableStateOf<List<String>>(emptyList())
         private set
     var themePreset by mutableStateOf(ThemePreset.SYSTEM)
@@ -74,6 +82,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val emojiRecentsMgr = EmojiRecents()
     private val clipboardHistory = ClipboardHistory()
     private val personalWordList = PersonalWordList()
+    private val voiceInputManager = VoiceInputManager()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -99,6 +108,12 @@ class GrammarKeyboardService : InputMethodService(),
         loadEmojiRecents()
         loadClipboardHistory()
         loadPersonalWordList()
+        voiceInputManager.onResult = ::onVoiceResult
+        voiceInputManager.onStateChange = { state ->
+            isVoiceListening = state is VoiceInputState.Listening
+            voicePartialText = (state as? VoiceInputState.Partial)?.text ?: ""
+        }
+        voiceInputManager.onError = { msg -> voiceError = msg }
     }
 
     override fun onCreateInputView(): View {
@@ -128,6 +143,9 @@ class GrammarKeyboardService : InputMethodService(),
                         isApplyingTone = isApplyingTone,
                         toneError = toneError,
                         clipboardItems = clipboardItems,
+                        isVoiceListening = isVoiceListening,
+                        voicePartialText = voicePartialText,
+                        voiceError = voiceError,
                         onKeyPress = ::commitText,
                         onSpacePress = ::onSpacePress,
                         onDelete = ::deleteChar,
@@ -158,6 +176,8 @@ class GrammarKeyboardService : InputMethodService(),
                         onCutText = { currentInputConnection?.performContextMenuAction(android.R.id.cut) },
                         onPasteText = { currentInputConnection?.performContextMenuAction(android.R.id.paste) },
                         onOpenSettings = ::openSettings,
+                        onVoiceToggle = ::toggleVoiceInput,
+                        onVoiceErrorDismiss = { voiceError = null },
                     )
                 }
             }
@@ -256,11 +276,13 @@ class GrammarKeyboardService : InputMethodService(),
         suggestionState = SuggestionState.Idle
         isTonePanel = false
         toneError = null
+        voiceInputManager.stop()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         super.onFinishInputView(finishingInput)
     }
 
     override fun onDestroy() {
+        voiceInputManager.destroy()
         serviceScope.cancel()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         vmStore.clear()
@@ -573,6 +595,29 @@ class GrammarKeyboardService : InputMethodService(),
                 isFixingGrammar = false
             }
         }
+    }
+
+    // --- Voice input ---
+
+    private fun toggleVoiceInput() {
+        voiceError = null
+        if (isVoiceListening) {
+            voiceInputManager.stop()
+            return
+        }
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            voiceError = "Microphone permission required. Grant it in Settings > Apps > Typlx Keyboard."
+            return
+        }
+        voiceInputManager.start(applicationContext)
+    }
+
+    private fun onVoiceResult(text: String) {
+        hapticHelper.tap(keyboardView)
+        clearUndoState()
+        dismissSuggestion()
+        currentInputConnection?.commitText(text, 1)
+        scheduleAutoSuggest()
     }
 
     // --- Personal word list persistence ---

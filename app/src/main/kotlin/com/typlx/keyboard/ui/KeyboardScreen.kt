@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
@@ -88,6 +90,9 @@ fun KeyboardScreen(
     isApplyingTone: Boolean = false,
     toneError: String? = null,
     clipboardItems: List<String> = emptyList(),
+    isVoiceListening: Boolean = false,
+    voicePartialText: String = "",
+    voiceError: String? = null,
     onKeyPress: (String) -> Unit,
     onSpacePress: () -> Unit = {},
     onDelete: () -> Unit,
@@ -118,6 +123,8 @@ fun KeyboardScreen(
     onCutText: () -> Unit = {},
     onPasteText: () -> Unit = {},
     onOpenSettings: () -> Unit,
+    onVoiceToggle: () -> Unit = {},
+    onVoiceErrorDismiss: () -> Unit = {},
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
@@ -175,6 +182,7 @@ fun KeyboardScreen(
                 isClipboard = true,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
+                isVoiceListening = isVoiceListening,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
                 onUndoGrammarFix = onUndoGrammarFix,
@@ -183,6 +191,7 @@ fun KeyboardScreen(
                 onClipboardToggle = { isClipboard = false },
                 onToneToggle = onToneToggle,
                 onOpenSettings = onOpenSettings,
+                onVoiceToggle = onVoiceToggle,
             )
             ClipboardPanel(
                 items = clipboardItems,
@@ -211,6 +220,7 @@ fun KeyboardScreen(
                 isClipboard = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
+                isVoiceListening = isVoiceListening,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
                 onUndoGrammarFix = onUndoGrammarFix,
@@ -219,6 +229,7 @@ fun KeyboardScreen(
                 onClipboardToggle = { isClipboard = true },
                 onToneToggle = onToneToggle,
                 onOpenSettings = onOpenSettings,
+                onVoiceToggle = onVoiceToggle,
             )
             CursorNavPanel(
                 onLeft = onMoveCursorLeft,
@@ -255,6 +266,7 @@ fun KeyboardScreen(
                 isClipboard = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
+                isVoiceListening = isVoiceListening,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
                 onUndoGrammarFix = onUndoGrammarFix,
@@ -263,6 +275,7 @@ fun KeyboardScreen(
                 onClipboardToggle = { isClipboard = true },
                 onToneToggle = onToneToggle,
                 onOpenSettings = onOpenSettings,
+                onVoiceToggle = onVoiceToggle,
             )
             EmojiKeyboard(
                 recents = emojiRecents,
@@ -291,6 +304,7 @@ fun KeyboardScreen(
             isClipboard = false,
             isTonePanel = isTonePanel,
             isApplyingTone = isApplyingTone,
+            isVoiceListening = isVoiceListening,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
             onUndoGrammarFix = onUndoGrammarFix,
@@ -299,10 +313,11 @@ fun KeyboardScreen(
             onClipboardToggle = { isClipboard = true },
             onToneToggle = onToneToggle,
             onOpenSettings = onOpenSettings,
+            onVoiceToggle = onVoiceToggle,
         )
 
-        if (isTonePanel) {
-            TonePanel(
+        when {
+            isTonePanel -> TonePanel(
                 isApplying = isApplyingTone,
                 error = toneError,
                 onToneSelect = onToneSelect,
@@ -310,8 +325,13 @@ fun KeyboardScreen(
                 onErrorDismiss = onToneErrorDismiss,
                 colors = colors,
             )
-        } else {
-            SuggestionStrip(
+            isVoiceListening || voicePartialText.isNotEmpty() || voiceError != null -> VoiceStrip(
+                isListening = isVoiceListening,
+                partialText = voicePartialText,
+                error = voiceError,
+                onDismissError = onVoiceErrorDismiss,
+            )
+            else -> SuggestionStrip(
                 state = suggestionState,
                 onAccept = onAcceptSuggestion,
                 onDismiss = onDismissSuggestion,
@@ -371,6 +391,7 @@ private fun ToolbarRow(
     isClipboard: Boolean,
     isTonePanel: Boolean,
     isApplyingTone: Boolean,
+    isVoiceListening: Boolean,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit,
@@ -379,6 +400,7 @@ private fun ToolbarRow(
     onClipboardToggle: () -> Unit,
     onToneToggle: () -> Unit,
     onOpenSettings: () -> Unit,
+    onVoiceToggle: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -506,6 +528,22 @@ private fun ToolbarRow(
                 imageVector = Icons.Default.ContentPaste,
                 contentDescription = null,
                 tint = if (isClipboard) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+
+        val voiceDesc = if (isVoiceListening) "Stop voice input" else "Start voice input"
+        IconButton(
+            onClick = onVoiceToggle,
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = voiceDesc },
+        ) {
+            Icon(
+                imageVector = if (isVoiceListening) Icons.Default.MicOff else Icons.Default.Mic,
+                contentDescription = null,
+                tint = if (isVoiceListening) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
             )
         }
@@ -984,6 +1022,72 @@ private fun NavKeyButton(
                 maxLines = 2,
                 textAlign = TextAlign.Center,
             )
+        }
+    }
+}
+
+@Composable
+private fun VoiceStrip(
+    isListening: Boolean,
+    partialText: String,
+    error: String?,
+    onDismissError: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(32.dp)
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        when {
+            error != null -> {
+                Text(
+                    text = error,
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                IconButton(
+                    onClick = onDismissError,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .semantics { contentDescription = "Dismiss voice error" },
+                ) {
+                    Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            partialText.isNotEmpty() -> {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(14.dp),
+                )
+                Text(
+                    text = partialText,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            isListening -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 1.5.dp,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "Listening…",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }

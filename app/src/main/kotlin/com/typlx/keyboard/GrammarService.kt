@@ -35,20 +35,22 @@ class GrammarService(
     }
 
     /**
-     * Sends text to the grammar-fix API and returns the corrected text.
+     * Sends text to the API and returns the rewritten text.
      *
      * @param apiUrl Base API URL (e.g. "https://api.openai.com/v1")
      * @param model Model identifier (e.g. "gpt-4o-mini")
      * @param token Bearer token for authorization
-     * @param text The text to correct
-     * @return The corrected text from the API
+     * @param text The text to process
+     * @param systemPrompt Instruction sent as the system message; defaults to the grammar-fix prompt
+     * @return The rewritten text from the API
      * @throws GrammarServiceException on any failure
      */
     suspend fun fixGrammar(
         apiUrl: String,
         model: String,
         token: String,
-        text: String
+        text: String,
+        systemPrompt: String = SYSTEM_PROMPT,
     ): String = withContext(Dispatchers.IO) {
         // Normalise: strip a trailing /v1 if present, then always add /v1/chat/completions
         // so both "https://api.openai.com" and "https://api.openai.com/v1" work.
@@ -58,7 +60,7 @@ class GrammarService(
         val messages = JSONArray().apply {
             put(JSONObject().apply {
                 put("role", "system")
-                put("content", SYSTEM_PROMPT)
+                put("content", systemPrompt)
             })
             put(JSONObject().apply {
                 put("role", "user")

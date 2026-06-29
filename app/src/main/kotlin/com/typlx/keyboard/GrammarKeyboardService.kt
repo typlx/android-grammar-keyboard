@@ -1,5 +1,6 @@
 package com.typlx.keyboard
 
+import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -56,12 +57,15 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var toneError by mutableStateOf<String?>(null)
         private set
+    var clipboardItems by mutableStateOf<List<String>>(emptyList())
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
 
     private val undoState = GrammarUndoState()
     private val emojiRecentsMgr = EmojiRecents()
+    private val clipboardHistory = ClipboardHistory()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -85,6 +89,7 @@ class GrammarKeyboardService : InputMethodService(),
         grammarService = GrammarService()
         hapticHelper = HapticHelper { prefs.hapticFeedbackEnabled }
         loadEmojiRecents()
+        loadClipboardHistory()
     }
 
     override fun onCreateInputView(): View {
@@ -109,6 +114,7 @@ class GrammarKeyboardService : InputMethodService(),
                         isTonePanel = isTonePanel,
                         isApplyingTone = isApplyingTone,
                         toneError = toneError,
+                        clipboardItems = clipboardItems,
                         onKeyPress = ::commitText,
                         onSpacePress = ::onSpacePress,
                         onDelete = ::deleteChar,
@@ -124,6 +130,8 @@ class GrammarKeyboardService : InputMethodService(),
                         onToneDismiss = ::dismissTonePanel,
                         onToneSelect = ::launchToneRewrite,
                         onToneErrorDismiss = { toneError = null },
+                        onClipboardPaste = ::pasteClipboardItem,
+                        onClipboardClear = ::clearClipboardHistory,
                         onMoveCursorLeft = { moveCursor(KeyEvent.KEYCODE_DPAD_LEFT) },
                         onMoveCursorRight = { moveCursor(KeyEvent.KEYCODE_DPAD_RIGHT) },
                         onMoveCursorUp = { moveCursor(KeyEvent.KEYCODE_DPAD_UP) },
@@ -222,6 +230,8 @@ class GrammarKeyboardService : InputMethodService(),
         if (shouldAutoCapOnFieldFocus(info?.inputType ?: 0)) {
             requestAutoShift()
         }
+        // Snapshot clipboard when keyboard becomes visible (safe on API 29+).
+        snapshotClipboard()
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -343,6 +353,51 @@ class GrammarKeyboardService : InputMethodService(),
             .apply()
     }
 
+    // --- Clipboard history ---
+
+    private fun snapshotClipboard() {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return
+        val text = cm.primaryClip
+            ?.takeIf { it.itemCount > 0 }
+            ?.getItemAt(0)
+            ?.coerceToText(applicationContext)
+            ?.toString()
+            ?: return
+        if (text.isBlank()) return
+        clipboardHistory.add(text)
+        clipboardItems = clipboardHistory.items
+        saveClipboardHistory()
+    }
+
+    fun pasteClipboardItem(text: String) {
+        hapticHelper.tap(keyboardView)
+        clearUndoState()
+        currentInputConnection?.commitText(text, 1)
+    }
+
+    fun clearClipboardHistory() {
+        clipboardHistory.clear()
+        clipboardItems = emptyList()
+        getSharedPreferences(CLIPBOARD_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .remove(CLIPBOARD_HISTORY_KEY)
+            .apply()
+    }
+
+    private fun loadClipboardHistory() {
+        val json = getSharedPreferences(CLIPBOARD_PREFS, Context.MODE_PRIVATE)
+            .getString(CLIPBOARD_HISTORY_KEY, null) ?: return
+        clipboardHistory.loadFromJson(json)
+        clipboardItems = clipboardHistory.items
+    }
+
+    private fun saveClipboardHistory() {
+        getSharedPreferences(CLIPBOARD_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(CLIPBOARD_HISTORY_KEY, clipboardHistory.toJson())
+            .apply()
+    }
+
     private fun clearUndoState() {
         undoState.clear()
         canUndo = false
@@ -382,6 +437,8 @@ class GrammarKeyboardService : InputMethodService(),
     companion object {
         private const val EMOJI_PREFS = "emoji_prefs"
         private const val EMOJI_RECENTS_KEY = "emoji_recents"
+        private const val CLIPBOARD_PREFS = "clipboard_prefs"
+        private const val CLIPBOARD_HISTORY_KEY = "clipboard_history"
     }
 
     // --- Tone rewriter ---

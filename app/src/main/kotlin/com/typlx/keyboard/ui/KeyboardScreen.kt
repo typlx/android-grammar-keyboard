@@ -8,7 +8,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
@@ -84,6 +87,7 @@ fun KeyboardScreen(
     isTonePanel: Boolean = false,
     isApplyingTone: Boolean = false,
     toneError: String? = null,
+    clipboardItems: List<String> = emptyList(),
     onKeyPress: (String) -> Unit,
     onSpacePress: () -> Unit = {},
     onDelete: () -> Unit,
@@ -99,6 +103,8 @@ fun KeyboardScreen(
     onToneDismiss: () -> Unit = {},
     onToneSelect: (ToneOption) -> Unit = {},
     onToneErrorDismiss: () -> Unit = {},
+    onClipboardPaste: (String) -> Unit = {},
+    onClipboardClear: () -> Unit = {},
     onMoveCursorLeft: () -> Unit = {},
     onMoveCursorRight: () -> Unit = {},
     onMoveCursorUp: () -> Unit = {},
@@ -118,6 +124,7 @@ fun KeyboardScreen(
     var isSymbols by remember { mutableStateOf(false) }
     var isEmoji by remember { mutableStateOf(false) }
     var isNav by remember { mutableStateOf(false) }
+    var isClipboard by remember { mutableStateOf(false) }
     // Triple: (displayLabel, isCaps, alternatives) — non-null when the alternatives bar is visible.
     var activeAlternatives by remember { mutableStateOf<Triple<String, Boolean, List<String>>?>(null) }
     val colors = LocalKeyboardColors.current
@@ -151,6 +158,42 @@ fun KeyboardScreen(
         activeAlternatives = Triple(label, caps, alts)
     }
 
+    if (isClipboard) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ToolbarRow(
+                isFixingGrammar = isFixingGrammar,
+                grammarError = grammarError,
+                canUndo = canUndo,
+                isEmoji = false,
+                isNav = false,
+                isClipboard = true,
+                isTonePanel = false,
+                isApplyingTone = isApplyingTone,
+                onFixGrammar = onFixGrammar,
+                onErrorDismiss = onErrorDismiss,
+                onUndoGrammarFix = onUndoGrammarFix,
+                onEmojiToggle = { isEmoji = true },
+                onNavToggle = { isNav = true },
+                onClipboardToggle = { isClipboard = false },
+                onToneToggle = onToneToggle,
+                onOpenSettings = onOpenSettings,
+            )
+            ClipboardPanel(
+                items = clipboardItems,
+                onPaste = onClipboardPaste,
+                onClear = onClipboardClear,
+                colors = colors,
+            )
+        }
+        return
+    }
+
     if (isNav) {
         Column(
             modifier = Modifier
@@ -165,6 +208,7 @@ fun KeyboardScreen(
                 canUndo = canUndo,
                 isEmoji = false,
                 isNav = true,
+                isClipboard = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
                 onFixGrammar = onFixGrammar,
@@ -172,6 +216,7 @@ fun KeyboardScreen(
                 onUndoGrammarFix = onUndoGrammarFix,
                 onEmojiToggle = { isEmoji = true },
                 onNavToggle = { isNav = false },
+                onClipboardToggle = { isClipboard = true },
                 onToneToggle = onToneToggle,
                 onOpenSettings = onOpenSettings,
             )
@@ -207,6 +252,7 @@ fun KeyboardScreen(
                 canUndo = canUndo,
                 isEmoji = true,
                 isNav = false,
+                isClipboard = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
                 onFixGrammar = onFixGrammar,
@@ -214,6 +260,7 @@ fun KeyboardScreen(
                 onUndoGrammarFix = onUndoGrammarFix,
                 onEmojiToggle = { isEmoji = false },
                 onNavToggle = { isNav = true },
+                onClipboardToggle = { isClipboard = true },
                 onToneToggle = onToneToggle,
                 onOpenSettings = onOpenSettings,
             )
@@ -241,6 +288,7 @@ fun KeyboardScreen(
             canUndo = canUndo,
             isEmoji = false,
             isNav = false,
+            isClipboard = false,
             isTonePanel = isTonePanel,
             isApplyingTone = isApplyingTone,
             onFixGrammar = onFixGrammar,
@@ -248,6 +296,7 @@ fun KeyboardScreen(
             onUndoGrammarFix = onUndoGrammarFix,
             onEmojiToggle = { isEmoji = true },
             onNavToggle = { isNav = true },
+            onClipboardToggle = { isClipboard = true },
             onToneToggle = onToneToggle,
             onOpenSettings = onOpenSettings,
         )
@@ -319,6 +368,7 @@ private fun ToolbarRow(
     canUndo: Boolean,
     isEmoji: Boolean,
     isNav: Boolean,
+    isClipboard: Boolean,
     isTonePanel: Boolean,
     isApplyingTone: Boolean,
     onFixGrammar: () -> Unit,
@@ -326,6 +376,7 @@ private fun ToolbarRow(
     onUndoGrammarFix: () -> Unit,
     onEmojiToggle: () -> Unit,
     onNavToggle: () -> Unit,
+    onClipboardToggle: () -> Unit,
     onToneToggle: () -> Unit,
     onOpenSettings: () -> Unit,
 ) {
@@ -441,6 +492,21 @@ private fun ToolbarRow(
                 text = "↕",
                 fontSize = 16.sp,
                 color = if (isNav) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        val clipboardDesc = if (isClipboard) "Close clipboard" else "Open clipboard history"
+        IconButton(
+            onClick = onClipboardToggle,
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = clipboardDesc },
+        ) {
+            Icon(
+                imageVector = Icons.Default.ContentPaste,
+                contentDescription = null,
+                tint = if (isClipboard) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
             )
         }
 
@@ -1172,6 +1238,94 @@ private fun TonePanel(
                         .semantics { contentDescription = "Close tone panel" },
                 ) {
                     Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ClipboardPanel(
+    items: List<String>,
+    onPaste: (String) -> Unit,
+    onClear: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(colors.keyActionBg)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Clipboard",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            if (items.isNotEmpty()) {
+                TextButton(
+                    onClick = onClear,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                    modifier = Modifier
+                        .height(28.dp)
+                        .semantics { contentDescription = "Clear clipboard history" },
+                ) {
+                    Text(text = "Clear", fontSize = 11.sp)
+                }
+            }
+        }
+
+        if (items.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No clipboard items",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(items) { text ->
+                    val displayText = if (text.length > 80) text.take(80) + "…" else text
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(colors.keyBg)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(),
+                                onClick = { onPaste(text) },
+                            )
+                            .semantics { contentDescription = "Paste: $displayText" }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    ) {
+                        Text(
+                            text = displayText,
+                            fontSize = 12.sp,
+                            color = colors.keyText,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         }

@@ -20,6 +20,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -45,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.typlx.keyboard.SuggestionState
 import com.typlx.keyboard.ToneOption
+import com.typlx.keyboard.TranslationLanguage
 import com.typlx.keyboard.getAlternatives
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
@@ -89,6 +91,9 @@ fun KeyboardScreen(
     isTonePanel: Boolean = false,
     isApplyingTone: Boolean = false,
     toneError: String? = null,
+    isTranslatePanel: Boolean = false,
+    isApplyingTranslation: Boolean = false,
+    translateError: String? = null,
     clipboardItems: List<String> = emptyList(),
     isVoiceListening: Boolean = false,
     voicePartialText: String = "",
@@ -108,6 +113,10 @@ fun KeyboardScreen(
     onToneDismiss: () -> Unit = {},
     onToneSelect: (ToneOption) -> Unit = {},
     onToneErrorDismiss: () -> Unit = {},
+    onTranslateToggle: () -> Unit = {},
+    onTranslateDismiss: () -> Unit = {},
+    onTranslateSelect: (TranslationLanguage) -> Unit = {},
+    onTranslateErrorDismiss: () -> Unit = {},
     onClipboardPaste: (String) -> Unit = {},
     onClipboardClear: () -> Unit = {},
     onMoveCursorLeft: () -> Unit = {},
@@ -182,6 +191,8 @@ fun KeyboardScreen(
                 isClipboard = true,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
+                isTranslatePanel = false,
+                isApplyingTranslation = isApplyingTranslation,
                 isVoiceListening = isVoiceListening,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
@@ -190,6 +201,7 @@ fun KeyboardScreen(
                 onNavToggle = { isNav = true },
                 onClipboardToggle = { isClipboard = false },
                 onToneToggle = onToneToggle,
+                onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
                 onVoiceToggle = onVoiceToggle,
             )
@@ -220,6 +232,8 @@ fun KeyboardScreen(
                 isClipboard = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
+                isTranslatePanel = false,
+                isApplyingTranslation = isApplyingTranslation,
                 isVoiceListening = isVoiceListening,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
@@ -228,6 +242,7 @@ fun KeyboardScreen(
                 onNavToggle = { isNav = false },
                 onClipboardToggle = { isClipboard = true },
                 onToneToggle = onToneToggle,
+                onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
                 onVoiceToggle = onVoiceToggle,
             )
@@ -266,6 +281,8 @@ fun KeyboardScreen(
                 isClipboard = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
+                isTranslatePanel = false,
+                isApplyingTranslation = isApplyingTranslation,
                 isVoiceListening = isVoiceListening,
                 onFixGrammar = onFixGrammar,
                 onErrorDismiss = onErrorDismiss,
@@ -274,6 +291,7 @@ fun KeyboardScreen(
                 onNavToggle = { isNav = true },
                 onClipboardToggle = { isClipboard = true },
                 onToneToggle = onToneToggle,
+                onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
                 onVoiceToggle = onVoiceToggle,
             )
@@ -304,6 +322,8 @@ fun KeyboardScreen(
             isClipboard = false,
             isTonePanel = isTonePanel,
             isApplyingTone = isApplyingTone,
+            isTranslatePanel = isTranslatePanel,
+            isApplyingTranslation = isApplyingTranslation,
             isVoiceListening = isVoiceListening,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
@@ -312,6 +332,7 @@ fun KeyboardScreen(
             onNavToggle = { isNav = true },
             onClipboardToggle = { isClipboard = true },
             onToneToggle = onToneToggle,
+            onTranslateToggle = onTranslateToggle,
             onOpenSettings = onOpenSettings,
             onVoiceToggle = onVoiceToggle,
         )
@@ -323,6 +344,14 @@ fun KeyboardScreen(
                 onToneSelect = onToneSelect,
                 onDismiss = onToneDismiss,
                 onErrorDismiss = onToneErrorDismiss,
+                colors = colors,
+            )
+            isTranslatePanel -> TranslationPanel(
+                isApplying = isApplyingTranslation,
+                error = translateError,
+                onLanguageSelect = onTranslateSelect,
+                onDismiss = onTranslateDismiss,
+                onErrorDismiss = onTranslateErrorDismiss,
                 colors = colors,
             )
             isVoiceListening || voicePartialText.isNotEmpty() || voiceError != null -> VoiceStrip(
@@ -391,6 +420,8 @@ private fun ToolbarRow(
     isClipboard: Boolean,
     isTonePanel: Boolean,
     isApplyingTone: Boolean,
+    isTranslatePanel: Boolean,
+    isApplyingTranslation: Boolean,
     isVoiceListening: Boolean,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
@@ -399,6 +430,7 @@ private fun ToolbarRow(
     onNavToggle: () -> Unit,
     onClipboardToggle: () -> Unit,
     onToneToggle: () -> Unit,
+    onTranslateToggle: () -> Unit,
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit,
 ) {
@@ -485,6 +517,22 @@ private fun ToolbarRow(
                 text = "Tone",
                 fontSize = 12.sp,
                 fontWeight = FontWeight.Medium,
+            )
+        }
+
+        val translateButtonDesc = if (isTranslatePanel) "Close translation panel" else "Open translation panel"
+        IconButton(
+            onClick = onTranslateToggle,
+            enabled = !isFixingGrammar && !isApplyingTone && !isApplyingTranslation,
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = translateButtonDesc },
+        ) {
+            Icon(
+                imageVector = Icons.Default.Translate,
+                contentDescription = null,
+                tint = if (isTranslatePanel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
             )
         }
 
@@ -1343,6 +1391,111 @@ private fun TonePanel(
                     modifier = Modifier
                         .size(28.dp)
                         .semantics { contentDescription = "Close tone panel" },
+                ) {
+                    Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TranslationPanel(
+    isApplying: Boolean,
+    error: String?,
+    onLanguageSelect: (TranslationLanguage) -> Unit,
+    onDismiss: () -> Unit,
+    onErrorDismiss: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape((colors.cornerRadiusDp + 2).dp))
+            .background(colors.keyActionBg)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        if (error != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    text = error,
+                    color = MaterialTheme.colorScheme.error,
+                    fontSize = 11.sp,
+                    modifier = Modifier.weight(1f),
+                )
+                IconButton(
+                    onClick = onErrorDismiss,
+                    modifier = Modifier
+                        .size(24.dp)
+                        .semantics { contentDescription = "Dismiss translation error" },
+                ) {
+                    Text("✕", fontSize = 11.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+
+        if (isApplying) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(36.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(14.dp),
+                    strokeWidth = 1.5.dp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Text(
+                    text = "Translating…",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.weight(1f))
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .semantics { contentDescription = "Close translation panel" },
+                ) {
+                    Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        } else {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TranslationLanguage.entries.forEach { language ->
+                    FilterChip(
+                        selected = false,
+                        onClick = { onLanguageSelect(language) },
+                        label = {
+                            Text(
+                                text = language.displayLabel,
+                                fontSize = 12.sp,
+                            )
+                        },
+                        modifier = Modifier.semantics {
+                            contentDescription = "Translate to ${language.displayLabel}"
+                        },
+                    )
+                }
+                Spacer(Modifier.width(4.dp))
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .size(28.dp)
+                        .semantics { contentDescription = "Close translation panel" },
                 ) {
                     Text("✕", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }

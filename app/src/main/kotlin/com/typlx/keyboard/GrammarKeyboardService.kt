@@ -286,8 +286,12 @@ class GrammarKeyboardService : InputMethodService(),
         snapshotClipboard()
     }
 
-    override fun onFinishInputView(finishingInput: Boolean) {
+    override fun onDestroyInputView() {
         keyboardView = null
+        super.onDestroyInputView()
+    }
+
+    override fun onFinishInputView(finishingInput: Boolean) {
         suggestionDebounceJob?.cancel()
         suggestionState = SuggestionState.Idle
         isTonePanel = false

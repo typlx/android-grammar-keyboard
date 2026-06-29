@@ -88,6 +88,15 @@ private fun SettingsScreen(
         mutableIntStateOf(wl.size)
     }
 
+    var shortcutsCount by remember {
+        val prefs = context.getSharedPreferences(GrammarKeyboardService.SHORTCUTS_PREFS, Context.MODE_PRIVATE)
+        val sm = TextShortcutsManager()
+        val stored = prefs.getString(GrammarKeyboardService.SHORTCUTS_KEY, null)
+        if (stored != null) sm.loadFromJson(stored)
+        else TextShortcutsManager.defaults().forEach { sm.add(it.shortcut, it.expansion) }
+        mutableIntStateOf(sm.size)
+    }
+
     var themePreset by remember { mutableStateOf(prefsManager.themePreset) }
     var cornerRadiusDp by remember { mutableIntStateOf(prefsManager.cornerRadiusDp) }
     var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
@@ -249,6 +258,38 @@ private fun SettingsScreen(
                     Text(
                         text = if (wordListCount == 0) "No custom words yet"
                                else "$wordListCount word${if (wordListCount == 1) "" else "s"}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            // Text shortcuts navigation row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        context.startActivity(Intent(context, ShortcutsActivity::class.java))
+                    }
+                    .padding(vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Text shortcuts",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = if (shortcutsCount == 0) "No shortcuts yet"
+                               else "$shortcutsCount shortcut${if (shortcutsCount == 1) "" else "s"}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

@@ -15,12 +15,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.inputmethodservice.InputMethodService
+import android.inputmethodservice.InputMethodService
 import androidx.lifecycle.*
 import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
-import androidx.savedstate.ViewTreeSavedStateRegistryOwner
+import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import com.typlx.keyboard.ui.KeyboardScreen
 import com.typlx.keyboard.ui.theme.ThemePreset
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
@@ -129,9 +129,9 @@ class GrammarKeyboardService : InputMethodService(),
 
         return ComposeView(this).also { keyboardView = it }.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            ViewTreeLifecycleOwner.set(this, this@GrammarKeyboardService)
-            ViewTreeViewModelStoreOwner.set(this, this@GrammarKeyboardService)
-            ViewTreeSavedStateRegistryOwner.set(this, this@GrammarKeyboardService)
+            setViewTreeLifecycleOwner(this@GrammarKeyboardService)
+            setViewTreeViewModelStoreOwner(this@GrammarKeyboardService)
+            setViewTreeSavedStateRegistryOwner(this@GrammarKeyboardService)
 
             setContent {
                 TyplxKeyboardTheme(

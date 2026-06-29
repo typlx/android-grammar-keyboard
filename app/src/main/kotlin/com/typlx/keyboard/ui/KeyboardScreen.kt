@@ -743,10 +743,11 @@ private fun DeleteButton(
     onDeleteWord: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
+    val cornerRadius = colors.cornerRadiusDp.dp
     Box(
         modifier = modifier
             .height(height)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(cornerRadius))
             .background(colors.keyActionBg)
             .semantics {
                 contentDescription = "Delete, hold to delete word"
@@ -918,10 +919,11 @@ private fun NavKeyButton(
     onLongClick: (() -> Unit)? = null,
 ) {
     val haptic = LocalHapticFeedback.current
+    val cornerRadius = colors.cornerRadiusDp.dp
     Box(
         modifier = modifier
             .height(46.dp)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(cornerRadius))
             .background(colors.keyActionBg)
             .semantics {
                 this.contentDescription = contentDescription
@@ -1063,11 +1065,12 @@ private fun AlternativesBar(
     onSelectAlternative: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val cornerRadius = colors.cornerRadiusDp.dp
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(46.dp)
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(cornerRadius + 2.dp))
             .background(colors.keyActionBg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -1076,7 +1079,7 @@ private fun AlternativesBar(
             modifier = Modifier
                 .width(42.dp)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(cornerRadius))
                 .background(MaterialTheme.colorScheme.primary)
                 .clickable { onSelectAlternative(originalKey) }
                 .semantics { contentDescription = "$originalKey (original)" },
@@ -1102,7 +1105,7 @@ private fun AlternativesBar(
                 Box(
                     modifier = Modifier
                         .size(38.dp)
-                        .clip(RoundedCornerShape(6.dp))
+                        .clip(RoundedCornerShape(cornerRadius))
                         .background(colors.keyBg)
                         .clickable { onSelectAlternative(alt) }
                         .semantics { contentDescription = alt },
@@ -1123,7 +1126,7 @@ private fun AlternativesBar(
             modifier = Modifier
                 .width(38.dp)
                 .fillMaxHeight()
-                .clip(RoundedCornerShape(6.dp))
+                .clip(RoundedCornerShape(cornerRadius))
                 .background(colors.keyBg)
                 .clickable { onDismiss() }
                 .semantics { contentDescription = "Dismiss alternatives" },
@@ -1151,7 +1154,7 @@ private fun TonePanel(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape((colors.cornerRadiusDp + 2).dp))
             .background(colors.keyActionBg)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -1251,10 +1254,11 @@ private fun ClipboardPanel(
     onClear: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
 ) {
+    val cornerRadius = colors.cornerRadiusDp.dp
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(cornerRadius + 2.dp))
             .background(colors.keyActionBg)
             .padding(horizontal = 8.dp, vertical = 6.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -1308,7 +1312,7 @@ private fun ClipboardPanel(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
+                            .clip(RoundedCornerShape(cornerRadius))
                             .background(colors.keyBg)
                             .clickable(
                                 interactionSource = remember { MutableInteractionSource() },
@@ -1345,11 +1349,12 @@ private fun KeyButton(
 ) {
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
+    val cornerRadius = LocalKeyboardColors.current.cornerRadiusDp.dp
 
     Box(
         modifier = modifier
             .height(height)
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(cornerRadius))
             .background(bgColor)
             .semantics {
                 this.contentDescription = contentDescription

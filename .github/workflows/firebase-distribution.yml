@@ -26,10 +26,26 @@ jobs:
           distribution: "temurin"
           cache: "gradle"
 
+      - name: Validate required secrets
+        run: |
+          if [ -z "${{ secrets.GOOGLE_SERVICES_JSON }}" ]; then
+            echo "::error::GOOGLE_SERVICES_JSON secret is not configured. See TYP-66 for setup instructions."
+            exit 1
+          fi
+          if [ -z "${{ secrets.FIREBASE_APP_ID_ANDROID }}" ]; then
+            echo "::error::FIREBASE_APP_ID_ANDROID secret is not configured."
+            exit 1
+          fi
+          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_JSON secret is not configured."
+            exit 1
+          fi
+
       - name: Decode google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON }}" | base64 -d > app/google-services.json
 
       - name: Decode signing keystore
+        if: ${{ secrets.SIGNING_KEYSTORE_BASE64 != '' }}
         run: echo "${{ secrets.SIGNING_KEYSTORE_BASE64 }}" | base64 -d > app/release.keystore
 
       - name: Make gradlew executable

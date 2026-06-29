@@ -88,6 +88,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val emojiRecentsMgr = EmojiRecents()
     private val clipboardHistory = ClipboardHistory()
     private val personalWordList = PersonalWordList()
+    private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -114,6 +115,7 @@ class GrammarKeyboardService : InputMethodService(),
         loadEmojiRecents()
         loadClipboardHistory()
         loadPersonalWordList()
+        loadTextShortcuts()
         voiceInputManager.onResult = ::onVoiceResult
         voiceInputManager.onStateChange = { state ->
             isVoiceListening = state is VoiceInputState.Listening
@@ -266,6 +268,7 @@ class GrammarKeyboardService : InputMethodService(),
         lastSpacePressMs = 0L
         reloadThemePrefs()
         reloadPersonalWordList()
+        reloadTextShortcuts()
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
             EditorInfo.IME_ACTION_SEND -> "Send"
@@ -337,6 +340,24 @@ class GrammarKeyboardService : InputMethodService(),
             variation == InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD ||
             variation == InputType.TYPE_TEXT_VARIATION_WEB_PASSWORD ||
             variation == InputType.TYPE_TEXT_VARIATION_URI
+
+        // Text shortcut expansion: check the last word before committing space.
+        if (ic != null && !skipDoublespace) {
+            val before = ic.getTextBeforeCursor(100, 0)?.toString() ?: ""
+            val lastWord = before.trimEnd().substringAfterLast(' ').substringAfterLast('\n')
+            if (lastWord.isNotEmpty()) {
+                val expansion = textShortcutsManager.expand(lastWord)
+                if (expansion != null) {
+                    hapticHelper.tap(keyboardView)
+                    clearUndoState()
+                    suppressSuggestionTriggerCount += 2
+                    ic.deleteSurroundingText(lastWord.length, 0)
+                    ic.commitText("$expansion ", 1)
+                    lastSpacePressMs = 0L
+                    return
+                }
+            }
+        }
 
         if (!skipDoublespace && ic != null && now - lastSpacePressMs < 500L) {
             val before = ic.getTextBeforeCursor(2, 0)?.toString() ?: ""
@@ -502,6 +523,8 @@ class GrammarKeyboardService : InputMethodService(),
         private const val CLIPBOARD_HISTORY_KEY = "clipboard_history"
         const val WORD_LIST_PREFS = "personal_word_list_prefs"
         const val WORD_LIST_KEY = "words_json"
+        const val SHORTCUTS_PREFS = "text_shortcuts_prefs"
+        const val SHORTCUTS_KEY = "shortcuts_json"
     }
 
     // --- Tone rewriter ---
@@ -699,5 +722,21 @@ class GrammarKeyboardService : InputMethodService(),
 
     private fun loadPersonalWordList() {
         reloadPersonalWordList()
+    }
+
+    // --- Text shortcuts persistence ---
+
+    fun reloadTextShortcuts() {
+        val prefs = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
+        val stored = prefs.getString(SHORTCUTS_KEY, null)
+        if (stored != null) {
+            textShortcutsManager.loadFromJson(stored)
+        } else {
+            TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
+        }
+    }
+
+    private fun loadTextShortcuts() {
+        reloadTextShortcuts()
     }
 }

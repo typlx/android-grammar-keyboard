@@ -9,3 +9,16 @@
 .cxx
 local.properties
 /app/build
+
+# Signing
+*.jks
+*.keystore
+*.p12
+*.pfx
+
+# Firebase
+app/google-services.json
+
+# Secrets
+*.env
+credentials.json

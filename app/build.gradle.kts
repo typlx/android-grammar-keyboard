@@ -1,16 +1,23 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.firebase.appdistribution")
+}
+
+// google-services plugin requires google-services.json which is not committed.
+// Set ORG_GRADLE_PROJECT_skipGoogleServices=true in CI to skip it.
+if (!project.hasProperty("skipGoogleServices")) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {
     namespace = "com.typlx.keyboard"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.typlx.keyboard"
-        minSdk = 24
-        targetSdk = 34
+        minSdk = 26
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -23,6 +30,18 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            firebaseAppDistribution {
+                artifactType = "APK"
+                groups = "qa-testers"
+                releaseNotes = "Release build for QA testing"
+            }
+        }
+        debug {
+            firebaseAppDistribution {
+                artifactType = "APK"
+                groups = "qa-testers"
+                releaseNotes = "Debug build for testing"
+            }
         }
     }
 
@@ -37,6 +56,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {
@@ -68,6 +88,10 @@ dependencies {
 
     // Encrypted storage for API credentials
     implementation("androidx.security:security-crypto:1.0.0")
+
+    // Firebase
+    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
+    implementation("com.google.firebase:firebase-analytics")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

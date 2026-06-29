@@ -1,8 +1,13 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
-    id("com.google.gms.google-services")
     id("com.google.firebase.appdistribution")
+}
+
+// google-services plugin requires google-services.json which is not committed.
+// Set ORG_GRADLE_PROJECT_skipGoogleServices=true in CI to skip it.
+if (!project.hasProperty("skipGoogleServices")) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 android {

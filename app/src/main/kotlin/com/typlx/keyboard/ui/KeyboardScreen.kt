@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.typlx.keyboard.SuggestionState
@@ -840,13 +841,14 @@ private fun DeleteButton(
                 role = Role.Button
             }
             .pointerInput(onDelete, onDeleteWord) {
-                val pointerScope = this
+                coroutineScope {
+                val launchScope = this
                 awaitPointerEventScope {
                     while (true) {
                         awaitFirstDown(requireUnconsumed = false)
                         haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                         var repeatFired = false
-                        val job = pointerScope.launch {
+                        val job = launchScope.launch {
                             delay(400L)
                             repeatFired = true
                             var elapsed = 400L
@@ -875,6 +877,7 @@ private fun DeleteButton(
                             onDelete()
                         }
                     }
+                }
                 }
             },
         contentAlignment = Alignment.Center,
@@ -1018,13 +1021,14 @@ private fun NavKeyButton(
             .then(
                 if (onLongClick != null) {
                     Modifier.pointerInput(onClick, onLongClick) {
-                        val scope = this
+                        coroutineScope {
+                        val launchScope = this
                         awaitPointerEventScope {
                             while (true) {
                                 awaitFirstDown(requireUnconsumed = false)
                                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                 var longPressed = false
-                                val job = scope.launch {
+                                val job = launchScope.launch {
                                     delay(500L)
                                     longPressed = true
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1039,6 +1043,7 @@ private fun NavKeyButton(
                                     onClick()
                                 }
                             }
+                        }
                         }
                     }
                 } else {
@@ -1621,11 +1626,13 @@ private fun KeyButton(
                 if (onLongPress != null) {
                     // Use pointerInput to detect both tap and 400ms long-press.
                     Modifier.pointerInput(onClick, onLongPress) {
+                        coroutineScope {
+                        val launchScope = this
                         awaitPointerEventScope {
                             while (true) {
                                 awaitFirstDown(requireUnconsumed = false)
                                 var longFired = false
-                                val job = launch {
+                                val job = launchScope.launch {
                                     delay(400L)
                                     longFired = true
                                     haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1640,6 +1647,7 @@ private fun KeyButton(
                                     onClick()
                                 }
                             }
+                        }
                         }
                     }
                 } else {

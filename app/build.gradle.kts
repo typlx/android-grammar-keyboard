@@ -91,7 +91,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
 
     // Encrypted storage for API credentials
-    implementation("androidx.security:security-crypto:1.0.0")
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))

@@ -33,12 +33,14 @@ class SuggestionStateTest {
 
     @Test
     fun `Idle is not Available`() {
-        assertFalse(SuggestionState.Idle is SuggestionState.Available)
+        val state: SuggestionState = SuggestionState.Idle
+        assertFalse(state is SuggestionState.Available)
     }
 
     @Test
     fun `Loading is not Available`() {
-        assertFalse(SuggestionState.Loading is SuggestionState.Available)
+        val state: SuggestionState = SuggestionState.Loading
+        assertFalse(state is SuggestionState.Available)
     }
 
     @Test

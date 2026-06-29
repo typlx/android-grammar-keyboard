@@ -20,6 +20,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.ViewTreeSavedStateRegistryOwner
 import com.typlx.keyboard.ui.KeyboardScreen
+import com.typlx.keyboard.ui.theme.ThemePreset
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
 import kotlinx.coroutines.*
 
@@ -58,6 +59,12 @@ class GrammarKeyboardService : InputMethodService(),
     var toneError by mutableStateOf<String?>(null)
         private set
     var clipboardItems by mutableStateOf<List<String>>(emptyList())
+        private set
+    var themePreset by mutableStateOf(ThemePreset.SYSTEM)
+        private set
+    var cornerRadiusDp by mutableStateOf(6)
+        private set
+    var keyAlphaPercent by mutableStateOf(100)
         private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
@@ -102,7 +109,11 @@ class GrammarKeyboardService : InputMethodService(),
             ViewTreeSavedStateRegistryOwner.set(this, this@GrammarKeyboardService)
 
             setContent {
-                TyplxKeyboardTheme {
+                TyplxKeyboardTheme(
+                    preset = themePreset,
+                    cornerRadiusDp = cornerRadiusDp,
+                    keyAlphaPercent = keyAlphaPercent,
+                ) {
                     KeyboardScreen(
                         isFixingGrammar = isFixingGrammar,
                         grammarError = grammarError,
@@ -217,6 +228,7 @@ class GrammarKeyboardService : InputMethodService(),
         clearUndoState()
         toneError = null
         lastSpacePressMs = 0L
+        reloadThemePrefs()
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
             EditorInfo.IME_ACTION_SEND -> "Send"
@@ -249,6 +261,14 @@ class GrammarKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         vmStore.clear()
         super.onDestroy()
+    }
+
+    // --- Theme ---
+
+    private fun reloadThemePrefs() {
+        themePreset = prefs.themePreset
+        cornerRadiusDp = prefs.cornerRadiusDp
+        keyAlphaPercent = prefs.keyAlphaPercent
     }
 
     // --- Auto-cap ---

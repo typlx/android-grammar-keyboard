@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.typlx.keyboard.ui.theme.ThemePreset
 
 /**
  * Manages application preferences with encrypted storage for sensitive data (API token)
@@ -20,6 +21,9 @@ class PreferencesManager(context: Context) {
         private const val KEY_API_TOKEN = "api_token"
         const val KEY_HAPTIC = "haptic_feedback_enabled"
         const val KEY_AUTO_SUGGEST = "auto_suggest_enabled"
+        const val KEY_THEME_PRESET = "theme_preset"
+        const val KEY_CORNER_RADIUS_DP = "corner_radius_dp"
+        const val KEY_KEY_ALPHA_PERCENT = "key_alpha_percent"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -61,6 +65,22 @@ class PreferencesManager(context: Context) {
     var autoSuggestEnabled: Boolean
         get() = prefs.getBoolean(KEY_AUTO_SUGGEST, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_SUGGEST, value).apply()
+
+    var themePreset: ThemePreset
+        get() = try {
+            ThemePreset.valueOf(prefs.getString(KEY_THEME_PRESET, "SYSTEM") ?: "SYSTEM")
+        } catch (_: IllegalArgumentException) {
+            ThemePreset.SYSTEM
+        }
+        set(value) = prefs.edit().putString(KEY_THEME_PRESET, value.name).apply()
+
+    var cornerRadiusDp: Int
+        get() = prefs.getInt(KEY_CORNER_RADIUS_DP, 6).coerceIn(0, 16)
+        set(value) = prefs.edit().putInt(KEY_CORNER_RADIUS_DP, value.coerceIn(0, 16)).apply()
+
+    var keyAlphaPercent: Int
+        get() = prefs.getInt(KEY_KEY_ALPHA_PERCENT, 100).coerceIn(0, 100)
+        set(value) = prefs.edit().putInt(KEY_KEY_ALPHA_PERCENT, value.coerceIn(0, 100)).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

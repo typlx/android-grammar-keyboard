@@ -22,6 +22,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.typlx.keyboard.ui.theme.ThemePreset
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
 import kotlinx.coroutines.launch
 
@@ -70,6 +71,10 @@ private fun SettingsScreen(
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
     var apiTokenError by remember { mutableStateOf<String?>(null) }
+
+    var themePreset by remember { mutableStateOf(prefsManager.themePreset) }
+    var cornerRadiusDp by remember { mutableIntStateOf(prefsManager.cornerRadiusDp) }
+    var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -206,6 +211,104 @@ private fun SettingsScreen(
                     },
                 )
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Appearance section
+            Text(
+                text = "Appearance",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Theme",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                ThemePreset.entries.forEach { preset ->
+                    val label = when (preset) {
+                        ThemePreset.SYSTEM -> "System"
+                        ThemePreset.DARK -> "Dark"
+                        ThemePreset.LIGHT -> "Light"
+                        ThemePreset.AMOLED -> "AMOLED"
+                    }
+                    FilterChip(
+                        selected = themePreset == preset,
+                        onClick = {
+                            themePreset = preset
+                            prefsManager.themePreset = preset
+                        },
+                        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Key corner radius",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                Text(
+                    text = "${cornerRadiusDp}dp",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Slider(
+                value = cornerRadiusDp.toFloat(),
+                onValueChange = { cornerRadiusDp = it.toInt() },
+                onValueChangeFinished = { prefsManager.cornerRadiusDp = cornerRadiusDp },
+                valueRange = 0f..16f,
+                steps = 15,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Key opacity",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                Text(
+                    text = "$keyAlphaPercent%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Slider(
+                value = keyAlphaPercent.toFloat(),
+                onValueChange = { keyAlphaPercent = it.toInt() },
+                onValueChangeFinished = { prefsManager.keyAlphaPercent = keyAlphaPercent },
+                valueRange = 20f..100f,
+                steps = 7,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 

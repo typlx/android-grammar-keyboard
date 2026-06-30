@@ -100,6 +100,7 @@ private fun SettingsScreen(
     var themePreset by remember { mutableStateOf(prefsManager.themePreset) }
     var cornerRadiusDp by remember { mutableIntStateOf(prefsManager.cornerRadiusDp) }
     var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
+    var selectedLayoutId by remember { mutableStateOf(prefsManager.keyboardLayoutId) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -340,6 +341,31 @@ private fun SettingsScreen(
                             prefsManager.themePreset = preset
                         },
                         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Keyboard layout",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                ALL_LAYOUTS.forEach { layout ->
+                    FilterChip(
+                        selected = selectedLayoutId == layout.id,
+                        onClick = {
+                            selectedLayoutId = layout.id
+                            prefsManager.keyboardLayoutId = layout.id
+                        },
+                        label = { Text(layout.displayName, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.weight(1f),
                     )
                 }

@@ -66,13 +66,13 @@ class KeyboardLayoutTest {
 
     @Test
     fun `QWERTZ longPressAlternatives contains German umlaut for a`() {
-        val alts = LAYOUT_QWERTZ.longPressAlternatives["a"] ?: fail("Missing alternatives for 'a'")
+        val alts = LAYOUT_QWERTZ.longPressAlternatives["a"] ?: throw AssertionError("Missing alternatives for 'a'")
         assertTrue(alts.contains("ä"))
     }
 
     @Test
     fun `AZERTY longPressAlternatives includes French accents for e`() {
-        val alts = LAYOUT_AZERTY.longPressAlternatives["e"] ?: fail("Missing alternatives for 'e'")
+        val alts = LAYOUT_AZERTY.longPressAlternatives["e"] ?: throw AssertionError("Missing alternatives for 'e'")
         assertTrue(alts.contains("é"))
         assertTrue(alts.contains("è"))
     }

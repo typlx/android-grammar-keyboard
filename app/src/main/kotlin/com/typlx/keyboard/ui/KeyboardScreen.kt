@@ -45,6 +45,11 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.style.TextDecoration
+import com.typlx.keyboard.DiffKind
 import com.typlx.keyboard.SuggestionState
 import com.typlx.keyboard.ToneOption
 import com.typlx.keyboard.TranslationLanguage
@@ -1180,11 +1185,34 @@ private fun SuggestionStrip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
+            val addedColor = MaterialTheme.colorScheme.primary
+            val removedColor = MaterialTheme.colorScheme.error
+            val chipLabel: AnnotatedString = if (state.diff.isEmpty()) {
+                AnnotatedString(state.corrected)
+            } else {
+                buildAnnotatedString {
+                    for (seg in state.diff) {
+                        when (seg.kind) {
+                            DiffKind.UNCHANGED -> append(seg.text)
+                            DiffKind.ADDED -> {
+                                pushStyle(SpanStyle(color = addedColor, fontWeight = FontWeight.Bold))
+                                append(seg.text)
+                                pop()
+                            }
+                            DiffKind.REMOVED -> {
+                                pushStyle(SpanStyle(color = removedColor, textDecoration = TextDecoration.LineThrough))
+                                append(seg.text)
+                                pop()
+                            }
+                        }
+                    }
+                }
+            }
             SuggestionChip(
                 onClick = onAccept,
                 label = {
                     Text(
-                        text = state.corrected,
+                        text = chipLabel,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontSize = 12.sp,

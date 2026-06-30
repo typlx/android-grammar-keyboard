@@ -75,7 +75,6 @@ jobs:
         with:
           appId: ${{ secrets.FIREBASE_APP_ID_ANDROID }}
           serviceCredentialsFileContent: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          groups: qa-testers
           file: app/build/outputs/apk/debug/app-debug.apk
           releaseNotes: ${{ github.event.inputs.release_notes || format('Build {0} — {1}', github.run_number, github.sha) }}
 

@@ -100,6 +100,7 @@ private fun SettingsScreen(
     var themePreset by remember { mutableStateOf(prefsManager.themePreset) }
     var cornerRadiusDp by remember { mutableIntStateOf(prefsManager.cornerRadiusDp) }
     var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
+    var keySizePreset by remember { mutableStateOf(prefsManager.keySizePreset) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -398,6 +399,36 @@ private fun SettingsScreen(
                 steps = 7,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "Key size",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                KeySizePreset.entries.forEach { preset ->
+                    val label = when (preset) {
+                        KeySizePreset.COMPACT -> "Compact"
+                        KeySizePreset.NORMAL -> "Normal"
+                        KeySizePreset.LARGE -> "Large"
+                    }
+                    FilterChip(
+                        selected = keySizePreset == preset,
+                        onClick = {
+                            keySizePreset = preset
+                            prefsManager.keySizePreset = preset
+                        },
+                        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

@@ -112,16 +112,35 @@ class GrammarKeyboardService : InputMethodService(),
         prefs = PreferencesManager(applicationContext)
         grammarService = GrammarService()
         hapticHelper = HapticHelper { prefs.hapticFeedbackEnabled }
-        loadEmojiRecents()
-        loadClipboardHistory()
-        loadPersonalWordList()
-        loadTextShortcuts()
         voiceInputManager.onResult = ::onVoiceResult
         voiceInputManager.onStateChange = { state ->
             isVoiceListening = state is VoiceInputState.Listening
             voicePartialText = (state as? VoiceInputState.Partial)?.text ?: ""
         }
         voiceInputManager.onError = { msg -> voiceError = msg }
+        // Load persisted data and pre-warm the HTTP client on an IO thread so the
+        // main thread is not blocked during IME service creation.
+        serviceScope.launch(Dispatchers.IO) {
+            val emojiJson = getSharedPreferences(EMOJI_PREFS, Context.MODE_PRIVATE)
+                .getString(EMOJI_RECENTS_KEY, null)
+            val clipJson = getSharedPreferences(CLIPBOARD_PREFS, Context.MODE_PRIVATE)
+                .getString(CLIPBOARD_HISTORY_KEY, null)
+            val wordJson = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+                .getString(WORD_LIST_KEY, null)
+            val shortcutsJson = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
+                .getString(SHORTCUTS_KEY, null)
+            GrammarService.prewarm()
+            withContext(Dispatchers.Main) {
+                emojiJson?.let { emojiRecentsMgr.loadFromJson(it); emojiRecents = emojiRecentsMgr.recents }
+                clipJson?.let { clipboardHistory.loadFromJson(it); clipboardItems = clipboardHistory.items }
+                if (wordJson != null) personalWordList.loadFromJson(wordJson)
+                if (shortcutsJson != null) {
+                    textShortcutsManager.loadFromJson(shortcutsJson)
+                } else {
+                    TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
+                }
+            }
+        }
     }
 
     override fun onCreateInputView(): View {
@@ -266,9 +285,8 @@ class GrammarKeyboardService : InputMethodService(),
         clearUndoState()
         toneError = null
         lastSpacePressMs = 0L
+        // Theme prefs are cached in memory after first access — reading them here is fast.
         reloadThemePrefs()
-        reloadPersonalWordList()
-        reloadTextShortcuts()
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
             EditorInfo.IME_ACTION_SEND -> "Send"
@@ -282,8 +300,25 @@ class GrammarKeyboardService : InputMethodService(),
         if (shouldAutoCapOnFieldFocus(info?.inputType ?: 0)) {
             requestAutoShift()
         }
-        // Snapshot clipboard when keyboard becomes visible (safe on API 29+).
-        snapshotClipboard()
+        // Reload user data off the main thread so first-frame rendering is not blocked
+        // by SharedPreferences access or JSON parsing. Clipboard snapshot runs on main
+        // thread afterwards (ClipboardManager access is UI-thread-bound on API 29+).
+        serviceScope.launch(Dispatchers.IO) {
+            val wordJson = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+                .getString(WORD_LIST_KEY, null)
+            val shortcutsJson = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
+                .getString(SHORTCUTS_KEY, null)
+            withContext(Dispatchers.Main) {
+                if (wordJson != null) personalWordList.loadFromJson(wordJson)
+                if (shortcutsJson != null) {
+                    textShortcutsManager.loadFromJson(shortcutsJson)
+                } else {
+                    textShortcutsManager.loadFromJson("[]")
+                    TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
+                }
+                snapshotClipboard()
+            }
+        }
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
@@ -421,13 +456,6 @@ class GrammarKeyboardService : InputMethodService(),
         saveEmojiRecents()
     }
 
-    private fun loadEmojiRecents() {
-        val json = getSharedPreferences(EMOJI_PREFS, Context.MODE_PRIVATE)
-            .getString(EMOJI_RECENTS_KEY, null) ?: return
-        emojiRecentsMgr.loadFromJson(json)
-        emojiRecents = emojiRecentsMgr.recents
-    }
-
     private fun saveEmojiRecents() {
         getSharedPreferences(EMOJI_PREFS, Context.MODE_PRIVATE)
             .edit()
@@ -464,13 +492,6 @@ class GrammarKeyboardService : InputMethodService(),
             .edit()
             .remove(CLIPBOARD_HISTORY_KEY)
             .apply()
-    }
-
-    private fun loadClipboardHistory() {
-        val json = getSharedPreferences(CLIPBOARD_PREFS, Context.MODE_PRIVATE)
-            .getString(CLIPBOARD_HISTORY_KEY, null) ?: return
-        clipboardHistory.loadFromJson(json)
-        clipboardItems = clipboardHistory.items
     }
 
     private fun saveClipboardHistory() {
@@ -720,10 +741,6 @@ class GrammarKeyboardService : InputMethodService(),
         personalWordList.loadFromJson(json)
     }
 
-    private fun loadPersonalWordList() {
-        reloadPersonalWordList()
-    }
-
     // --- Text shortcuts persistence ---
 
     fun reloadTextShortcuts() {
@@ -736,7 +753,4 @@ class GrammarKeyboardService : InputMethodService(),
         }
     }
 
-    private fun loadTextShortcuts() {
-        reloadTextShortcuts()
-    }
 }

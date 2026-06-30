@@ -287,7 +287,6 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     override fun onFinishInputView(finishingInput: Boolean) {
-        keyboardView = null
         suggestionDebounceJob?.cancel()
         suggestionState = SuggestionState.Idle
         isTonePanel = false
@@ -300,6 +299,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     override fun onDestroy() {
+        keyboardView = null
         voiceInputManager.destroy()
         serviceScope.cancel()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)

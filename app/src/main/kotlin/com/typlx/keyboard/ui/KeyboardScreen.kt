@@ -45,16 +45,15 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import com.typlx.keyboard.KEY_ALTERNATIVES
+import com.typlx.keyboard.KeyboardLayout
+import com.typlx.keyboard.LAYOUT_QWERTY
 import com.typlx.keyboard.SuggestionState
 import com.typlx.keyboard.ToneOption
 import com.typlx.keyboard.TranslationLanguage
-import com.typlx.keyboard.getAlternatives
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
 private val NUM_ROW = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
-private val ROW1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
-private val ROW2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
-private val ROW3 = listOf("z", "x", "c", "v", "b", "n", "m")
 
 private val SYM_ROW1 = listOf("@", "#", "$", "%", "&", "-", "+", "(", ")")
 private val SYM_ROW2 = listOf("*", "\"", "'", ":", ";", "!", "?", "~", "/", "\\")
@@ -84,6 +83,7 @@ internal fun nextShiftState(
 fun KeyboardScreen(
     isFixingGrammar: Boolean,
     grammarError: String?,
+    layout: KeyboardLayout = LAYOUT_QWERTY,
     canUndo: Boolean = false,
     returnKeyDescription: String = "Return",
     emojiRecents: List<String> = emptyList(),
@@ -385,16 +385,17 @@ fun KeyboardScreen(
             KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
             SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors)
         } else {
-            KeyRow(ROW1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives)
-            KeyRow(ROW2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives)
+            KeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives)
+            KeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives)
             AlphaRow3(
-                keys = ROW3,
+                keys = layout.row3,
                 shiftState = shiftState,
                 onShiftTap = onShiftTap,
                 onKeyPress = shiftOnceKeyPress,
                 onDelete = onDelete,
                 onDeleteWord = onDeleteWord,
                 onShowAlternatives = showAlternatives,
+                alternativesMap = layout.longPressAlternatives,
                 colors = colors,
             )
         }
@@ -644,6 +645,7 @@ private fun KeyRow(
     onKeyPress: (String) -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
     onShowAlternatives: ((String, Boolean, List<String>) -> Unit)? = null,
+    alternativesMap: Map<String, List<String>> = KEY_ALTERNATIVES,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -651,7 +653,10 @@ private fun KeyRow(
     ) {
         keys.forEach { key ->
             val label = if (isCaps) key.uppercase() else key
-            val alts = onShowAlternatives?.let { getAlternatives(key, isCaps) }
+            val rawAlts = alternativesMap[key.lowercase()]
+            val alts = if (rawAlts != null && onShowAlternatives != null) {
+                if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
+            } else null
             KeyButton(
                 label = label,
                 contentDescription = "Letter ${label.uppercase()}",
@@ -677,6 +682,7 @@ private fun AlphaRow3(
     onDeleteWord: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
     onShowAlternatives: ((String, Boolean, List<String>) -> Unit)? = null,
+    alternativesMap: Map<String, List<String>> = KEY_ALTERNATIVES,
 ) {
     val isCaps = shiftState != ShiftState.OFF
     val shiftLabel = if (shiftState == ShiftState.CAPS_LOCK) "⇪" else "⇧"
@@ -701,7 +707,10 @@ private fun AlphaRow3(
         )
         keys.forEach { key ->
             val label = if (isCaps) key.uppercase() else key
-            val alts = onShowAlternatives?.let { getAlternatives(key, isCaps) }
+            val rawAlts = alternativesMap[key.lowercase()]
+            val alts = if (rawAlts != null && onShowAlternatives != null) {
+                if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
+            } else null
             KeyButton(
                 label = label,
                 contentDescription = "Letter ${label.uppercase()}",

@@ -237,7 +237,7 @@ class GrammarKeyboardService : InputMethodService(),
                 text = text,
             )
             suggestionState = if (fixed != text && !personalWordList.shouldSuppressCorrection(text, fixed))
-                                 SuggestionState.Available(text, fixed)
+                                 SuggestionState.Available(text, fixed, diffWords(text, fixed))
                              else SuggestionState.Idle
         } catch (_: GrammarServiceException) {
             suggestionState = SuggestionState.Idle

@@ -21,6 +21,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import androidx.compose.ui.unit.dp
 import com.typlx.keyboard.ui.KeyboardScreen
 import com.typlx.keyboard.ui.theme.ThemePreset
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
@@ -80,6 +81,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var keyAlphaPercent by mutableStateOf(100)
         private set
+    var keySizePreset by mutableStateOf(KeySizePreset.NORMAL)
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -134,6 +137,7 @@ class GrammarKeyboardService : InputMethodService(),
             setViewTreeSavedStateRegistryOwner(this@GrammarKeyboardService)
 
             setContent {
+                val keyHeight = (46f * keySizePreset.scaleFactor).dp
                 TyplxKeyboardTheme(
                     preset = themePreset,
                     cornerRadiusDp = cornerRadiusDp,
@@ -193,6 +197,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onOpenSettings = ::openSettings,
                         onVoiceToggle = ::toggleVoiceInput,
                         onVoiceErrorDismiss = { voiceError = null },
+                        keyHeight = keyHeight,
                     )
                 }
             }
@@ -313,6 +318,7 @@ class GrammarKeyboardService : InputMethodService(),
         themePreset = prefs.themePreset
         cornerRadiusDp = prefs.cornerRadiusDp
         keyAlphaPercent = prefs.keyAlphaPercent
+        keySizePreset = prefs.keySizePreset
     }
 
     // --- Auto-cap ---

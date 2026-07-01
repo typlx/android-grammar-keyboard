@@ -132,6 +132,7 @@ fun KeyboardScreen(
     onCopyText: () -> Unit = {},
     onCutText: () -> Unit = {},
     onPasteText: () -> Unit = {},
+    showNumberRow: Boolean = true,
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit = {},
     onVoiceErrorDismiss: () -> Unit = {},
@@ -378,7 +379,9 @@ fun KeyboardScreen(
             )
         }
 
-        NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors)
+        if (showNumberRow) {
+            NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors)
+        }
 
         if (isSymbols) {
             KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)

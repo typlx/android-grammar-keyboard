@@ -13,6 +13,7 @@ if (!project.hasProperty("skipGoogleServices")) {
 android {
     namespace = "com.typlx.keyboard"
     compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "com.typlx.keyboard"

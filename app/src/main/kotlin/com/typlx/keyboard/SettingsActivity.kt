@@ -76,6 +76,7 @@ private fun SettingsScreen(
     var tokenVisible by remember { mutableStateOf(false) }
     var hapticEnabled by remember { mutableStateOf(prefsManager.hapticFeedbackEnabled) }
     var autoSuggestEnabled by remember { mutableStateOf(prefsManager.autoSuggestEnabled) }
+    var crashReportingEnabled by remember { mutableStateOf(prefsManager.crashReportingEnabled) }
 
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
@@ -398,6 +399,46 @@ private fun SettingsScreen(
                 steps = 7,
                 modifier = Modifier.fillMaxWidth(),
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            HorizontalDivider()
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(R.string.settings_privacy_section),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_crash_reporting_label),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_crash_reporting_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = crashReportingEnabled,
+                    onCheckedChange = {
+                        crashReportingEnabled = it
+                        prefsManager.crashReportingEnabled = it
+                        CrashReporter.configure(it)
+                    },
+                )
+            }
 
             Spacer(modifier = Modifier.height(24.dp))
 

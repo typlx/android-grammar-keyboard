@@ -110,6 +110,7 @@ class GrammarKeyboardService : InputMethodService(),
         savedStateRegistryController.performRestore(null)
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_CREATE)
         prefs = PreferencesManager(applicationContext)
+        CrashReporter.configure(prefs.crashReportingEnabled)
         grammarService = GrammarService()
         hapticHelper = HapticHelper { prefs.hapticFeedbackEnabled }
         loadEmojiRecents()

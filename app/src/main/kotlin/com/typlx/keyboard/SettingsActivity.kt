@@ -104,6 +104,8 @@ private fun SettingsScreen(
     var selectedLayoutId by remember { mutableStateOf(prefsManager.keyboardLayoutId) }
     var keySizePreset by remember { mutableStateOf(prefsManager.keySizePreset) }
     var showNumberRow by remember { mutableStateOf(prefsManager.showNumberRow) }
+    var doubleSpacePeriodEnabled by remember { mutableStateOf(prefsManager.doubleSpacePeriodEnabled) }
+    var autoCapEnabled by remember { mutableStateOf(prefsManager.autoCapEnabled) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -237,6 +239,62 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         autoSuggestEnabled = it
                         prefsManager.autoSuggestEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Double-space to period toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Double-space for period",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Tap space twice quickly to insert a period",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = doubleSpacePeriodEnabled,
+                    onCheckedChange = {
+                        doubleSpacePeriodEnabled = it
+                        prefsManager.doubleSpacePeriodEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Auto-capitalize toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Auto-capitalize",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Capitalize the first letter of sentences automatically",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = autoCapEnabled,
+                    onCheckedChange = {
+                        autoCapEnabled = it
+                        prefsManager.autoCapEnabled = it
                     },
                 )
             }

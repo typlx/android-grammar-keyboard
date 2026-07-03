@@ -28,6 +28,8 @@ class PreferencesManager(context: Context) {
         const val KEY_KEY_SIZE_PRESET = "key_size_preset"
         const val KEY_SHOW_NUMBER_ROW = "show_number_row"
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
+        const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period_enabled"
+        const val KEY_AUTO_CAP = "auto_cap_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -109,6 +111,14 @@ class PreferencesManager(context: Context) {
     var crashReportingEnabled: Boolean
         get() = prefs.getBoolean(KEY_CRASH_REPORTING, true)
         set(value) = prefs.edit().putBoolean(KEY_CRASH_REPORTING, value).apply()
+
+    var doubleSpacePeriodEnabled: Boolean
+        get() = prefs.getBoolean(KEY_DOUBLE_SPACE_PERIOD, true)
+        set(value) = prefs.edit().putBoolean(KEY_DOUBLE_SPACE_PERIOD, value).apply()
+
+    var autoCapEnabled: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_CAP, true)
+        set(value) = prefs.edit().putBoolean(KEY_AUTO_CAP, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

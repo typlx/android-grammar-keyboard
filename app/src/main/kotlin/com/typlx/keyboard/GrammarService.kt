@@ -32,6 +32,9 @@ class GrammarService(
                 .writeTimeout(TIMEOUT_SECONDS, TimeUnit.SECONDS)
                 .build()
         }
+
+        /** Forces OkHttpClient initialization; call on a background thread during service creation. */
+        internal fun prewarm() { sharedClient }
     }
 
     /**

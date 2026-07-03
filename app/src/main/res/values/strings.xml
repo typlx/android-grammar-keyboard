@@ -47,6 +47,11 @@
     <string name="settings_auto_suggest_label">Auto grammar suggestions</string>
     <string name="settings_auto_suggest_description">Show inline grammar fix after a pause in typing</string>
 
+    <!-- Privacy section in Settings -->
+    <string name="settings_privacy_section">Privacy</string>
+    <string name="settings_crash_reporting_label">Send crash reports</string>
+    <string name="settings_crash_reporting_description">Anonymously report API errors to help fix bugs. No text you type is ever included.</string>
+
     <!-- Network / API error messages -->
     <string name="error_no_network">No internet connection</string>
     <string name="error_timeout">Request timed out — check your connection</string>

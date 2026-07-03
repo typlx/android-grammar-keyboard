@@ -27,6 +27,7 @@ class PreferencesManager(context: Context) {
         const val KEY_KEYBOARD_LAYOUT = "keyboard_layout"
         const val KEY_KEY_SIZE_PRESET = "key_size_preset"
         const val KEY_SHOW_NUMBER_ROW = "show_number_row"
+        const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -104,6 +105,10 @@ class PreferencesManager(context: Context) {
     var showNumberRow: Boolean
         get() = prefs.getBoolean(KEY_SHOW_NUMBER_ROW, true)
         set(value) = prefs.edit().putBoolean(KEY_SHOW_NUMBER_ROW, value).apply()
+
+    var crashReportingEnabled: Boolean
+        get() = prefs.getBoolean(KEY_CRASH_REPORTING, true)
+        set(value) = prefs.edit().putBoolean(KEY_CRASH_REPORTING, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

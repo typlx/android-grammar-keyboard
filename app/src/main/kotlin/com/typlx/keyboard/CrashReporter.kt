@@ -9,10 +9,21 @@ import java.net.URI
  * PRIVACY CONTRACT: user-typed text is NEVER included in any key or log call.
  * Only structural error metadata is captured: operation type, API domain (no path or params),
  * and the exception message from GrammarServiceException (which contains no user text).
+ *
+ * Call [configure] once at IME startup (GrammarKeyboardService.onCreate) to apply the
+ * user's crash-reporting opt-out preference at the Firebase SDK level.
  */
 object CrashReporter {
 
     enum class Operation { GRAMMAR_FIX, TONE_REWRITE, TRANSLATION, AUTO_SUGGEST }
+
+    fun configure(enabled: Boolean) {
+        try {
+            FirebaseCrashlytics.getInstance().setCrashlyticsCollectionEnabled(enabled)
+        } catch (_: Exception) {
+            // Crashlytics unavailable in CI — safe to skip.
+        }
+    }
 
     fun recordApiError(error: GrammarServiceException, operation: Operation, apiUrl: String) {
         try {

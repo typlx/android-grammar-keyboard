@@ -25,6 +25,7 @@ class PreferencesManager(context: Context) {
         const val KEY_CORNER_RADIUS_DP = "corner_radius_dp"
         const val KEY_KEY_ALPHA_PERCENT = "key_alpha_percent"
         const val KEY_KEYBOARD_LAYOUT = "keyboard_layout"
+        const val KEY_KEY_SIZE_PRESET = "key_size_preset"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -90,6 +91,14 @@ class PreferencesManager(context: Context) {
             LayoutId.QWERTY
         }
         set(value) = prefs.edit().putString(KEY_KEYBOARD_LAYOUT, value.name).apply()
+
+    var keySizePreset: KeySizePreset
+        get() = try {
+            KeySizePreset.valueOf(prefs.getString(KEY_KEY_SIZE_PRESET, "NORMAL") ?: "NORMAL")
+        } catch (_: IllegalArgumentException) {
+            KeySizePreset.NORMAL
+        }
+        set(value) = prefs.edit().putString(KEY_KEY_SIZE_PRESET, value.name).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

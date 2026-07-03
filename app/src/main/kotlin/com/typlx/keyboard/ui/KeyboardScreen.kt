@@ -139,6 +139,7 @@ fun KeyboardScreen(
     isNumPadPhoneMode: Boolean = false,
     isNumPadDecimal: Boolean = false,
     isNumPadSigned: Boolean = false,
+    keyHeight: Dp = 46.dp,
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
@@ -397,15 +398,16 @@ fun KeyboardScreen(
             )
         }
 
-        NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors)
+        val numRowHeight = (keyHeight.value * 38f / 46f).dp
+        NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
 
         if (isSymbols) {
-            KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
-            KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors)
-            SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors)
+            KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
+            KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
+            SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = keyHeight)
         } else {
-            KeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives)
-            KeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives)
+            KeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
+            KeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
             AlphaRow3(
                 keys = layout.row3,
                 shiftState = shiftState,
@@ -416,6 +418,7 @@ fun KeyboardScreen(
                 onShowAlternatives = showAlternatives,
                 alternativesMap = layout.longPressAlternatives,
                 colors = colors,
+                height = keyHeight,
             )
         }
 
@@ -427,6 +430,7 @@ fun KeyboardScreen(
             onReturn = onReturn,
             returnKeyDescription = returnKeyDescription,
             colors = colors,
+            height = keyHeight,
         )
     }
 }
@@ -638,6 +642,7 @@ private fun NumberRow(
     keys: List<String>,
     onKeyPress: (String) -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    height: Dp = 38.dp,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -648,7 +653,7 @@ private fun NumberRow(
                 label = key,
                 contentDescription = "Digit $key",
                 modifier = Modifier.weight(1f),
-                height = 38.dp,
+                height = height,
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
                 onClick = { onKeyPress(key) },
@@ -665,6 +670,7 @@ private fun KeyRow(
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
     onShowAlternatives: ((String, Boolean, List<String>) -> Unit)? = null,
     alternativesMap: Map<String, List<String>> = KEY_ALTERNATIVES,
+    height: Dp = 46.dp,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -680,6 +686,7 @@ private fun KeyRow(
                 label = label,
                 contentDescription = "Letter ${label.uppercase()}",
                 modifier = Modifier.weight(1f),
+                height = height,
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
                 onClick = { onKeyPress(label) },
@@ -702,6 +709,7 @@ private fun AlphaRow3(
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
     onShowAlternatives: ((String, Boolean, List<String>) -> Unit)? = null,
     alternativesMap: Map<String, List<String>> = KEY_ALTERNATIVES,
+    height: Dp = 46.dp,
 ) {
     val isCaps = shiftState != ShiftState.OFF
     val shiftLabel = if (shiftState == ShiftState.CAPS_LOCK) "⇪" else "⇧"
@@ -720,6 +728,7 @@ private fun AlphaRow3(
             label = shiftLabel,
             contentDescription = shiftDesc,
             modifier = Modifier.weight(1.5f),
+            height = height,
             bgColor = if (isCaps) MaterialTheme.colorScheme.primary else colors.keyActionBg,
             textColor = if (isCaps) MaterialTheme.colorScheme.onPrimary else colors.keyText,
             onClick = onShiftTap,
@@ -734,6 +743,7 @@ private fun AlphaRow3(
                 label = label,
                 contentDescription = "Letter ${label.uppercase()}",
                 modifier = Modifier.weight(1f),
+                height = height,
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
                 onClick = { onKeyPress(label) },
@@ -745,6 +755,7 @@ private fun AlphaRow3(
         DeleteButton(
             modifier = Modifier.weight(1.5f),
             colors = colors,
+            height = height,
             onDelete = onDelete,
             onDeleteWord = onDeleteWord,
         )
@@ -758,6 +769,7 @@ private fun SymbolRow3(
     onDelete: () -> Unit,
     onDeleteWord: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    height: Dp = 46.dp,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -770,6 +782,7 @@ private fun SymbolRow3(
                 label = key,
                 contentDescription = key,
                 modifier = Modifier.weight(1f),
+                height = height,
                 bgColor = colors.keyBg,
                 textColor = colors.keyText,
                 onClick = { onKeyPress(key) },
@@ -778,6 +791,7 @@ private fun SymbolRow3(
         DeleteButton(
             modifier = Modifier.weight(1.5f),
             colors = colors,
+            height = height,
             onDelete = onDelete,
             onDeleteWord = onDeleteWord,
         )
@@ -793,6 +807,7 @@ private fun BottomRow(
     onReturn: () -> Unit,
     returnKeyDescription: String,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    height: Dp = 46.dp,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -804,6 +819,7 @@ private fun BottomRow(
             label = if (isSymbols) "ABC" else "?123",
             contentDescription = symbolToggleDesc,
             modifier = Modifier.weight(1.5f),
+            height = height,
             bgColor = colors.keyActionBg,
             textColor = colors.keyText,
             onClick = onSymbolToggle,
@@ -812,6 +828,7 @@ private fun BottomRow(
             label = ",",
             contentDescription = "Comma",
             modifier = Modifier.weight(1f),
+            height = height,
             bgColor = colors.keyBg,
             textColor = colors.keyText,
             onClick = { onKeyPress(",") },
@@ -820,6 +837,7 @@ private fun BottomRow(
             label = " ",
             contentDescription = "Space",
             modifier = Modifier.weight(4f),
+            height = height,
             bgColor = colors.keyBg,
             textColor = colors.keyText,
             onClick = onSpacePress,
@@ -828,6 +846,7 @@ private fun BottomRow(
             label = ".",
             contentDescription = "Period",
             modifier = Modifier.weight(1f),
+            height = height,
             bgColor = colors.keyBg,
             textColor = colors.keyText,
             onClick = { onKeyPress(".") },
@@ -836,6 +855,7 @@ private fun BottomRow(
             label = "↵",
             contentDescription = returnKeyDescription,
             modifier = Modifier.weight(1.5f),
+            height = height,
             bgColor = MaterialTheme.colorScheme.primary,
             textColor = MaterialTheme.colorScheme.onPrimary,
             onClick = onReturn,

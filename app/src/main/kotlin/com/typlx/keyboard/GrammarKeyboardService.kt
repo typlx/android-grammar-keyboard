@@ -21,6 +21,7 @@ import androidx.savedstate.SavedStateRegistry
 import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import androidx.compose.ui.unit.dp
 import com.typlx.keyboard.ui.KeyboardScreen
 import com.typlx.keyboard.ui.theme.ThemePreset
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
@@ -83,6 +84,8 @@ class GrammarKeyboardService : InputMethodService(),
     var activeNumPadConfig by mutableStateOf(NumPadConfig(false, false, false, false))
         private set
     var keyboardLayout by mutableStateOf(LAYOUT_QWERTY)
+        private set
+    var keySizePreset by mutableStateOf(KeySizePreset.NORMAL)
         private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
@@ -157,6 +160,7 @@ class GrammarKeyboardService : InputMethodService(),
             setViewTreeSavedStateRegistryOwner(this@GrammarKeyboardService)
 
             setContent {
+                val keyHeight = (46f * keySizePreset.scaleFactor).dp
                 TyplxKeyboardTheme(
                     preset = themePreset,
                     cornerRadiusDp = cornerRadiusDp,
@@ -221,6 +225,7 @@ class GrammarKeyboardService : InputMethodService(),
                         isNumPadPhoneMode = activeNumPadConfig.isPhoneMode,
                         isNumPadDecimal = activeNumPadConfig.isDecimalAllowed,
                         isNumPadSigned = activeNumPadConfig.isSignedAllowed,
+                        keyHeight = keyHeight,
                     )
                 }
             }
@@ -359,6 +364,7 @@ class GrammarKeyboardService : InputMethodService(),
         cornerRadiusDp = prefs.cornerRadiusDp
         keyAlphaPercent = prefs.keyAlphaPercent
         keyboardLayout = layoutById(prefs.keyboardLayoutId)
+        keySizePreset = prefs.keySizePreset
     }
 
     // --- Auto-cap ---

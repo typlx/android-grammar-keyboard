@@ -80,6 +80,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var keyAlphaPercent by mutableStateOf(100)
         private set
+    var activeNumPadConfig by mutableStateOf(NumPadConfig(false, false, false, false))
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -193,6 +195,10 @@ class GrammarKeyboardService : InputMethodService(),
                         onOpenSettings = ::openSettings,
                         onVoiceToggle = ::toggleVoiceInput,
                         onVoiceErrorDismiss = { voiceError = null },
+                        isNumPad = activeNumPadConfig.isNumPad,
+                        isNumPadPhoneMode = activeNumPadConfig.isPhoneMode,
+                        isNumPadDecimal = activeNumPadConfig.isDecimalAllowed,
+                        isNumPadSigned = activeNumPadConfig.isSignedAllowed,
                     )
                 }
             }
@@ -269,6 +275,7 @@ class GrammarKeyboardService : InputMethodService(),
         reloadThemePrefs()
         reloadPersonalWordList()
         reloadTextShortcuts()
+        activeNumPadConfig = numPadConfig(info?.inputType ?: 0)
         returnKeyDescription = when (info?.imeOptions?.and(EditorInfo.IME_MASK_ACTION)) {
             EditorInfo.IME_ACTION_SEARCH -> "Search"
             EditorInfo.IME_ACTION_SEND -> "Send"

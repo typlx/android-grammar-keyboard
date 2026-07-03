@@ -82,6 +82,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var activeNumPadConfig by mutableStateOf(NumPadConfig(false, false, false, false))
         private set
+    var keyboardLayout by mutableStateOf(LAYOUT_QWERTY)
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -163,6 +165,7 @@ class GrammarKeyboardService : InputMethodService(),
                     KeyboardScreen(
                         isFixingGrammar = isFixingGrammar,
                         grammarError = grammarError,
+                        layout = keyboardLayout,
                         canUndo = canUndo,
                         returnKeyDescription = returnKeyDescription,
                         emojiRecents = emojiRecents,
@@ -355,6 +358,7 @@ class GrammarKeyboardService : InputMethodService(),
         themePreset = prefs.themePreset
         cornerRadiusDp = prefs.cornerRadiusDp
         keyAlphaPercent = prefs.keyAlphaPercent
+        keyboardLayout = layoutById(prefs.keyboardLayoutId)
     }
 
     // --- Auto-cap ---

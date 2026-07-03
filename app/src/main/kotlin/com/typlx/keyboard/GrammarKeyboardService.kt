@@ -275,7 +275,8 @@ class GrammarKeyboardService : InputMethodService(),
             suggestionState = if (fixed != text && !personalWordList.shouldSuppressCorrection(text, fixed))
                                  SuggestionState.Available(text, fixed, diffWords(text, fixed))
                              else SuggestionState.Idle
-        } catch (_: GrammarServiceException) {
+        } catch (e: GrammarServiceException) {
+            CrashReporter.recordApiError(e, CrashReporter.Operation.AUTO_SUGGEST, prefs.apiUrl)
             suggestionState = SuggestionState.Idle
         }
     }
@@ -622,6 +623,7 @@ class GrammarKeyboardService : InputMethodService(),
                 canUndo = true
                 isTonePanel = false
             } catch (e: GrammarServiceException) {
+                CrashReporter.recordApiError(e, CrashReporter.Operation.TONE_REWRITE, prefs.apiUrl)
                 toneError = e.message ?: getString(R.string.grammar_error)
             } finally {
                 isApplyingTone = false
@@ -677,6 +679,7 @@ class GrammarKeyboardService : InputMethodService(),
                 canUndo = true
                 isTranslatePanel = false
             } catch (e: GrammarServiceException) {
+                CrashReporter.recordApiError(e, CrashReporter.Operation.TRANSLATION, prefs.apiUrl)
                 translateError = e.message ?: getString(R.string.grammar_error)
             } finally {
                 isApplyingTranslation = false
@@ -727,6 +730,7 @@ class GrammarKeyboardService : InputMethodService(),
                     canUndo = true
                 }
             } catch (e: GrammarServiceException) {
+                CrashReporter.recordApiError(e, CrashReporter.Operation.GRAMMAR_FIX, prefs.apiUrl)
                 grammarError = e.message ?: getString(R.string.grammar_error)
             } finally {
                 isFixingGrammar = false

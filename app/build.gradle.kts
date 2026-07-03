@@ -4,10 +4,11 @@ plugins {
     id("com.google.firebase.appdistribution")
 }
 
-// google-services plugin requires google-services.json which is not committed.
-// Set ORG_GRADLE_PROJECT_skipGoogleServices=true in CI to skip it.
+// google-services and Crashlytics plugins require google-services.json which is not committed.
+// Set ORG_GRADLE_PROJECT_skipGoogleServices=true in CI to skip them.
 if (!project.hasProperty("skipGoogleServices")) {
     apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
 }
 
 android {
@@ -113,6 +114,7 @@ dependencies {
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
     implementation("com.google.firebase:firebase-analytics")
+    implementation("com.google.firebase:firebase-crashlytics")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

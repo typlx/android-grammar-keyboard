@@ -317,7 +317,7 @@ class GrammarKeyboardService : InputMethodService(),
             else -> "Return"
         }
         // Auto-capitalise first character when the field caps flags say to do so.
-        if (shouldAutoCapOnFieldFocus(info?.inputType ?: 0)) {
+        if (prefs.autoCapEnabled && shouldAutoCapOnFieldFocus(info?.inputType ?: 0)) {
             requestAutoShift()
         }
         // Reload user data off the main thread so first-frame rendering is not blocked
@@ -417,7 +417,7 @@ class GrammarKeyboardService : InputMethodService(),
             }
         }
 
-        if (!skipDoublespace && ic != null && now - lastSpacePressMs < 500L) {
+        if (prefs.doubleSpacePeriodEnabled && !skipDoublespace && ic != null && now - lastSpacePressMs < 500L) {
             val before = ic.getTextBeforeCursor(2, 0)?.toString() ?: ""
             // Replace the previous space with ". " when non-whitespace precedes it.
             if (before.length >= 2 && !before[before.length - 2].isWhitespace()) {
@@ -426,7 +426,7 @@ class GrammarKeyboardService : InputMethodService(),
                 suppressSuggestionTriggerCount += 2
                 ic.deleteSurroundingText(1, 0)
                 ic.commitText(". ", 1)
-                requestAutoShift()
+                if (prefs.autoCapEnabled) requestAutoShift()
                 lastSpacePressMs = 0L
                 return
             }
@@ -436,8 +436,10 @@ class GrammarKeyboardService : InputMethodService(),
         lastSpacePressMs = now
 
         // Auto-cap after sentence-ending punctuation followed by the space we just committed.
-        val before = currentInputConnection?.getTextBeforeCursor(3, 0)?.toString() ?: return
-        if (shouldShiftAfterSpace(before)) requestAutoShift()
+        if (prefs.autoCapEnabled) {
+            val before = currentInputConnection?.getTextBeforeCursor(3, 0)?.toString() ?: return
+            if (shouldShiftAfterSpace(before)) requestAutoShift()
+        }
     }
 
     private fun deleteChar() {

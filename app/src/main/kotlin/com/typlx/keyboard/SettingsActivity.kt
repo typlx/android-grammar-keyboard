@@ -31,6 +31,11 @@ import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
 
+    companion object {
+        const val ACTION_WORD_LIST = "com.typlx.keyboard.ACTION_WORD_LIST"
+        const val ACTION_TEXT_SHORTCUTS = "com.typlx.keyboard.ACTION_TEXT_SHORTCUTS"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -38,6 +43,20 @@ class SettingsActivity : ComponentActivity() {
             startActivity(Intent(this, OnboardingActivity::class.java))
             finish()
             return
+        }
+
+        // Handle app shortcut deep-links: word list and text shortcuts
+        when (intent?.action) {
+            ACTION_WORD_LIST -> {
+                startActivity(Intent(this, WordListActivity::class.java))
+                finish()
+                return
+            }
+            ACTION_TEXT_SHORTCUTS -> {
+                startActivity(Intent(this, ShortcutsActivity::class.java))
+                finish()
+                return
+            }
         }
 
         val prefsManager = PreferencesManager(this)

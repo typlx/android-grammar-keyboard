@@ -52,6 +52,14 @@
     <string name="settings_crash_reporting_label">Send crash reports</string>
     <string name="settings_crash_reporting_description">Anonymously report API errors to help fix bugs. No text you type is ever included.</string>
 
+    <!-- App shortcuts (long-press app icon in launcher) -->
+    <string name="shortcut_settings_short">Settings</string>
+    <string name="shortcut_settings_long">Open Typlx Settings</string>
+    <string name="shortcut_wordlist_short">Word List</string>
+    <string name="shortcut_wordlist_long">Manage Personal Word List</string>
+    <string name="shortcut_textshortcuts_short">Shortcuts</string>
+    <string name="shortcut_textshortcuts_long">Manage Text Shortcuts</string>
+
     <!-- Network / API error messages -->
     <string name="error_no_network">No internet connection</string>
     <string name="error_timeout">Request timed out — check your connection</string>

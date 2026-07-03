@@ -137,6 +137,7 @@ fun KeyboardScreen(
     onCopyText: () -> Unit = {},
     onCutText: () -> Unit = {},
     onPasteText: () -> Unit = {},
+    showNumberRow: Boolean = true,
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit = {},
     onVoiceErrorDismiss: () -> Unit = {},
@@ -403,8 +404,10 @@ fun KeyboardScreen(
             )
         }
 
-        val numRowHeight = (keyHeight.value * 38f / 46f).dp
-        NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
+        if (showNumberRow) {
+            val numRowHeight = (keyHeight.value * 38f / 46f).dp
+            NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
+        }
 
         if (isSymbols) {
             KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)

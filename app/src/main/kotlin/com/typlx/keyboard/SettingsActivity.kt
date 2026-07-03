@@ -102,6 +102,7 @@ private fun SettingsScreen(
     var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
     var selectedLayoutId by remember { mutableStateOf(prefsManager.keyboardLayoutId) }
     var keySizePreset by remember { mutableStateOf(prefsManager.keySizePreset) }
+    var showNumberRow by remember { mutableStateOf(prefsManager.showNumberRow) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -454,6 +455,36 @@ private fun SettingsScreen(
                         modifier = Modifier.weight(1f),
                     )
                 }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Number row toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Number row",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                    Text(
+                        text = "Show digit row above the letter keys",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                }
+                Switch(
+                    checked = showNumberRow,
+                    onCheckedChange = {
+                        showNumberRow = it
+                        prefsManager.showNumberRow = it
+                    },
+                )
             }
 
             Spacer(modifier = Modifier.height(24.dp))

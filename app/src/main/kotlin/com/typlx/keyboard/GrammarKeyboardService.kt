@@ -87,6 +87,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var keySizePreset by mutableStateOf(KeySizePreset.NORMAL)
         private set
+    var showNumberRow by mutableStateOf(true)
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -218,6 +220,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onCopyText = { currentInputConnection?.performContextMenuAction(android.R.id.copy) },
                         onCutText = { currentInputConnection?.performContextMenuAction(android.R.id.cut) },
                         onPasteText = { currentInputConnection?.performContextMenuAction(android.R.id.paste) },
+                        showNumberRow = showNumberRow,
                         onOpenSettings = ::openSettings,
                         onVoiceToggle = ::toggleVoiceInput,
                         onVoiceErrorDismiss = { voiceError = null },
@@ -365,6 +368,7 @@ class GrammarKeyboardService : InputMethodService(),
         keyAlphaPercent = prefs.keyAlphaPercent
         keyboardLayout = layoutById(prefs.keyboardLayoutId)
         keySizePreset = prefs.keySizePreset
+        showNumberRow = prefs.showNumberRow
     }
 
     // --- Auto-cap ---

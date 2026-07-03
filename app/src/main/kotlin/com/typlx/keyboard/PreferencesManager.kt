@@ -26,6 +26,7 @@ class PreferencesManager(context: Context) {
         const val KEY_KEY_ALPHA_PERCENT = "key_alpha_percent"
         const val KEY_KEYBOARD_LAYOUT = "keyboard_layout"
         const val KEY_KEY_SIZE_PRESET = "key_size_preset"
+        const val KEY_SHOW_NUMBER_ROW = "show_number_row"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -99,6 +100,10 @@ class PreferencesManager(context: Context) {
             KeySizePreset.NORMAL
         }
         set(value) = prefs.edit().putString(KEY_KEY_SIZE_PRESET, value.name).apply()
+
+    var showNumberRow: Boolean
+        get() = prefs.getBoolean(KEY_SHOW_NUMBER_ROW, true)
+        set(value) = prefs.edit().putBoolean(KEY_SHOW_NUMBER_ROW, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

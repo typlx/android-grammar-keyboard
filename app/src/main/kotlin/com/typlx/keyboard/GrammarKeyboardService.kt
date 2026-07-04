@@ -3,6 +3,7 @@ package com.typlx.keyboard
 import android.Manifest
 import android.content.ClipboardManager
 import android.content.Context
+import android.media.AudioManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
@@ -121,7 +122,11 @@ class GrammarKeyboardService : InputMethodService(),
         prefs = PreferencesManager(applicationContext)
         CrashReporter.configure(prefs.crashReportingEnabled)
         grammarService = GrammarService()
-        hapticHelper = HapticHelper { prefs.hapticFeedbackEnabled }
+        hapticHelper = HapticHelper(
+            audioManager = getSystemService(AUDIO_SERVICE) as? AudioManager,
+            isHapticEnabled = { prefs.hapticFeedbackEnabled },
+            isSoundEnabled = { prefs.soundFeedbackEnabled },
+        )
         voiceInputManager.onResult = ::onVoiceResult
         voiceInputManager.onStateChange = { state ->
             isVoiceListening = state is VoiceInputState.Listening

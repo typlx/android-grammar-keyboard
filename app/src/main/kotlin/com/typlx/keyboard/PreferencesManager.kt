@@ -30,6 +30,7 @@ class PreferencesManager(context: Context) {
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
         const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period_enabled"
         const val KEY_AUTO_CAP = "auto_cap_enabled"
+        const val KEY_SOUND_FEEDBACK = "sound_feedback_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -119,6 +120,10 @@ class PreferencesManager(context: Context) {
     var autoCapEnabled: Boolean
         get() = prefs.getBoolean(KEY_AUTO_CAP, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_CAP, value).apply()
+
+    var soundFeedbackEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SOUND_FEEDBACK, false)
+        set(value) = prefs.edit().putBoolean(KEY_SOUND_FEEDBACK, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

@@ -75,6 +75,7 @@ private fun SettingsScreen(
     var apiToken by remember { mutableStateOf(prefsManager.apiToken) }
     var tokenVisible by remember { mutableStateOf(false) }
     var hapticEnabled by remember { mutableStateOf(prefsManager.hapticFeedbackEnabled) }
+    var soundEnabled by remember { mutableStateOf(prefsManager.soundFeedbackEnabled) }
     var autoSuggestEnabled by remember { mutableStateOf(prefsManager.autoSuggestEnabled) }
     var crashReportingEnabled by remember { mutableStateOf(prefsManager.crashReportingEnabled) }
 
@@ -211,6 +212,34 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         hapticEnabled = it
                         prefsManager.hapticFeedbackEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Key click sound toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Key click sounds",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Play a click sound on each key press",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = soundEnabled,
+                    onCheckedChange = {
+                        soundEnabled = it
+                        prefsManager.soundFeedbackEnabled = it
                     },
                 )
             }

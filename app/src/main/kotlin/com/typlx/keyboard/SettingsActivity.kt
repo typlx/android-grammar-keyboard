@@ -74,6 +74,7 @@ private fun SettingsScreen(
     var model by remember { mutableStateOf(prefsManager.model) }
     var apiToken by remember { mutableStateOf(prefsManager.apiToken) }
     var tokenVisible by remember { mutableStateOf(false) }
+    var selectedProvider by remember { mutableStateOf(ApiProvider.inferFromUrl(prefsManager.apiUrl)) }
     var hapticEnabled by remember { mutableStateOf(prefsManager.hapticFeedbackEnabled) }
     var autoSuggestEnabled by remember { mutableStateOf(prefsManager.autoSuggestEnabled) }
     var crashReportingEnabled by remember { mutableStateOf(prefsManager.crashReportingEnabled) }
@@ -125,12 +126,50 @@ private fun SettingsScreen(
         ) {
             Spacer(modifier = Modifier.height(16.dp))
 
+            // API provider presets
+            Text(
+                text = "API provider",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                ApiProvider.entries.forEach { provider ->
+                    val label = when (provider) {
+                        ApiProvider.OPENAI -> "OpenAI"
+                        ApiProvider.GROQ -> "Groq"
+                        ApiProvider.OLLAMA -> "Ollama"
+                        ApiProvider.CUSTOM -> "Custom"
+                    }
+                    FilterChip(
+                        selected = selectedProvider == provider,
+                        onClick = {
+                            selectedProvider = provider
+                            if (provider != ApiProvider.CUSTOM) {
+                                apiUrl = provider.apiUrl
+                                model = provider.defaultModel
+                                apiUrlError = null
+                                modelError = null
+                            }
+                        },
+                        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // API URL field
             OutlinedTextField(
                 value = apiUrl,
                 onValueChange = {
                     apiUrl = it
                     apiUrlError = null
+                    selectedProvider = ApiProvider.CUSTOM
                 },
                 label = { Text(stringResource(R.string.settings_api_url_label)) },
                 placeholder = { Text(stringResource(R.string.settings_api_url_hint)) },
@@ -149,6 +188,7 @@ private fun SettingsScreen(
                 onValueChange = {
                     model = it
                     modelError = null
+                    selectedProvider = ApiProvider.CUSTOM
                 },
                 label = { Text(stringResource(R.string.settings_model_label)) },
                 placeholder = { Text(stringResource(R.string.settings_model_hint)) },

@@ -30,6 +30,7 @@ class PreferencesManager(context: Context) {
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
         const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period_enabled"
         const val KEY_AUTO_CAP = "auto_cap_enabled"
+        const val KEY_ONE_HANDED_MODE = "one_handed_mode"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -119,6 +120,14 @@ class PreferencesManager(context: Context) {
     var autoCapEnabled: Boolean
         get() = prefs.getBoolean(KEY_AUTO_CAP, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_CAP, value).apply()
+
+    var oneHandedMode: OneHandedMode
+        get() = try {
+            OneHandedMode.valueOf(prefs.getString(KEY_ONE_HANDED_MODE, "OFF") ?: "OFF")
+        } catch (_: IllegalArgumentException) {
+            OneHandedMode.OFF
+        }
+        set(value) = prefs.edit().putString(KEY_ONE_HANDED_MODE, value.name).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

@@ -104,6 +104,7 @@ private fun SettingsScreen(
     var selectedLayoutId by remember { mutableStateOf(prefsManager.keyboardLayoutId) }
     var keySizePreset by remember { mutableStateOf(prefsManager.keySizePreset) }
     var showNumberRow by remember { mutableStateOf(prefsManager.showNumberRow) }
+    var oneHandedMode by remember { mutableStateOf(prefsManager.oneHandedMode) }
     var doubleSpacePeriodEnabled by remember { mutableStateOf(prefsManager.doubleSpacePeriodEnabled) }
     var autoCapEnabled by remember { mutableStateOf(prefsManager.autoCapEnabled) }
 
@@ -509,6 +510,41 @@ private fun SettingsScreen(
                         onClick = {
                             keySizePreset = preset
                             prefsManager.keySizePreset = preset
+                        },
+                        label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                        modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Text(
+                text = "One-handed mode",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Text(
+                text = "Shift keyboard to left or right side for easier one-thumb typing",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                listOf(
+                    OneHandedMode.OFF to "Off",
+                    OneHandedMode.LEFT to "Left",
+                    OneHandedMode.RIGHT to "Right",
+                ).forEach { (mode, label) ->
+                    FilterChip(
+                        selected = oneHandedMode == mode,
+                        onClick = {
+                            oneHandedMode = mode
+                            prefsManager.oneHandedMode = mode
                         },
                         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.weight(1f),

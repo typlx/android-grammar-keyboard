@@ -53,6 +53,7 @@ import com.typlx.keyboard.DiffKind
 import com.typlx.keyboard.KEY_ALTERNATIVES
 import com.typlx.keyboard.KeyboardLayout
 import com.typlx.keyboard.LAYOUT_QWERTY
+import com.typlx.keyboard.OneHandedMode
 import com.typlx.keyboard.SuggestionState
 import com.typlx.keyboard.ToneOption
 import com.typlx.keyboard.TranslationLanguage
@@ -138,6 +139,8 @@ fun KeyboardScreen(
     onCutText: () -> Unit = {},
     onPasteText: () -> Unit = {},
     showNumberRow: Boolean = true,
+    oneHandedMode: OneHandedMode = OneHandedMode.OFF,
+    onOneHandedModeChange: (OneHandedMode) -> Unit = {},
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit = {},
     onVoiceErrorDismiss: () -> Unit = {},
@@ -333,13 +336,8 @@ fun KeyboardScreen(
         return
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.keyboardBg)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
+    // Composable lambda capturing outer state — avoids duplicating the keyboard body for one-handed mode.
+    val keyboardBody: @Composable ColumnScope.() -> Unit = {
         ToolbarRow(
             isFixingGrammar = isFixingGrammar,
             grammarError = grammarError,
@@ -439,6 +437,103 @@ fun KeyboardScreen(
             returnKeyDescription = returnKeyDescription,
             colors = colors,
             height = keyHeight,
+        )
+    }
+
+    if (oneHandedMode == OneHandedMode.OFF) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+            content = keyboardBody,
+        )
+    } else {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            if (oneHandedMode == OneHandedMode.RIGHT) {
+                OneHandedHandle(
+                    modifier = Modifier.weight(0.25f),
+                    arrowToLeft = true,
+                    onFlip = { onOneHandedModeChange(OneHandedMode.LEFT) },
+                    onExit = { onOneHandedModeChange(OneHandedMode.OFF) },
+                    colors = colors,
+                )
+            }
+            Column(
+                modifier = Modifier
+                    .weight(0.75f)
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                content = keyboardBody,
+            )
+            if (oneHandedMode == OneHandedMode.LEFT) {
+                OneHandedHandle(
+                    modifier = Modifier.weight(0.25f),
+                    arrowToLeft = false,
+                    onFlip = { onOneHandedModeChange(OneHandedMode.RIGHT) },
+                    onExit = { onOneHandedModeChange(OneHandedMode.OFF) },
+                    colors = colors,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun OneHandedHandle(
+    modifier: Modifier = Modifier,
+    arrowToLeft: Boolean,
+    onFlip: () -> Unit,
+    onExit: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    val haptic = LocalHapticFeedback.current
+    val flipDesc = if (arrowToLeft) "Shift keyboard to left side" else "Shift keyboard to right side"
+    Box(
+        modifier = modifier
+            .background(colors.keyActionBg.copy(alpha = 0.7f))
+            .semantics {
+                contentDescription = "$flipDesc; long-press to exit one-handed mode"
+                role = Role.Button
+            }
+            .pointerInput(onFlip, onExit) {
+                coroutineScope {
+                    val launchScope = this
+                    awaitPointerEventScope {
+                        while (true) {
+                            awaitFirstDown(requireUnconsumed = false)
+                            var longPressed = false
+                            val job = launchScope.launch {
+                                delay(600L)
+                                longPressed = true
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                onExit()
+                            }
+                            do {
+                                val event = awaitPointerEvent()
+                            } while (event.changes.any { it.pressed })
+                            job.cancel()
+                            if (!longPressed) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onFlip()
+                            }
+                        }
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (arrowToLeft) "←" else "→",
+            color = colors.keyText,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Normal,
         )
     }
 }

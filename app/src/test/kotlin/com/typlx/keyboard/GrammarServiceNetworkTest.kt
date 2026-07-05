@@ -23,7 +23,8 @@ class GrammarServiceNetworkTest {
     @Before
     fun setUp() {
         server.start()
-        service = GrammarService(testClient)
+        // maxRetries = 0 keeps existing tests deterministic (one enqueued response per call)
+        service = GrammarService(testClient, maxRetries = 0)
     }
 
     @After
@@ -166,5 +167,100 @@ class GrammarServiceNetworkTest {
         } catch (e: GrammarServiceException) {
             assertTrue("message should mention timed out", e.message!!.lowercase().contains("timed out"))
         }
+    }
+
+    // --- Retry behaviour ---
+
+    @Test
+    fun `fixGrammar retries on timeout and succeeds on second attempt`() = runTest {
+        val retryService = GrammarService(testClient, maxRetries = 1)
+        // First response: timeout; second response: success
+        server.enqueue(MockResponse().setBodyDelay(2, TimeUnit.SECONDS).setBody("{}"))
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("Retried.")))
+        val result = retryService.fixGrammar(baseUrl(), "gpt-4o-mini", "token", "text")
+        assertEquals("Retried.", result)
+        assertEquals("server should have received 2 requests", 2, server.requestCount)
+    }
+
+    @Test
+    fun `fixGrammar retries on 503 and succeeds on second attempt`() = runTest {
+        val retryService = GrammarService(testClient, maxRetries = 1)
+        server.enqueue(MockResponse().setResponseCode(503))
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("After 503.")))
+        val result = retryService.fixGrammar(baseUrl(), "gpt-4o-mini", "token", "text")
+        assertEquals("After 503.", result)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `fixGrammar retries on 429 and succeeds on second attempt`() = runTest {
+        val retryService = GrammarService(testClient, maxRetries = 1)
+        server.enqueue(MockResponse().setResponseCode(429))
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("After 429.")))
+        val result = retryService.fixGrammar(baseUrl(), "gpt-4o-mini", "token", "text")
+        assertEquals("After 429.", result)
+        assertEquals(2, server.requestCount)
+    }
+
+    @Test
+    fun `fixGrammar does not retry on 401`() = runTest {
+        val retryService = GrammarService(testClient, maxRetries = 2)
+        server.enqueue(MockResponse().setResponseCode(401))
+        try {
+            retryService.fixGrammar(baseUrl(), "gpt-4o-mini", "bad-token", "text")
+            fail("Expected GrammarServiceException")
+        } catch (e: GrammarServiceException) {
+            assertTrue(e.message!!.contains("401"))
+        }
+        // Only one request should have been sent (no retry for auth errors)
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `fixGrammar does not retry on 400`() = runTest {
+        val retryService = GrammarService(testClient, maxRetries = 2)
+        server.enqueue(MockResponse().setResponseCode(400))
+        try {
+            retryService.fixGrammar(baseUrl(), "gpt-4o-mini", "token", "text")
+            fail("Expected GrammarServiceException")
+        } catch (e: GrammarServiceException) {
+            assertNotNull(e)
+        }
+        assertEquals(1, server.requestCount)
+    }
+
+    @Test
+    fun `fixGrammar exhausts retries and throws on persistent timeout`() = runTest {
+        val retryService = GrammarService(testClient, maxRetries = 2)
+        // Three timeouts — all attempts should fail
+        repeat(3) { server.enqueue(MockResponse().setBodyDelay(2, TimeUnit.SECONDS).setBody("{}")) }
+        try {
+            retryService.fixGrammar(baseUrl(), "gpt-4o-mini", "token", "text")
+            fail("Expected GrammarServiceException")
+        } catch (e: GrammarServiceException) {
+            assertTrue(e.message!!.lowercase().contains("timed out"))
+        }
+        assertEquals(3, server.requestCount)
+    }
+
+    @Test
+    fun `GrammarServiceException isRetryable false by default`() {
+        val e = GrammarServiceException("oops")
+        assertFalse(e.isRetryable)
+    }
+
+    @Test
+    fun `isRetryableHttpCode returns true for 429, 503, 504`() {
+        assertTrue(isRetryableHttpCode(429))
+        assertTrue(isRetryableHttpCode(503))
+        assertTrue(isRetryableHttpCode(504))
+    }
+
+    @Test
+    fun `isRetryableHttpCode returns false for 400, 401, 403, 500`() {
+        assertFalse(isRetryableHttpCode(400))
+        assertFalse(isRetryableHttpCode(401))
+        assertFalse(isRetryableHttpCode(403))
+        assertFalse(isRetryableHttpCode(500))
     }
 }

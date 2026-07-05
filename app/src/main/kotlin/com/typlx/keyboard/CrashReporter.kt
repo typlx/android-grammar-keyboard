@@ -36,7 +36,7 @@ object CrashReporter {
         }
     }
 
-    private fun extractDomain(url: String): String = try {
+    internal fun extractDomain(url: String): String = try {
         URI(url.trim()).host?.lowercase() ?: "unknown"
     } catch (_: Exception) {
         "invalid_url"

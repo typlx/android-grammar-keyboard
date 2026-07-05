@@ -40,8 +40,33 @@ class TranslationLanguageTest {
     }
 
     @Test
-    fun `fifteen languages are defined`() {
-        assertEquals(15, TranslationLanguage.entries.size)
+    fun `twenty languages are defined`() {
+        assertEquals(20, TranslationLanguage.entries.size)
+    }
+
+    @Test
+    fun `english display label is English`() {
+        assertEquals("English", TranslationLanguage.ENGLISH.displayLabel)
+    }
+
+    @Test
+    fun `indonesian display label is Indonesian`() {
+        assertEquals("Indonesian", TranslationLanguage.INDONESIAN.displayLabel)
+    }
+
+    @Test
+    fun `vietnamese display label is Vietnamese`() {
+        assertEquals("Vietnamese", TranslationLanguage.VIETNAMESE.displayLabel)
+    }
+
+    @Test
+    fun `thai display label is Thai`() {
+        assertEquals("Thai", TranslationLanguage.THAI.displayLabel)
+    }
+
+    @Test
+    fun `ukrainian display label is Ukrainian`() {
+        assertEquals("Ukrainian", TranslationLanguage.UKRAINIAN.displayLabel)
     }
 
     @Test

@@ -5,11 +5,13 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -88,6 +90,8 @@ class GrammarKeyboardService : InputMethodService(),
     var keySizePreset by mutableStateOf(KeySizePreset.NORMAL)
         private set
     var showNumberRow by mutableStateOf(true)
+        private set
+    var showImeSwitchButton by mutableStateOf(false)
         private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
@@ -225,6 +229,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onOpenSettings = ::openSettings,
                         onVoiceToggle = ::toggleVoiceInput,
                         onVoiceErrorDismiss = { voiceError = null },
+                        onSwitchIme = if (showImeSwitchButton) ::switchToNextIme else null,
                         isNumPad = activeNumPadConfig.isNumPad,
                         isNumPadPhoneMode = activeNumPadConfig.isPhoneMode,
                         isNumPadDecimal = activeNumPadConfig.isDecimalAllowed,
@@ -307,6 +312,7 @@ class GrammarKeyboardService : InputMethodService(),
         clearUndoState()
         toneError = null
         lastSpacePressMs = 0L
+        showImeSwitchButton = shouldOfferSwitchingToNextInputMethod()
         // Theme prefs are cached in memory after first access — reading them here is fast.
         reloadThemePrefs()
         activeNumPadConfig = numPadConfig(info?.inputType ?: 0)
@@ -549,6 +555,16 @@ class GrammarKeyboardService : InputMethodService(),
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
         startActivity(intent)
+    }
+
+    private fun switchToNextIme() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            switchToNextInputMethod(false)
+        } else {
+            @Suppress("DEPRECATION")
+            (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
+                .showInputMethodPicker()
+        }
     }
 
     private fun moveCursor(keyCode: Int) {

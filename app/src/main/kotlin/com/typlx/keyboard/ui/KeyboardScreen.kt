@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.ripple.rememberRipple
@@ -141,6 +142,7 @@ fun KeyboardScreen(
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit = {},
     onVoiceErrorDismiss: () -> Unit = {},
+    onSwitchIme: (() -> Unit)? = null,
     isNumPad: Boolean = false,
     isNumPadPhoneMode: Boolean = false,
     isNumPadDecimal: Boolean = false,
@@ -437,6 +439,7 @@ fun KeyboardScreen(
             onSpacePress = onSpacePress,
             onReturn = onReturn,
             returnKeyDescription = returnKeyDescription,
+            onSwitchIme = onSwitchIme,
             colors = colors,
             height = keyHeight,
         )
@@ -814,6 +817,7 @@ private fun BottomRow(
     onSpacePress: () -> Unit,
     onReturn: () -> Unit,
     returnKeyDescription: String,
+    onSwitchIme: (() -> Unit)? = null,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
     height: Dp = 46.dp,
 ) {
@@ -822,6 +826,27 @@ private fun BottomRow(
         horizontalArrangement = Arrangement.spacedBy(5.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        if (onSwitchIme != null) {
+            IconButton(
+                onClick = onSwitchIme,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(height)
+                    .clip(RoundedCornerShape(colors.cornerRadiusDp.dp))
+                    .background(colors.keyActionBg)
+                    .semantics {
+                        contentDescription = "Switch keyboard"
+                        role = Role.Button
+                    },
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Language,
+                    contentDescription = null,
+                    tint = colors.keyText,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
         val symbolToggleDesc = if (isSymbols) "Switch to letters" else "Switch to symbols"
         KeyButton(
             label = if (isSymbols) "ABC" else "?123",

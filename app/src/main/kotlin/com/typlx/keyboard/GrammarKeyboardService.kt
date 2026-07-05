@@ -249,8 +249,11 @@ class GrammarKeyboardService : InputMethodService(),
         scheduleAutoSuggest()
     }
 
+    private fun isPrivateField(): Boolean =
+        isPrivateInputType(currentInputEditorInfo?.inputType ?: 0)
+
     private fun scheduleAutoSuggest() {
-        if (!prefs.autoSuggestEnabled || !prefs.isConfigured || isFixingGrammar) return
+        if (!prefs.autoSuggestEnabled || !prefs.isConfigured || isFixingGrammar || isPrivateField()) return
         suggestionDebounceJob?.cancel()
         suggestionDebounceJob = serviceScope.launch {
             delay(1500L)
@@ -586,7 +589,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     fun launchToneRewrite(tone: ToneOption) {
-        if (isApplyingTone || isFixingGrammar) return
+        if (isApplyingTone || isFixingGrammar || isPrivateField()) return
         val ic = currentInputConnection ?: return
 
         if (!FeatureGate.isEnabled(FeatureGate.Feature.TONE_SUGGESTIONS)) {
@@ -647,7 +650,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     fun launchTranslation(language: TranslationLanguage) {
-        if (isApplyingTranslation || isFixingGrammar) return
+        if (isApplyingTranslation || isFixingGrammar || isPrivateField()) return
         val ic = currentInputConnection ?: return
 
         if (!prefs.isConfigured) {
@@ -693,7 +696,7 @@ class GrammarKeyboardService : InputMethodService(),
     // --- Grammar fix ---
 
     private fun launchGrammarFix() {
-        if (isFixingGrammar) return
+        if (isFixingGrammar || isPrivateField()) return
         val ic = currentInputConnection ?: return
 
         if (!FeatureGate.isEnabled(FeatureGate.Feature.GRAMMAR_FIX)) {

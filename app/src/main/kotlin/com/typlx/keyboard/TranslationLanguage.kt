@@ -64,4 +64,24 @@ enum class TranslationLanguage(
         displayLabel = "Turkish",
         systemPrompt = "Translate the following text to Turkish. Return only the translated text, nothing else.",
     ),
+    ENGLISH(
+        displayLabel = "English",
+        systemPrompt = "Translate the following text to English. Return only the translated text, nothing else.",
+    ),
+    INDONESIAN(
+        displayLabel = "Indonesian",
+        systemPrompt = "Translate the following text to Indonesian (Bahasa Indonesia). Return only the translated text, nothing else.",
+    ),
+    VIETNAMESE(
+        displayLabel = "Vietnamese",
+        systemPrompt = "Translate the following text to Vietnamese. Return only the translated text, nothing else.",
+    ),
+    THAI(
+        displayLabel = "Thai",
+        systemPrompt = "Translate the following text to Thai. Return only the translated text, nothing else.",
+    ),
+    UKRAINIAN(
+        displayLabel = "Ukrainian",
+        systemPrompt = "Translate the following text to Ukrainian. Return only the translated text, nothing else.",
+    ),
 }

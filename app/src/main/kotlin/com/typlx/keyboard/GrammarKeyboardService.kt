@@ -272,7 +272,8 @@ class GrammarKeyboardService : InputMethodService(),
     private suspend fun runAutoSuggest() {
         val ic = currentInputConnection ?: return
         suggestionState = SuggestionState.Loading
-        suggestionState = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken)
+        suggestionState = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
+            systemPromptSuffix = prefs.grammarInstructionSuffix)
     }
 
     fun acceptSuggestion() {
@@ -705,7 +706,8 @@ class GrammarKeyboardService : InputMethodService(),
         dismissSuggestion()
 
         serviceScope.launch {
-            grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken)
+            grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
+                systemPromptSuffix = prefs.grammarInstructionSuffix)
                 .fold(
                     onSuccess = { fixResult ->
                         if (fixResult != null) {

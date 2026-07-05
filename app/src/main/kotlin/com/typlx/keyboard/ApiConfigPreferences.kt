@@ -12,9 +12,9 @@ class ApiConfigPreferences(context: Context) {
         private const val PREFS_NAME = "typlx_keyboard_prefs"
         private const val ENCRYPTED_PREFS_NAME = "typlx_keyboard_secure_prefs"
 
-        private const val KEY_API_URL = "api_url"
-        private const val KEY_MODEL = "model"
-        private const val KEY_API_TOKEN = "api_token"
+        const val KEY_API_URL = "api_url"
+        const val KEY_MODEL = "model"
+        const val KEY_API_TOKEN = "api_token"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"

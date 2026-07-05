@@ -9,7 +9,9 @@ class ApiConfigPreferencesTest {
     @Test
     fun `api url key has stable persistence key`() {
         // Changing this key silently resets all users' saved API URL — guard it.
-        assertEquals("api_url", "api_url")
+        assertEquals("api_url", ApiConfigPreferences.KEY_API_URL)
+        assertEquals("model", ApiConfigPreferences.KEY_MODEL)
+        assertEquals("api_token", ApiConfigPreferences.KEY_API_TOKEN)
     }
 
     @Test
@@ -28,7 +30,7 @@ class ApiConfigPreferencesTest {
 
     @Test
     fun `ApiConfigPreferences keys are disjoint from UiPreferences keys`() {
-        val apiKeys = setOf("api_url", "model", "api_token")
+        val apiKeys = setOf(ApiConfigPreferences.KEY_API_URL, ApiConfigPreferences.KEY_MODEL, ApiConfigPreferences.KEY_API_TOKEN)
         val uiKeys = setOf(
             UiPreferences.KEY_THEME_PRESET,
             UiPreferences.KEY_CORNER_RADIUS_DP,
@@ -43,7 +45,7 @@ class ApiConfigPreferencesTest {
 
     @Test
     fun `ApiConfigPreferences keys are disjoint from FeaturePreferences keys`() {
-        val apiKeys = setOf("api_url", "model", "api_token")
+        val apiKeys = setOf(ApiConfigPreferences.KEY_API_URL, ApiConfigPreferences.KEY_MODEL, ApiConfigPreferences.KEY_API_TOKEN)
         val featureKeys = setOf(
             FeaturePreferences.KEY_HAPTIC,
             FeaturePreferences.KEY_AUTO_SUGGEST,

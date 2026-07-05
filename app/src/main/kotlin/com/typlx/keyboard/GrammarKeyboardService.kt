@@ -604,23 +604,26 @@ class GrammarKeyboardService : InputMethodService(),
         dismissSuggestion()
 
         serviceScope.launch {
-            toneRewriteController.rewriteText(textBefore, tone, prefs.apiUrl, prefs.model, prefs.apiToken)
-                .fold(
-                    onSuccess = { rewritten ->
-                        suppressSuggestionTriggerCount += 2
-                        ic.deleteSurroundingText(textBefore.length, 0)
-                        ic.commitText(rewritten, 1)
-                        undoState.recordFix(original = textBefore, fixed = rewritten)
-                        canUndo = true
-                        isTonePanel = false
-                    },
-                    onFailure = { e ->
-                        val gse = e as? GrammarServiceException ?: GrammarServiceException(e.message ?: getString(R.string.grammar_error), e)
-                        CrashReporter.recordApiError(gse, CrashReporter.Operation.TONE_REWRITE, prefs.apiUrl)
-                        toneError = e.message ?: getString(R.string.grammar_error)
-                    },
-                )
-            isApplyingTone = false
+            try {
+                toneRewriteController.rewriteText(textBefore, tone, prefs.apiUrl, prefs.model, prefs.apiToken)
+                    .fold(
+                        onSuccess = { rewritten ->
+                            suppressSuggestionTriggerCount += 2
+                            ic.deleteSurroundingText(textBefore.length, 0)
+                            ic.commitText(rewritten, 1)
+                            undoState.recordFix(original = textBefore, fixed = rewritten)
+                            canUndo = true
+                            isTonePanel = false
+                        },
+                        onFailure = { e ->
+                            val gse = e as? GrammarServiceException ?: GrammarServiceException(e.message ?: getString(R.string.grammar_error), e)
+                            CrashReporter.recordApiError(gse, CrashReporter.Operation.TONE_REWRITE, prefs.apiUrl)
+                            toneError = e.message ?: getString(R.string.grammar_error)
+                        },
+                    )
+            } finally {
+                isApplyingTone = false
+            }
         }
     }
 
@@ -657,23 +660,26 @@ class GrammarKeyboardService : InputMethodService(),
         dismissSuggestion()
 
         serviceScope.launch {
-            translationController.translateText(textBefore, language, prefs.apiUrl, prefs.model, prefs.apiToken)
-                .fold(
-                    onSuccess = { translated ->
-                        suppressSuggestionTriggerCount += 2
-                        ic.deleteSurroundingText(textBefore.length, 0)
-                        ic.commitText(translated, 1)
-                        undoState.recordFix(original = textBefore, fixed = translated)
-                        canUndo = true
-                        isTranslatePanel = false
-                    },
-                    onFailure = { e ->
-                        val gse = e as? GrammarServiceException ?: GrammarServiceException(e.message ?: getString(R.string.grammar_error), e)
-                        CrashReporter.recordApiError(gse, CrashReporter.Operation.TRANSLATION, prefs.apiUrl)
-                        translateError = e.message ?: getString(R.string.grammar_error)
-                    },
-                )
-            isApplyingTranslation = false
+            try {
+                translationController.translateText(textBefore, language, prefs.apiUrl, prefs.model, prefs.apiToken)
+                    .fold(
+                        onSuccess = { translated ->
+                            suppressSuggestionTriggerCount += 2
+                            ic.deleteSurroundingText(textBefore.length, 0)
+                            ic.commitText(translated, 1)
+                            undoState.recordFix(original = textBefore, fixed = translated)
+                            canUndo = true
+                            isTranslatePanel = false
+                        },
+                        onFailure = { e ->
+                            val gse = e as? GrammarServiceException ?: GrammarServiceException(e.message ?: getString(R.string.grammar_error), e)
+                            CrashReporter.recordApiError(gse, CrashReporter.Operation.TRANSLATION, prefs.apiUrl)
+                            translateError = e.message ?: getString(R.string.grammar_error)
+                        },
+                    )
+            } finally {
+                isApplyingTranslation = false
+            }
         }
     }
 
@@ -705,23 +711,26 @@ class GrammarKeyboardService : InputMethodService(),
         dismissSuggestion()
 
         serviceScope.launch {
-            grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken)
-                .fold(
-                    onSuccess = { fixResult ->
-                        if (fixResult != null) {
-                            suppressSuggestionTriggerCount += 2
-                            undoState.recordFix(original = fixResult.original, fixed = fixResult.fixed)
-                            canUndo = true
-                        }
-                    },
-                    onFailure = { e ->
-                        val gse = e as? GrammarServiceException
-                            ?: GrammarServiceException(e.message ?: getString(R.string.grammar_error), e)
-                        CrashReporter.recordApiError(gse, CrashReporter.Operation.GRAMMAR_FIX, prefs.apiUrl)
-                        grammarError = e.message ?: getString(R.string.grammar_error)
-                    },
-                )
-            isFixingGrammar = false
+            try {
+                grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken)
+                    .fold(
+                        onSuccess = { fixResult ->
+                            if (fixResult != null) {
+                                suppressSuggestionTriggerCount += 2
+                                undoState.recordFix(original = fixResult.original, fixed = fixResult.fixed)
+                                canUndo = true
+                            }
+                        },
+                        onFailure = { e ->
+                            val gse = e as? GrammarServiceException
+                                ?: GrammarServiceException(e.message ?: getString(R.string.grammar_error), e)
+                            CrashReporter.recordApiError(gse, CrashReporter.Operation.GRAMMAR_FIX, prefs.apiUrl)
+                            grammarError = e.message ?: getString(R.string.grammar_error)
+                        },
+                    )
+            } finally {
+                isFixingGrammar = false
+            }
         }
     }
 

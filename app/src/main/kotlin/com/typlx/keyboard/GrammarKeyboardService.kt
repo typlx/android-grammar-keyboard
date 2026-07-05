@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Configuration
 import android.os.Bundle
 import android.text.InputType
 import android.view.KeyEvent
@@ -89,6 +90,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var showNumberRow by mutableStateOf(true)
         private set
+    var isLandscape by mutableStateOf(false)
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -156,6 +159,7 @@ class GrammarKeyboardService : InputMethodService(),
     override fun onCreateInputView(): View {
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_START)
 
+        isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         return ComposeView(this).also { keyboardView = it }.apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setViewTreeLifecycleOwner(this@GrammarKeyboardService)
@@ -163,7 +167,8 @@ class GrammarKeyboardService : InputMethodService(),
             setViewTreeSavedStateRegistryOwner(this@GrammarKeyboardService)
 
             setContent {
-                val keyHeight = (46f * keySizePreset.scaleFactor).dp
+                val landscapeScale = if (isLandscape) 0.70f else 1.0f
+                val keyHeight = (46f * keySizePreset.scaleFactor * landscapeScale).dp
                 TyplxKeyboardTheme(
                     preset = themePreset,
                     cornerRadiusDp = cornerRadiusDp,
@@ -354,6 +359,11 @@ class GrammarKeyboardService : InputMethodService(),
         voiceInputManager.stop()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         super.onFinishInputView(finishingInput)
+    }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        isLandscape = newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE
     }
 
     override fun onDestroy() {

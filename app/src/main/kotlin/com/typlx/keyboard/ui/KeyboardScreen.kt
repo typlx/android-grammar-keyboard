@@ -435,6 +435,8 @@ fun KeyboardScreen(
             onSymbolToggle = { isSymbols = !isSymbols },
             onKeyPress = shiftOnceKeyPress,
             onSpacePress = onSpacePress,
+            onMoveCursorLeft = onMoveCursorLeft,
+            onMoveCursorRight = onMoveCursorRight,
             onReturn = onReturn,
             returnKeyDescription = returnKeyDescription,
             colors = colors,
@@ -812,6 +814,8 @@ private fun BottomRow(
     onSymbolToggle: () -> Unit,
     onKeyPress: (String) -> Unit,
     onSpacePress: () -> Unit,
+    onMoveCursorLeft: () -> Unit,
+    onMoveCursorRight: () -> Unit,
     onReturn: () -> Unit,
     returnKeyDescription: String,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
@@ -841,14 +845,13 @@ private fun BottomRow(
             textColor = colors.keyText,
             onClick = { onKeyPress(",") },
         )
-        KeyButton(
-            label = " ",
-            contentDescription = "Space",
+        SpaceButton(
             modifier = Modifier.weight(4f),
+            colors = colors,
             height = height,
-            bgColor = colors.keyBg,
-            textColor = colors.keyText,
-            onClick = onSpacePress,
+            onSpacePress = onSpacePress,
+            onMoveCursorLeft = onMoveCursorLeft,
+            onMoveCursorRight = onMoveCursorRight,
         )
         KeyButton(
             label = ".",
@@ -867,6 +870,88 @@ private fun BottomRow(
             bgColor = MaterialTheme.colorScheme.primary,
             textColor = MaterialTheme.colorScheme.onPrimary,
             onClick = onReturn,
+        )
+    }
+}
+
+/**
+ * Space bar with cursor-drag gesture:
+ * - Tap: insert space
+ * - Long-press (≥ 400 ms) + drag left/right: move cursor one character per 20 dp crossed
+ */
+@Composable
+internal fun SpaceButton(
+    modifier: Modifier = Modifier,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    height: Dp = 46.dp,
+    onSpacePress: () -> Unit,
+    onMoveCursorLeft: () -> Unit,
+    onMoveCursorRight: () -> Unit,
+) {
+    val haptic = LocalHapticFeedback.current
+    val cornerRadius = colors.cornerRadiusDp.dp
+    Box(
+        modifier = modifier
+            .height(height)
+            .clip(RoundedCornerShape(cornerRadius))
+            .background(colors.keyBg)
+            .semantics {
+                contentDescription = "Space, long-press and drag to move cursor"
+                role = Role.Button
+            }
+            .pointerInput(onSpacePress, onMoveCursorLeft, onMoveCursorRight) {
+                val thresholdPx = 20.dp.toPx()
+                coroutineScope {
+                    val launchScope = this
+                    awaitPointerEventScope {
+                        while (true) {
+                            val down = awaitFirstDown(requireUnconsumed = false)
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            var inDragMode = false
+                            var accumulated = 0f
+                            var lastX = down.position.x
+                            val job = launchScope.launch {
+                                delay(400L)
+                                inDragMode = true
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            }
+                            do {
+                                val event = awaitPointerEvent()
+                                if (inDragMode) {
+                                    val currentX = event.changes.firstOrNull()?.position?.x ?: lastX
+                                    accumulated += currentX - lastX
+                                    lastX = currentX
+                                    while (accumulated <= -thresholdPx) {
+                                        accumulated += thresholdPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onMoveCursorLeft()
+                                    }
+                                    while (accumulated >= thresholdPx) {
+                                        accumulated -= thresholdPx
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onMoveCursorRight()
+                                    }
+                                } else {
+                                    lastX = event.changes.firstOrNull()?.position?.x ?: lastX
+                                }
+                            } while (event.changes.any { it.pressed })
+                            job.cancel()
+                            if (!inDragMode) {
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onSpacePress()
+                            }
+                        }
+                    }
+                }
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = "space",
+            color = colors.keyText.copy(alpha = 0.6f),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Normal,
+            maxLines = 1,
         )
     }
 }

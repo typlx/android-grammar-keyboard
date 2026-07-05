@@ -12,7 +12,13 @@ package com.typlx.keyboard
  *      implementation("io.github.jan-tennert.supabase:auth-kt:2.x.x")
  * 2. Create [SupabaseAuthRepository] implementing this interface.
  * 3. Wire it as the active implementation in the DI graph (or companion factory).
+ *
+ * TODO(TYP-145): Implement SupabaseAuthRepository once TYP-124 (monetization) is approved.
  */
+@Deprecated(
+    message = "Stub only — no real auth is wired. Implement SupabaseAuthRepository per TYP-145 once TYP-124 is approved.",
+    replaceWith = ReplaceWith("SupabaseAuthRepository")
+)
 interface AuthRepository {
     /** The currently authenticated user, or null if not signed in. */
     suspend fun currentUser(): AuthUser?
@@ -45,7 +51,10 @@ sealed class AuthResult {
  *
  * Always reports no user signed in. This keeps the app fully functional
  * in passthrough mode while [FeatureGate] allows all features regardless.
+ *
+ * TODO(TYP-145): Replace with SupabaseAuthRepository once TYP-124 is approved.
  */
+@Suppress("DEPRECATION")
 class StubAuthRepository : AuthRepository {
     override suspend fun currentUser(): AuthUser? = null
     override suspend fun signIn(email: String, password: String): AuthResult =

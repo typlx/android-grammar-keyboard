@@ -40,13 +40,15 @@ object FeatureGate {
     /**
      * Returns whether [feature] is accessible to the current user.
      *
-     * Passthrough phase: always true — no entitlement check yet.
-     * Post-TYP-124: delegate to [PurchaseManager.hasEntitlement].
+     * **Passthrough stub** — always returns true until TYP-124 (monetization) is approved.
+     * This is intentional: all features are free during pre-launch.
+     *
+     * TODO(TYP-124): Replace this passthrough with a real entitlement check:
+     *   `return feature in freeTierFeatures || PurchaseManager.hasEntitlement(ENTITLEMENT_PREMIUM)`
+     *   once RevenueCat SDK and Supabase Auth are configured per [PurchaseManager].
      */
     @Suppress("UNUSED_PARAMETER")
     fun isEnabled(feature: Feature): Boolean {
-        // TODO(TYP-124): replace with PurchaseManager.hasEntitlement(feature)
-        //   once RevenueCat SDK and Supabase Auth are configured.
         return true
     }
 

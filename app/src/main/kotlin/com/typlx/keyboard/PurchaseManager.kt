@@ -15,7 +15,13 @@ import android.content.Context
  * 2. Call [configure] in Application.onCreate() with the API key from RevenueCat dashboard.
  * 3. Replace stub bodies with real Purchases SDK calls.
  * 4. Map [FeatureGate.Feature] values to RevenueCat entitlement identifiers.
+ *
+ * TODO(TYP-124): Implement real RevenueCat purchase flow once monetization strategy is approved.
  */
+@Deprecated(
+    message = "Stub only — no real purchases are processed. Implement via RevenueCat SDK per TYP-124.",
+    replaceWith = ReplaceWith("RevenueCat Purchases SDK integration")
+)
 object PurchaseManager {
 
     /** RevenueCat entitlement ID that grants premium access. */

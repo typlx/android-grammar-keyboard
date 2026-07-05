@@ -1,5 +1,6 @@
 package com.typlx.keyboard
 
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -15,7 +16,8 @@ import java.util.concurrent.TimeUnit
  * for grammar and spelling correction.
  */
 class GrammarService(
-    private val httpClient: OkHttpClient = sharedClient
+    private val httpClient: OkHttpClient = sharedClient,
+    val maxRetries: Int = MAX_RETRIES,
 ) {
 
     companion object {
@@ -23,6 +25,8 @@ class GrammarService(
             "Fix grammar and spelling in the following text. Return only the corrected text, nothing else. Preserve the original language, tone, and formatting."
         private const val TEMPERATURE = 0.3
         private const val TIMEOUT_SECONDS = 30L
+        private const val MAX_RETRIES = 2
+        private const val RETRY_BASE_DELAY_MS = 1000L
         private val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
 
         private val sharedClient: OkHttpClient by lazy {
@@ -38,7 +42,9 @@ class GrammarService(
     }
 
     /**
-     * Sends text to the API and returns the rewritten text.
+     * Sends text to the API and returns the rewritten text. Retries up to [maxRetries] times
+     * on transient failures (network timeout, connection drop, HTTP 429/503/504) using
+     * exponential backoff starting at 1 s.
      *
      * @param apiUrl Base API URL (e.g. "https://api.openai.com/v1")
      * @param model Model identifier (e.g. "gpt-4o-mini")
@@ -46,7 +52,7 @@ class GrammarService(
      * @param text The text to process
      * @param systemPrompt Instruction sent as the system message; defaults to the grammar-fix prompt
      * @return The rewritten text from the API
-     * @throws GrammarServiceException on any failure
+     * @throws GrammarServiceException on any failure (after exhausting retries for transient errors)
      */
     suspend fun fixGrammar(
         apiUrl: String,
@@ -54,7 +60,27 @@ class GrammarService(
         token: String,
         text: String,
         systemPrompt: String = SYSTEM_PROMPT,
-    ): String = withContext(Dispatchers.IO) {
+    ): String {
+        var lastException: GrammarServiceException? = null
+        for (attempt in 0..maxRetries) {
+            try {
+                return withContext(Dispatchers.IO) { doAttempt(apiUrl, model, token, text, systemPrompt) }
+            } catch (e: GrammarServiceException) {
+                lastException = e
+                if (!e.isRetryable || attempt == maxRetries) throw e
+                delay(RETRY_BASE_DELAY_MS shl attempt)  // 1 s, 2 s
+            }
+        }
+        throw lastException!!
+    }
+
+    private fun doAttempt(
+        apiUrl: String,
+        model: String,
+        token: String,
+        text: String,
+        systemPrompt: String,
+    ): String {
         // Normalise: strip a trailing /v1 if present, then always add /v1/chat/completions
         // so both "https://api.openai.com" and "https://api.openai.com/v1" work.
         val normalised = apiUrl.trimEnd('/').removeSuffix("/v1")
@@ -84,13 +110,16 @@ class GrammarService(
             .post(body.toString().toRequestBody(JSON_MEDIA_TYPE))
             .build()
 
-        try {
+        return try {
             val response = httpClient.newCall(request).execute()
             val responseBody = response.body?.string()
                 ?: throw GrammarServiceException("Empty response body")
 
             if (!response.isSuccessful) {
-                throw GrammarServiceException(httpErrorMessage(response.code))
+                throw GrammarServiceException(
+                    message = httpErrorMessage(response.code),
+                    isRetryable = isRetryableHttpCode(response.code),
+                )
             }
 
             val json = JSONObject(responseBody)
@@ -108,9 +137,9 @@ class GrammarService(
         } catch (e: java.net.UnknownHostException) {
             throw GrammarServiceException("No internet connection", e)
         } catch (e: java.net.ConnectException) {
-            throw GrammarServiceException("Could not connect to server", e)
+            throw GrammarServiceException("Could not connect to server", e, isRetryable = true)
         } catch (e: java.net.SocketTimeoutException) {
-            throw GrammarServiceException("Request timed out — check your connection", e)
+            throw GrammarServiceException("Request timed out — check your connection", e, isRetryable = true)
         } catch (e: Exception) {
             throw GrammarServiceException("Request failed: ${e.message}", e)
         }
@@ -119,7 +148,8 @@ class GrammarService(
 
 class GrammarServiceException(
     message: String,
-    cause: Throwable? = null
+    cause: Throwable? = null,
+    val isRetryable: Boolean = false,
 ) : Exception(message, cause)
 
 internal fun httpErrorMessage(code: Int): String = when (code) {
@@ -128,3 +158,5 @@ internal fun httpErrorMessage(code: Int): String = when (code) {
     in 500..599 -> "Server error ($code) — try again later"
     else -> "API error $code"
 }
+
+internal fun isRetryableHttpCode(code: Int): Boolean = code == 429 || code == 503 || code == 504

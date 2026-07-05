@@ -1,125 +1,53 @@
 package com.typlx.keyboard
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
-import com.typlx.keyboard.ui.theme.ThemePreset
 
 /**
- * Manages application preferences with encrypted storage for sensitive data (API token)
- * and regular SharedPreferences for non-sensitive settings (API URL, model name).
+ * Facade that delegates to focused preference classes.
+ *
+ * Use [apiConfig], [ui], or [features] directly when only one domain is needed.
+ * All properties are also accessible here for backward-compatible call sites.
  */
 class PreferencesManager(context: Context) {
 
     companion object {
-        private const val PREFS_NAME = "typlx_keyboard_prefs"
-        private const val ENCRYPTED_PREFS_NAME = "typlx_keyboard_secure_prefs"
+        // Re-exported from sub-classes so existing call sites compile without changes.
+        const val KEY_HAPTIC = FeaturePreferences.KEY_HAPTIC
+        const val KEY_AUTO_SUGGEST = FeaturePreferences.KEY_AUTO_SUGGEST
+        const val KEY_CRASH_REPORTING = FeaturePreferences.KEY_CRASH_REPORTING
+        const val KEY_DOUBLE_SPACE_PERIOD = FeaturePreferences.KEY_DOUBLE_SPACE_PERIOD
+        const val KEY_AUTO_CAP = FeaturePreferences.KEY_AUTO_CAP
 
-        private const val KEY_API_URL = "api_url"
-        private const val KEY_MODEL = "model"
-        private const val KEY_API_TOKEN = "api_token"
-        const val KEY_HAPTIC = "haptic_feedback_enabled"
-        const val KEY_AUTO_SUGGEST = "auto_suggest_enabled"
-        const val KEY_THEME_PRESET = "theme_preset"
-        const val KEY_CORNER_RADIUS_DP = "corner_radius_dp"
-        const val KEY_KEY_ALPHA_PERCENT = "key_alpha_percent"
-        const val KEY_KEYBOARD_LAYOUT = "keyboard_layout"
-        const val KEY_KEY_SIZE_PRESET = "key_size_preset"
-        const val KEY_SHOW_NUMBER_ROW = "show_number_row"
-        const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
-        const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period_enabled"
-        const val KEY_AUTO_CAP = "auto_cap_enabled"
-
-        private const val DEFAULT_API_URL = "https://api.openai.com"
-        private const val DEFAULT_MODEL = "gpt-4o-mini"
+        const val KEY_THEME_PRESET = UiPreferences.KEY_THEME_PRESET
+        const val KEY_CORNER_RADIUS_DP = UiPreferences.KEY_CORNER_RADIUS_DP
+        const val KEY_KEY_ALPHA_PERCENT = UiPreferences.KEY_KEY_ALPHA_PERCENT
+        const val KEY_KEYBOARD_LAYOUT = UiPreferences.KEY_KEYBOARD_LAYOUT
+        const val KEY_KEY_SIZE_PRESET = UiPreferences.KEY_KEY_SIZE_PRESET
+        const val KEY_SHOW_NUMBER_ROW = UiPreferences.KEY_SHOW_NUMBER_ROW
     }
 
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+    val apiConfig = ApiConfigPreferences(context)
+    val ui = UiPreferences(context)
+    val features = FeaturePreferences(context)
 
-    private val encryptedPrefs: SharedPreferences by lazy {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
+    // API config
+    var apiUrl: String by apiConfig::apiUrl
+    var model: String by apiConfig::model
+    var apiToken: String by apiConfig::apiToken
+    val isConfigured: Boolean get() = apiConfig.isConfigured
 
-        EncryptedSharedPreferences.create(
-            context,
-            ENCRYPTED_PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    }
+    // Feature toggles
+    var hapticFeedbackEnabled: Boolean by features::hapticFeedbackEnabled
+    var autoSuggestEnabled: Boolean by features::autoSuggestEnabled
+    var crashReportingEnabled: Boolean by features::crashReportingEnabled
+    var doubleSpacePeriodEnabled: Boolean by features::doubleSpacePeriodEnabled
+    var autoCapEnabled: Boolean by features::autoCapEnabled
 
-    var apiUrl: String
-        get() = prefs.getString(KEY_API_URL, DEFAULT_API_URL) ?: DEFAULT_API_URL
-        set(value) = prefs.edit().putString(KEY_API_URL, value).apply()
-
-    var model: String
-        get() = prefs.getString(KEY_MODEL, DEFAULT_MODEL) ?: DEFAULT_MODEL
-        set(value) = prefs.edit().putString(KEY_MODEL, value).apply()
-
-    var apiToken: String
-        get() = encryptedPrefs.getString(KEY_API_TOKEN, "") ?: ""
-        set(value) = encryptedPrefs.edit().putString(KEY_API_TOKEN, value).apply()
-
-    var hapticFeedbackEnabled: Boolean
-        get() = prefs.getBoolean(KEY_HAPTIC, true)
-        set(value) = prefs.edit().putBoolean(KEY_HAPTIC, value).apply()
-
-    var autoSuggestEnabled: Boolean
-        get() = prefs.getBoolean(KEY_AUTO_SUGGEST, true)
-        set(value) = prefs.edit().putBoolean(KEY_AUTO_SUGGEST, value).apply()
-
-    var themePreset: ThemePreset
-        get() = try {
-            ThemePreset.valueOf(prefs.getString(KEY_THEME_PRESET, "SYSTEM") ?: "SYSTEM")
-        } catch (_: IllegalArgumentException) {
-            ThemePreset.SYSTEM
-        }
-        set(value) = prefs.edit().putString(KEY_THEME_PRESET, value.name).apply()
-
-    var cornerRadiusDp: Int
-        get() = prefs.getInt(KEY_CORNER_RADIUS_DP, 6).coerceIn(0, 16)
-        set(value) = prefs.edit().putInt(KEY_CORNER_RADIUS_DP, value.coerceIn(0, 16)).apply()
-
-    var keyAlphaPercent: Int
-        get() = prefs.getInt(KEY_KEY_ALPHA_PERCENT, 100).coerceIn(0, 100)
-        set(value) = prefs.edit().putInt(KEY_KEY_ALPHA_PERCENT, value.coerceIn(0, 100)).apply()
-
-    var keyboardLayoutId: LayoutId
-        get() = try {
-            LayoutId.valueOf(prefs.getString(KEY_KEYBOARD_LAYOUT, "QWERTY") ?: "QWERTY")
-        } catch (_: IllegalArgumentException) {
-            LayoutId.QWERTY
-        }
-        set(value) = prefs.edit().putString(KEY_KEYBOARD_LAYOUT, value.name).apply()
-
-    var keySizePreset: KeySizePreset
-        get() = try {
-            KeySizePreset.valueOf(prefs.getString(KEY_KEY_SIZE_PRESET, "NORMAL") ?: "NORMAL")
-        } catch (_: IllegalArgumentException) {
-            KeySizePreset.NORMAL
-        }
-        set(value) = prefs.edit().putString(KEY_KEY_SIZE_PRESET, value.name).apply()
-
-    var showNumberRow: Boolean
-        get() = prefs.getBoolean(KEY_SHOW_NUMBER_ROW, true)
-        set(value) = prefs.edit().putBoolean(KEY_SHOW_NUMBER_ROW, value).apply()
-
-    var crashReportingEnabled: Boolean
-        get() = prefs.getBoolean(KEY_CRASH_REPORTING, true)
-        set(value) = prefs.edit().putBoolean(KEY_CRASH_REPORTING, value).apply()
-
-    var doubleSpacePeriodEnabled: Boolean
-        get() = prefs.getBoolean(KEY_DOUBLE_SPACE_PERIOD, true)
-        set(value) = prefs.edit().putBoolean(KEY_DOUBLE_SPACE_PERIOD, value).apply()
-
-    var autoCapEnabled: Boolean
-        get() = prefs.getBoolean(KEY_AUTO_CAP, true)
-        set(value) = prefs.edit().putBoolean(KEY_AUTO_CAP, value).apply()
-
-    val isConfigured: Boolean
-        get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()
+    // UI / layout
+    var themePreset by ui::themePreset
+    var cornerRadiusDp: Int by ui::cornerRadiusDp
+    var keyAlphaPercent: Int by ui::keyAlphaPercent
+    var keyboardLayoutId by ui::keyboardLayoutId
+    var keySizePreset by ui::keySizePreset
+    var showNumberRow: Boolean by ui::showNumberRow
 }

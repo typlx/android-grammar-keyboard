@@ -24,4 +24,16 @@ enum class ToneOption(
         displayLabel = "Concise",
         systemPrompt = "Rewrite the following text as concisely as possible while preserving meaning. Return only the rewritten text, nothing else.",
     ),
+    REPHRASE(
+        displayLabel = "Rephrase",
+        systemPrompt = "Rewrite the following text in a more natural and fluent way while preserving its meaning. Return only the rewritten text, nothing else.",
+    ),
+    SIMPLIFY(
+        displayLabel = "Simplify",
+        systemPrompt = "Rewrite the following text using simpler language that is easy for anyone to understand. Return only the rewritten text, nothing else.",
+    ),
+    EXPAND(
+        displayLabel = "Expand",
+        systemPrompt = "Rewrite the following text with more detail and explanation while staying focused on the original topic. Return only the rewritten text, nothing else.",
+    ),
 }

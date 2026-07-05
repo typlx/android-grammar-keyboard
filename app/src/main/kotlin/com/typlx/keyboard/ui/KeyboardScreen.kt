@@ -113,8 +113,10 @@ fun KeyboardScreen(
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit = {},
     onEmojiPress: (String) -> Unit = {},
+    isSmartComposing: Boolean = false,
     onAcceptSuggestion: () -> Unit = {},
     onDismissSuggestion: () -> Unit = {},
+    onSmartCompose: () -> Unit = {},
     onToneToggle: () -> Unit = {},
     onToneDismiss: () -> Unit = {},
     onToneSelect: (ToneOption) -> Unit = {},
@@ -389,8 +391,10 @@ fun KeyboardScreen(
             )
             else -> SuggestionStrip(
                 state = suggestionState,
+                isSmartComposing = isSmartComposing,
                 onAccept = onAcceptSuggestion,
                 onDismiss = onDismissSuggestion,
+                onSmartCompose = onSmartCompose,
             )
         }
 
@@ -1204,12 +1208,13 @@ private fun VoiceStrip(
 @Composable
 private fun SuggestionStrip(
     state: SuggestionState,
+    isSmartComposing: Boolean = false,
     onAccept: () -> Unit,
     onDismiss: () -> Unit,
+    onSmartCompose: () -> Unit = {},
 ) {
-    when (state) {
-        SuggestionState.Idle -> return
-        SuggestionState.Loading -> Row(
+    when {
+        state == SuggestionState.Loading -> Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(32.dp)
@@ -1228,7 +1233,48 @@ private fun SuggestionStrip(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        is SuggestionState.Available -> Row(
+        isSmartComposing -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(14.dp),
+                strokeWidth = 1.5.dp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = "Composing…",
+                fontSize = 11.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        state == SuggestionState.Idle -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End,
+        ) {
+            SuggestionChip(
+                onClick = onSmartCompose,
+                label = {
+                    Text(
+                        text = "Continue →",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                modifier = Modifier.semantics {
+                    contentDescription = "Smart Compose: continue text with AI"
+                },
+            )
+        }
+        state is SuggestionState.Available -> Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(32.dp)

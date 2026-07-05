@@ -89,6 +89,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var showNumberRow by mutableStateOf(true)
         private set
+    var isSmartComposing by mutableStateOf(false)
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -107,6 +109,7 @@ class GrammarKeyboardService : InputMethodService(),
     private lateinit var autoSuggestController: AutoSuggestController
     private lateinit var toneRewriteController: ToneRewriteController
     private lateinit var translationController: TranslationController
+    private lateinit var smartComposeController: SmartComposeController
     private lateinit var hapticHelper: HapticHelper
     private var keyboardView: View? = null
 
@@ -129,6 +132,7 @@ class GrammarKeyboardService : InputMethodService(),
         autoSuggestController = AutoSuggestController(grammarService, personalWordList)
         toneRewriteController = ToneRewriteController(grammarService)
         translationController = TranslationController(grammarService)
+        smartComposeController = SmartComposeController(grammarService)
         hapticHelper = HapticHelper { prefs.hapticFeedbackEnabled }
         voiceInputManager.onResult = ::onVoiceResult
         voiceInputManager.onStateChange = { state ->
@@ -196,6 +200,7 @@ class GrammarKeyboardService : InputMethodService(),
                         isVoiceListening = isVoiceListening,
                         voicePartialText = voicePartialText,
                         voiceError = voiceError,
+                        isSmartComposing = isSmartComposing,
                         onKeyPress = ::commitText,
                         onSpacePress = ::onSpacePress,
                         onDelete = ::deleteChar,
@@ -207,6 +212,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onEmojiPress = ::commitEmoji,
                         onAcceptSuggestion = ::acceptSuggestion,
                         onDismissSuggestion = ::dismissSuggestion,
+                        onSmartCompose = ::triggerSmartCompose,
                         onToneToggle = { if (isTonePanel) dismissTonePanel() else openTonePanel() },
                         onToneDismiss = ::dismissTonePanel,
                         onToneSelect = ::launchToneRewrite,
@@ -674,6 +680,31 @@ class GrammarKeyboardService : InputMethodService(),
                     },
                 )
             isApplyingTranslation = false
+        }
+    }
+
+    // --- Smart Compose ---
+
+    fun triggerSmartCompose() {
+        if (isSmartComposing || isFixingGrammar || isPrivateField()) return
+        val ic = currentInputConnection ?: return
+        if (!prefs.isConfigured) return
+        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        if (textBefore.isNullOrBlank()) return
+
+        dismissSuggestion()
+        isSmartComposing = true
+
+        serviceScope.launch {
+            smartComposeController.compose(textBefore, prefs.apiUrl, prefs.model, prefs.apiToken)
+                .fold(
+                    onSuccess = { continuation ->
+                        suppressSuggestionTriggerCount++
+                        ic.commitText(continuation, 1)
+                    },
+                    onFailure = { /* silently ignore — user can try again */ },
+                )
+            isSmartComposing = false
         }
     }
 

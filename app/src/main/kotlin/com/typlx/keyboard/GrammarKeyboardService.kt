@@ -99,6 +99,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val personalWordList = PersonalWordList()
     private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
+    private val correctionStats = CorrectionStats()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -139,6 +140,8 @@ class GrammarKeyboardService : InputMethodService(),
                 .getString(WORD_LIST_KEY, null)
             val shortcutsJson = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
                 .getString(SHORTCUTS_KEY, null)
+            val statsJson = getSharedPreferences(CORRECTION_STATS_PREFS, Context.MODE_PRIVATE)
+                .getString(CORRECTION_STATS_KEY, null)
             GrammarService.prewarm()
             withContext(Dispatchers.Main) {
                 emojiJson?.let { emojiRecentsMgr.loadFromJson(it); emojiRecents = emojiRecentsMgr.recents }
@@ -149,6 +152,7 @@ class GrammarKeyboardService : InputMethodService(),
                 } else {
                     TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
                 }
+                if (statsJson != null) correctionStats.loadFromJson(statsJson)
             }
         }
     }
@@ -294,6 +298,8 @@ class GrammarKeyboardService : InputMethodService(),
         ic.commitText(state.corrected, 1)
         undoState.recordFix(original = state.original, fixed = state.corrected)
         canUndo = true
+        correctionStats.recordCorrectionAccepted()
+        saveStats()
     }
 
     fun dismissSuggestion() {
@@ -352,6 +358,8 @@ class GrammarKeyboardService : InputMethodService(),
         isTranslatePanel = false
         translateError = null
         voiceInputManager.stop()
+        correctionStats.onSessionEnd()
+        saveStats()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
         super.onFinishInputView(finishingInput)
     }
@@ -574,6 +582,8 @@ class GrammarKeyboardService : InputMethodService(),
         const val WORD_LIST_KEY = "words_json"
         const val SHORTCUTS_PREFS = "text_shortcuts_prefs"
         const val SHORTCUTS_KEY = "shortcuts_json"
+        private const val CORRECTION_STATS_PREFS = "correction_stats_prefs"
+        private const val CORRECTION_STATS_KEY = "stats_json"
     }
 
     // --- Tone rewriter ---
@@ -785,6 +795,13 @@ class GrammarKeyboardService : InputMethodService(),
         } else {
             TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
         }
+    }
+
+    // --- Correction stats persistence ---
+
+    private fun saveStats() {
+        getSharedPreferences(CORRECTION_STATS_PREFS, Context.MODE_PRIVATE)
+            .edit().putString(CORRECTION_STATS_KEY, correctionStats.toJson()).apply()
     }
 
 }

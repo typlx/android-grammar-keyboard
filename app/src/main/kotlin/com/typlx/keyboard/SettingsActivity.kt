@@ -107,6 +107,14 @@ private fun SettingsScreen(
     var doubleSpacePeriodEnabled by remember { mutableStateOf(prefsManager.doubleSpacePeriodEnabled) }
     var autoCapEnabled by remember { mutableStateOf(prefsManager.autoCapEnabled) }
 
+    val totalCorrections by remember {
+        val json = context.getSharedPreferences("correction_stats_prefs", Context.MODE_PRIVATE)
+            .getString("stats_json", null)
+        val stats = CorrectionStats()
+        if (json != null) stats.loadFromJson(json)
+        mutableIntStateOf(stats.totalCorrectionsApplied)
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -663,6 +671,15 @@ private fun SettingsScreen(
             )
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = stringResource(R.string.stats_corrections_applied, totalCorrections),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = stringResource(

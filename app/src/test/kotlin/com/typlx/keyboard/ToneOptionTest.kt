@@ -40,8 +40,8 @@ class ToneOptionTest {
     }
 
     @Test
-    fun `five tones are defined`() {
-        assertEquals(5, ToneOption.entries.size)
+    fun `eight tones are defined`() {
+        assertEquals(8, ToneOption.entries.size)
     }
 
     @Test
@@ -67,6 +67,21 @@ class ToneOptionTest {
     @Test
     fun `concise tone display label is Concise`() {
         assertEquals("Concise", ToneOption.CONCISE.displayLabel)
+    }
+
+    @Test
+    fun `rephrase tone display label is Rephrase`() {
+        assertEquals("Rephrase", ToneOption.REPHRASE.displayLabel)
+    }
+
+    @Test
+    fun `simplify tone display label is Simplify`() {
+        assertEquals("Simplify", ToneOption.SIMPLIFY.displayLabel)
+    }
+
+    @Test
+    fun `expand tone display label is Expand`() {
+        assertEquals("Expand", ToneOption.EXPAND.displayLabel)
     }
 
     @Test

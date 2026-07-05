@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup rules (API 21–30, used via android:fullBackupContent) -->
+<full-backup-content>
+    <!-- Encrypted prefs hold the API token, but the Keystore key is NOT backed up.
+         Restoring this file without the key causes a decryption failure on first launch. -->
+    <exclude domain="sharedpref" path="typlx_keyboard_secure_prefs.xml" />
+    <!-- Clipboard history is private to the device; never sync it to the cloud. -->
+    <exclude domain="sharedpref" path="clipboard_prefs.xml" />
+    <!-- Onboarding state should reset on a new device so the user sees the setup wizard. -->
+    <exclude domain="sharedpref" path="typlx_onboarding.xml" />
+</full-backup-content>

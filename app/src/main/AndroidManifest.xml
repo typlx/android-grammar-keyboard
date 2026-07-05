@@ -9,7 +9,10 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TyplxKeyboard">
+        android:theme="@style/Theme.TyplxKeyboard"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/backup_rules"
+        android:fullBackupContent="@xml/backup_rules_legacy">
 
         <!-- IME service -->
         <service

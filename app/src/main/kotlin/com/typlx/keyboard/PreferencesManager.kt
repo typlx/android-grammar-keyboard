@@ -2,9 +2,11 @@ package com.typlx.keyboard
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.typlx.keyboard.ui.theme.ThemePreset
+import java.io.File
 
 /**
  * Manages application preferences with encrypted storage for sensitive data (API token)
@@ -13,6 +15,7 @@ import com.typlx.keyboard.ui.theme.ThemePreset
 class PreferencesManager(context: Context) {
 
     companion object {
+        private const val TAG = "PreferencesManager"
         private const val PREFS_NAME = "typlx_keyboard_prefs"
         private const val ENCRYPTED_PREFS_NAME = "typlx_keyboard_secure_prefs"
 
@@ -39,17 +42,39 @@ class PreferencesManager(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val encryptedPrefs: SharedPreferences by lazy {
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
+        openOrRecreateEncryptedPrefs(context)
+    }
 
-        EncryptedSharedPreferences.create(
-            context,
-            ENCRYPTED_PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+    // If Android restores the encrypted prefs file from backup without the Keystore key
+    // (which is never backed up), EncryptedSharedPreferences will throw on open. Delete
+    // the stale file so the user simply needs to re-enter their API key.
+    private fun openOrRecreateEncryptedPrefs(context: Context): SharedPreferences {
+        return try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                ENCRYPTED_PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Log.w(TAG, "EncryptedSharedPreferences open failed (likely stale backup); recreating", e)
+            val staleFile = File(context.filesDir.parent, "shared_prefs/$ENCRYPTED_PREFS_NAME.xml")
+            staleFile.delete()
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                ENCRYPTED_PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        }
     }
 
     var apiUrl: String

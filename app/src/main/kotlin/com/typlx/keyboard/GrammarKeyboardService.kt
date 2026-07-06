@@ -102,6 +102,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
     private val wordPredictor = WordPredictor()
+    private val autoCorrectManager = AutoCorrectManager()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -447,6 +448,25 @@ class GrammarKeyboardService : InputMethodService(),
                     suppressSuggestionTriggerCount += 2
                     ic.deleteSurroundingText(lastWord.length, 0)
                     ic.commitText("$expansion ", 1)
+                    lastSpacePressMs = 0L
+                    return
+                }
+            }
+        }
+
+        // Local autocorrect: silently fix common typos on space press.
+        if (ic != null && prefs.autocorrectEnabled && !isPrivateField()) {
+            val before = ic.getTextBeforeCursor(100, 0)?.toString() ?: ""
+            val lastWord = before.trimEnd().substringAfterLast(' ').substringAfterLast('\n')
+            if (lastWord.isNotEmpty()) {
+                val corrected = autoCorrectManager.correct(lastWord)
+                if (corrected != null && corrected != lastWord) {
+                    hapticHelper.tap(keyboardView)
+                    undoState.recordFix(original = lastWord, fixed = corrected)
+                    canUndo = true
+                    suppressSuggestionTriggerCount += 2
+                    ic.deleteSurroundingText(lastWord.length, 0)
+                    ic.commitText("$corrected ", 1)
                     lastSpacePressMs = 0L
                     return
                 }

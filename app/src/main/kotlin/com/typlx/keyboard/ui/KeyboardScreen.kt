@@ -14,8 +14,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.EmojiEmotions
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -984,7 +984,7 @@ private fun CursorNavPanel(
                 onClick = onHome,
             )
             NavKeyButton(
-                icon = Icons.Default.KeyboardArrowLeft,
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                 contentDescription = "Move cursor left, long-press for word",
                 modifier = Modifier.weight(1f),
                 colors = colors,
@@ -1006,7 +1006,7 @@ private fun CursorNavPanel(
                 onClick = onDown,
             )
             NavKeyButton(
-                icon = Icons.Default.KeyboardArrowRight,
+                icon = Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = "Move cursor right, long-press for word",
                 modifier = Modifier.weight(1f),
                 colors = colors,

@@ -140,6 +140,7 @@ fun KeyboardScreen(
     onCopyText: () -> Unit = {},
     onCutText: () -> Unit = {},
     onPasteText: () -> Unit = {},
+    hasSelection: Boolean = false,
     showNumberRow: Boolean = true,
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit = {},
@@ -355,6 +356,7 @@ fun KeyboardScreen(
             isTranslatePanel = isTranslatePanel,
             isApplyingTranslation = isApplyingTranslation,
             isVoiceListening = isVoiceListening,
+            hasSelection = hasSelection,
             onFixGrammar = onFixGrammar,
             onErrorDismiss = onErrorDismiss,
             onUndoGrammarFix = onUndoGrammarFix,
@@ -462,6 +464,7 @@ private fun ToolbarRow(
     isTranslatePanel: Boolean,
     isApplyingTranslation: Boolean,
     isVoiceListening: Boolean,
+    hasSelection: Boolean = false,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit,
@@ -516,7 +519,13 @@ private fun ToolbarRow(
             else -> Spacer(Modifier.weight(1f))
         }
 
-        val fixButtonDesc = if (isFixingGrammar) "Fixing grammar, please wait" else "Fix grammar"
+        val fixButtonLabel = when {
+            isFixingGrammar -> "Fixing…"
+            hasSelection -> "Fix Selected"
+            else -> "Fix Grammar"
+        }
+        val fixButtonDesc = if (isFixingGrammar) "Fixing grammar, please wait"
+            else if (hasSelection) "Fix grammar in selected text" else "Fix grammar"
         Button(
             onClick = onFixGrammar,
             enabled = !isFixingGrammar && !isApplyingTone,
@@ -534,7 +543,7 @@ private fun ToolbarRow(
                 Spacer(Modifier.width(6.dp))
             }
             Text(
-                text = if (isFixingGrammar) "Fixing…" else "Fix Grammar",
+                text = fixButtonLabel,
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Medium,
             )

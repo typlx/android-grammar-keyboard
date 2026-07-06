@@ -229,6 +229,77 @@ class GrammarFixFlowTest {
         assertTrue(ic.deleteSurroundingTextCalls.isEmpty())
     }
 
+    // --- Selection-aware fix ---
+
+    @Test
+    fun `selection - only selected text is sent to API`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("Fixed sentence.")))
+        val ic = MockInputConnection("First sentence. bad grammer here. Last sentence.")
+        ic.simulatedSelection = "bad grammer here"
+
+        controller.fix(ic, baseUrl(), "gpt-4o-mini", "token", hasSelection = true)
+
+        val recorded = server.takeRequest()
+        val body = recorded.body.readUtf8()
+        assertTrue("should send selected text to API", body.contains("bad grammer here"))
+        assertFalse("should NOT send full text when selection active", body.contains("First sentence."))
+    }
+
+    @Test
+    fun `selection - commitText replaces selection without deleteSurroundingText`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("Fixed sentence.")))
+        val ic = MockInputConnection("First sentence. bad grammer here. Last sentence.")
+        ic.simulatedSelection = "bad grammer here"
+
+        val result = controller.fix(ic, baseUrl(), "gpt-4o-mini", "token", hasSelection = true)
+
+        assertTrue(result.isSuccess)
+        assertNotNull(result.getOrThrow())
+        // Selection path: commitText only, no deleteSurroundingText
+        assertTrue("should not call deleteSurroundingText when selection active",
+            ic.deleteSurroundingTextCalls.isEmpty())
+        assertEquals(1, ic.commitTextCalls.size)
+        assertEquals("Fixed sentence.", ic.commitTextCalls[0].first)
+    }
+
+    @Test
+    fun `selection - buffer reflects in-place replacement`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("correct text")))
+        val ic = MockInputConnection("prefix wrnog suffix")
+        ic.simulatedSelection = "wrnog"
+
+        controller.fix(ic, baseUrl(), "gpt-4o-mini", "token", hasSelection = true)
+
+        assertEquals("prefix correct text suffix", ic.currentText())
+    }
+
+    @Test
+    fun `selection - FixResult carries selected original and LLM fixed text`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("corrected")))
+        val ic = MockInputConnection("some wrnog word")
+        ic.simulatedSelection = "wrnog"
+
+        val result = controller.fix(ic, baseUrl(), "gpt-4o-mini", "token", hasSelection = true)
+
+        val fixResult = result.getOrThrow()!!
+        assertEquals("wrnog", fixResult.original)
+        assertEquals("corrected", fixResult.fixed)
+    }
+
+    @Test
+    fun `selection - empty selection falls back to full text before cursor`() = runTest {
+        server.enqueue(MockResponse().setResponseCode(200).setBody(successBody("Hello world.")))
+        val ic = MockInputConnection("helo wrld")
+        // simulatedSelection is null by default — no selection
+
+        val result = controller.fix(ic, baseUrl(), "gpt-4o-mini", "token", hasSelection = true)
+
+        assertTrue(result.isSuccess)
+        // Falls back to getTextBeforeCursor path: deleteSurroundingText is called
+        assertEquals(1, ic.deleteSurroundingTextCalls.size)
+        assertEquals("helo wrld".length, ic.deleteSurroundingTextCalls[0].first)
+    }
+
     // --- Private field detection (via isPrivateInputType — unit tested in PrivateFieldCheckTest) ---
 
     @Test

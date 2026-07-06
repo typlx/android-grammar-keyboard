@@ -94,6 +94,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var isSmartComposing by mutableStateOf(false)
         private set
+    var hasSelection by mutableStateOf(false)
+        private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
     val autoShiftSignal: Long by _autoShiftSignal
@@ -241,6 +243,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onCopyText = { currentInputConnection?.performContextMenuAction(android.R.id.copy) },
                         onCutText = { currentInputConnection?.performContextMenuAction(android.R.id.cut) },
                         onPasteText = { currentInputConnection?.performContextMenuAction(android.R.id.paste) },
+                        hasSelection = hasSelection,
                         showNumberRow = showNumberRow,
                         onOpenSettings = ::openSettings,
                         onVoiceToggle = ::toggleVoiceInput,
@@ -262,6 +265,7 @@ class GrammarKeyboardService : InputMethodService(),
         candidatesStart: Int, candidatesEnd: Int,
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        hasSelection = newSelStart >= 0 && newSelEnd > newSelStart
         if (suppressSuggestionTriggerCount > 0) {
             suppressSuggestionTriggerCount--
             return
@@ -659,7 +663,9 @@ class GrammarKeyboardService : InputMethodService(),
             return
         }
 
-        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        val selectedText = if (hasSelection) ic.getSelectedText(0)?.toString() else null
+        val isRealSelection = !selectedText.isNullOrBlank()
+        val textBefore = if (isRealSelection) selectedText!! else ic.getTextBeforeCursor(5000, 0)?.toString()
         if (textBefore.isNullOrBlank()) {
             toneError = getString(R.string.error_no_text)
             return
@@ -675,8 +681,12 @@ class GrammarKeyboardService : InputMethodService(),
                 .fold(
                     onSuccess = { rewritten ->
                         suppressSuggestionTriggerCount += 2
-                        ic.deleteSurroundingText(textBefore.length, 0)
-                        ic.commitText(rewritten, 1)
+                        if (isRealSelection) {
+                            ic.commitText(rewritten, 1)
+                        } else {
+                            ic.deleteSurroundingText(textBefore.length, 0)
+                            ic.commitText(rewritten, 1)
+                        }
                         undoState.recordFix(original = textBefore, fixed = rewritten)
                         canUndo = true
                         isTonePanel = false
@@ -712,7 +722,9 @@ class GrammarKeyboardService : InputMethodService(),
             return
         }
 
-        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        val selectedText = if (hasSelection) ic.getSelectedText(0)?.toString() else null
+        val isRealSelection = !selectedText.isNullOrBlank()
+        val textBefore = if (isRealSelection) selectedText!! else ic.getTextBeforeCursor(5000, 0)?.toString()
         if (textBefore.isNullOrBlank()) {
             translateError = getString(R.string.error_no_text)
             return
@@ -728,8 +740,12 @@ class GrammarKeyboardService : InputMethodService(),
                 .fold(
                     onSuccess = { translated ->
                         suppressSuggestionTriggerCount += 2
-                        ic.deleteSurroundingText(textBefore.length, 0)
-                        ic.commitText(translated, 1)
+                        if (isRealSelection) {
+                            ic.commitText(translated, 1)
+                        } else {
+                            ic.deleteSurroundingText(textBefore.length, 0)
+                            ic.commitText(translated, 1)
+                        }
                         undoState.recordFix(original = textBefore, fixed = translated)
                         canUndo = true
                         isTranslatePanel = false
@@ -796,9 +812,11 @@ class GrammarKeyboardService : InputMethodService(),
         clearUndoState()
         dismissSuggestion()
 
+        val fixingSelection = hasSelection
         serviceScope.launch {
             grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
-                systemPromptSuffix = prefs.grammarInstructionSuffix)
+                systemPromptSuffix = prefs.grammarInstructionSuffix,
+                hasSelection = fixingSelection)
                 .fold(
                     onSuccess = { fixResult ->
                         if (fixResult != null) {

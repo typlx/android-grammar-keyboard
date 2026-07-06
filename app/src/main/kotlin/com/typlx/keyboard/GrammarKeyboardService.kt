@@ -284,6 +284,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     private fun updateWordPredictions() {
+        if (!prefs.wordPredictionEnabled) return
         if (suggestionState is SuggestionState.Available || suggestionState == SuggestionState.Loading) return
         if (isPrivateField()) return
         val ic = currentInputConnection ?: return
@@ -307,9 +308,13 @@ class GrammarKeyboardService : InputMethodService(),
         val result = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
             systemPromptSuffix = prefs.grammarInstructionSuffix)
         if (result == SuggestionState.Idle) {
-            val prefix = getCurrentWordPrefix(ic)
-            val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
-            suggestionState = if (predictions.isEmpty()) SuggestionState.Idle else SuggestionState.WordSuggestions(predictions)
+            if (prefs.wordPredictionEnabled) {
+                val prefix = getCurrentWordPrefix(ic)
+                val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
+                suggestionState = if (predictions.isEmpty()) SuggestionState.Idle else SuggestionState.WordSuggestions(predictions)
+            } else {
+                suggestionState = SuggestionState.Idle
+            }
         } else {
             suggestionState = result
         }
@@ -763,6 +768,7 @@ class GrammarKeyboardService : InputMethodService(),
     // --- Smart Compose ---
 
     fun triggerSmartCompose() {
+        if (!prefs.smartComposeEnabled) return
         if (isSmartComposing || isFixingGrammar || isPrivateField()) return
         val ic = currentInputConnection ?: return
         if (!prefs.isConfigured) return

@@ -136,4 +136,67 @@ class PersonalWordListTest {
         list.loadFromJson("[]")
         assertEquals(0, list.size)
     }
+
+    // --- export / import ---
+
+    @Test
+    fun `toExportText returns one word per line sorted alphabetically`() {
+        list.add("zeta")
+        list.add("alpha")
+        list.add("middle")
+        assertEquals("alpha\nmiddle\nzeta\n", list.toExportText())
+    }
+
+    @Test
+    fun `toExportText returns empty string when list is empty`() {
+        assertEquals("", list.toExportText())
+    }
+
+    @Test
+    fun `importFromText adds words and returns count`() {
+        val count = list.importFromText("kotlin\ncompose\nandroid\n")
+        assertEquals(3, count)
+        assertEquals(listOf("android", "compose", "kotlin"), list.getAll())
+    }
+
+    @Test
+    fun `importFromText skips blank and whitespace-only lines`() {
+        val count = list.importFromText("kotlin\n\n   \ncompose")
+        assertEquals(2, count)
+    }
+
+    @Test
+    fun `importFromText skips duplicate words`() {
+        list.add("kotlin")
+        val count = list.importFromText("kotlin\ncompose")
+        assertEquals(1, count)
+        assertEquals(2, list.size)
+    }
+
+    @Test
+    fun `importFromText on empty string adds nothing`() {
+        val count = list.importFromText("")
+        assertEquals(0, count)
+        assertEquals(0, list.size)
+    }
+
+    @Test
+    fun `importFromText trims surrounding whitespace from each line`() {
+        val count = list.importFromText("  kotlin  \n  compose  ")
+        assertEquals(2, count)
+        assertTrue(list.contains("kotlin"))
+        assertTrue(list.contains("compose"))
+    }
+
+    @Test
+    fun `toExportText and importFromText round-trip preserves words`() {
+        list.add("Kotlin")
+        list.add("GPT-4")
+        list.add("compose")
+        val exported = list.toExportText()
+
+        val restored = PersonalWordList(maxSize = 10)
+        restored.importFromText(exported)
+        assertEquals(list.getAll(), restored.getAll())
+    }
 }

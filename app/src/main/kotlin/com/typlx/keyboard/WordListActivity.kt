@@ -2,8 +2,11 @@ package com.typlx.keyboard
 
 import android.content.Context
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,10 +14,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FileDownload
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
 
@@ -52,6 +58,37 @@ private fun WordListScreen(
 ) {
     var words by remember { mutableStateOf(wordList.getAll()) }
     var showAddDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("text/plain")
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        try {
+            context.contentResolver.openOutputStream(uri)?.use { stream ->
+                stream.writer().use { it.write(wordList.toExportText()) }
+            }
+            Toast.makeText(context, "Exported ${words.size} word(s)", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            Toast.makeText(context, "Export failed", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        try {
+            val added = context.contentResolver.openInputStream(uri)?.use { stream ->
+                wordList.importFromText(stream.bufferedReader().readText())
+            } ?: 0
+            words = wordList.getAll()
+            onPersist()
+            Toast.makeText(context, "Added $added word(s)", Toast.LENGTH_SHORT).show()
+        } catch (_: Exception) {
+            Toast.makeText(context, "Import failed", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -60,6 +97,14 @@ private fun WordListScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { importLauncher.launch(arrayOf("text/plain")) }) {
+                        Icon(Icons.Default.FileUpload, contentDescription = "Import words")
+                    }
+                    IconButton(onClick = { exportLauncher.launch("typlx_words.txt") }) {
+                        Icon(Icons.Default.FileDownload, contentDescription = "Export words")
                     }
                 },
             )

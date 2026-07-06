@@ -10,6 +10,7 @@ import android.text.InputType
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -303,12 +304,17 @@ class GrammarKeyboardService : InputMethodService(),
         if (suggestionState is SuggestionState.Available || suggestionState == SuggestionState.Loading) return
         if (isPrivateField()) return
         val ic = currentInputConnection ?: return
+        suggestionState = buildWordSuggestionState(ic)
+    }
+
+    private fun buildWordSuggestionState(ic: InputConnection): SuggestionState {
+        if (!prefs.wordPredictionEnabled) return SuggestionState.Idle
         val prefix = getCurrentWordPrefix(ic)
         val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
         val emojis = if (prefs.emojiSuggestionsEnabled && prefix.isEmpty()) {
             emojiSuggestionHelper.suggest(getLastCompletedWord(ic))
         } else emptyList()
-        suggestionState = when {
+        return when {
             predictions.isNotEmpty() || emojis.isNotEmpty() -> SuggestionState.WordSuggestions(predictions, emojis)
             else -> SuggestionState.Idle
         }
@@ -329,19 +335,7 @@ class GrammarKeyboardService : InputMethodService(),
         val result = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
             systemPromptSuffix = prefs.grammarInstructionSuffix)
         if (result == SuggestionState.Idle) {
-            if (prefs.wordPredictionEnabled) {
-                val prefix = getCurrentWordPrefix(ic)
-                val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
-                val emojis = if (prefs.emojiSuggestionsEnabled && prefix.isEmpty()) {
-                    emojiSuggestionHelper.suggest(getLastCompletedWord(ic))
-                } else emptyList()
-                suggestionState = when {
-                    predictions.isNotEmpty() || emojis.isNotEmpty() -> SuggestionState.WordSuggestions(predictions, emojis)
-                    else -> SuggestionState.Idle
-                }
-            } else {
-                suggestionState = SuggestionState.Idle
-            }
+            suggestionState = buildWordSuggestionState(ic)
         } else {
             suggestionState = result
         }

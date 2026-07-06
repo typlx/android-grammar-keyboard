@@ -79,4 +79,21 @@ class PersonalWordList(val maxSize: Int = 500) {
         }
         append(']')
     }
+
+    /** Returns export text: one word per line, newline-terminated. */
+    fun toExportText(): String = buildString {
+        getAll().forEach { word -> append(word).append('\n') }
+    }
+
+    /**
+     * Parses import text (one word per line).
+     * Blank lines and whitespace-only lines are silently skipped.
+     * Duplicate or capacity-exceeded words are silently skipped.
+     * Returns the count of words actually added.
+     */
+    fun importFromText(text: String): Int =
+        text.lineSequence()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
+            .count { add(it) }
 }

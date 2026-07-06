@@ -106,9 +106,13 @@ private fun SettingsScreen(
     var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
     var selectedLayoutId by remember { mutableStateOf(prefsManager.keyboardLayoutId) }
     var keySizePreset by remember { mutableStateOf(prefsManager.keySizePreset) }
+    var keyHeightDp by remember { mutableIntStateOf(prefsManager.keyHeightDp) }
     var showNumberRow by remember { mutableStateOf(prefsManager.showNumberRow) }
     var doubleSpacePeriodEnabled by remember { mutableStateOf(prefsManager.doubleSpacePeriodEnabled) }
     var autoCapEnabled by remember { mutableStateOf(prefsManager.autoCapEnabled) }
+    var autocorrectEnabled by remember { mutableStateOf(prefsManager.autocorrectEnabled) }
+    var wordPredictionEnabled by remember { mutableStateOf(prefsManager.wordPredictionEnabled) }
+    var smartComposeEnabled by remember { mutableStateOf(prefsManager.smartComposeEnabled) }
     var emojiSuggestionsEnabled by remember { mutableStateOf(prefsManager.emojiSuggestionsEnabled) }
 
     Scaffold(
@@ -366,6 +370,90 @@ private fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
+            // Autocorrect toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Autocorrect",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Fix common typos automatically when you press space",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = autocorrectEnabled,
+                    onCheckedChange = {
+                        autocorrectEnabled = it
+                        prefsManager.autocorrectEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Word prediction toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Word prediction",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Show word completion suggestions while typing",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = wordPredictionEnabled,
+                    onCheckedChange = {
+                        wordPredictionEnabled = it
+                        prefsManager.wordPredictionEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Smart Compose toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Smart Compose",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Double-tap space to complete your sentence with AI",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = smartComposeEnabled,
+                    onCheckedChange = {
+                        smartComposeEnabled = it
+                        prefsManager.smartComposeEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             // Emoji suggestions toggle
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -581,33 +669,72 @@ private fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "Key size",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Key height",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                Text(
+                    text = "$keyHeightDp dp",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                KeySizePreset.entries.forEach { preset ->
-                    val label = when (preset) {
-                        KeySizePreset.COMPACT -> "Compact"
-                        KeySizePreset.NORMAL -> "Normal"
-                        KeySizePreset.LARGE -> "Large"
-                    }
+                val presets = listOf(
+                    "Compact" to 39,
+                    "Normal" to 46,
+                    "Large" to 53,
+                )
+                presets.forEach { (label, dp) ->
                     FilterChip(
-                        selected = keySizePreset == preset,
+                        selected = keyHeightDp == dp,
                         onClick = {
-                            keySizePreset = preset
-                            prefsManager.keySizePreset = preset
+                            keyHeightDp = dp
+                            keySizePreset = when (dp) {
+                                39 -> KeySizePreset.COMPACT
+                                53 -> KeySizePreset.LARGE
+                                else -> KeySizePreset.NORMAL
+                            }
+                            prefsManager.keyHeightDp = dp
+                            prefsManager.keySizePreset = keySizePreset
                         },
                         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
+            Slider(
+                value = keyHeightDp.toFloat(),
+                onValueChange = { v ->
+                    val snapped = v.toInt()
+                    keyHeightDp = snapped
+                    prefsManager.keyHeightDp = snapped
+                    val matchedPreset = when (snapped) {
+                        39 -> KeySizePreset.COMPACT
+                        46 -> KeySizePreset.NORMAL
+                        53 -> KeySizePreset.LARGE
+                        else -> null
+                    }
+                    if (matchedPreset != null) {
+                        keySizePreset = matchedPreset
+                        prefsManager.keySizePreset = matchedPreset
+                    }
+                },
+                valueRange = PreferencesManager.KEY_HEIGHT_DP_MIN.toFloat()..PreferencesManager.KEY_HEIGHT_DP_MAX.toFloat(),
+                steps = PreferencesManager.KEY_HEIGHT_DP_MAX - PreferencesManager.KEY_HEIGHT_DP_MIN - 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 

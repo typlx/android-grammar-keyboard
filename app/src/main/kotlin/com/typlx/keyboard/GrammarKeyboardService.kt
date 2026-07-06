@@ -12,6 +12,7 @@ import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputConnection
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
@@ -76,6 +77,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var clipboardItems by mutableStateOf<List<String>>(emptyList())
         private set
+    var shortcuts by mutableStateOf<List<TextShortcut>>(emptyList())
+        private set
     var themePreset by mutableStateOf(ThemePreset.SYSTEM)
         private set
     var cornerRadiusDp by mutableStateOf(6)
@@ -88,9 +91,13 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var keySizePreset by mutableStateOf(KeySizePreset.NORMAL)
         private set
+    var keyHeightDp by mutableIntStateOf(PreferencesManager.KEY_HEIGHT_DP_DEFAULT)
+        private set
     var showNumberRow by mutableStateOf(true)
         private set
     var isSmartComposing by mutableStateOf(false)
+        private set
+    var hasSelection by mutableStateOf(false)
         private set
     // Incremented each time the service wants KeyboardScreen to activate SHIFT_ONCE.
     private val _autoShiftSignal = mutableStateOf(0L)
@@ -103,6 +110,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
     private val wordPredictor = WordPredictor()
+    private val autoCorrectManager = AutoCorrectManager()
     private val emojiSuggestionHelper = EmojiSuggestionHelper()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -164,6 +172,7 @@ class GrammarKeyboardService : InputMethodService(),
                 } else {
                     TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
                 }
+                shortcuts = textShortcutsManager.getAll()
             }
         }
     }
@@ -178,7 +187,7 @@ class GrammarKeyboardService : InputMethodService(),
             setViewTreeSavedStateRegistryOwner(this@GrammarKeyboardService)
 
             setContent {
-                val keyHeight = (46f * keySizePreset.scaleFactor).dp
+                val keyHeight = keyHeightDp.dp
                 TyplxKeyboardTheme(
                     preset = themePreset,
                     cornerRadiusDp = cornerRadiusDp,
@@ -200,6 +209,9 @@ class GrammarKeyboardService : InputMethodService(),
                         isApplyingTranslation = isApplyingTranslation,
                         translateError = translateError,
                         clipboardItems = clipboardItems,
+                        shortcuts = shortcuts,
+                        onShortcutInsert = ::insertShortcutExpansion,
+                        onOpenShortcutsManager = ::openShortcutsManager,
                         isVoiceListening = isVoiceListening,
                         voicePartialText = voicePartialText,
                         voiceError = voiceError,
@@ -240,6 +252,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onCopyText = { currentInputConnection?.performContextMenuAction(android.R.id.copy) },
                         onCutText = { currentInputConnection?.performContextMenuAction(android.R.id.cut) },
                         onPasteText = { currentInputConnection?.performContextMenuAction(android.R.id.paste) },
+                        hasSelection = hasSelection,
                         showNumberRow = showNumberRow,
                         onOpenSettings = ::openSettings,
                         onVoiceToggle = ::toggleVoiceInput,
@@ -261,6 +274,7 @@ class GrammarKeyboardService : InputMethodService(),
         candidatesStart: Int, candidatesEnd: Int,
     ) {
         super.onUpdateSelection(oldSelStart, oldSelEnd, newSelStart, newSelEnd, candidatesStart, candidatesEnd)
+        hasSelection = newSelStart >= 0 && newSelEnd > newSelStart
         if (suppressSuggestionTriggerCount > 0) {
             suppressSuggestionTriggerCount--
             return
@@ -286,6 +300,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     private fun updateWordPredictions() {
+        if (!prefs.wordPredictionEnabled) return
         if (suggestionState is SuggestionState.Available || suggestionState == SuggestionState.Loading) return
         if (isPrivateField()) return
         val ic = currentInputConnection ?: return
@@ -293,6 +308,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     private fun buildWordSuggestionState(ic: InputConnection): SuggestionState {
+        if (!prefs.wordPredictionEnabled) return SuggestionState.Idle
         val prefix = getCurrentWordPrefix(ic)
         val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
         val emojis = if (prefs.emojiSuggestionsEnabled && prefix.isEmpty()) {
@@ -397,6 +413,7 @@ class GrammarKeyboardService : InputMethodService(),
                     textShortcutsManager.loadFromJson("[]")
                     TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
                 }
+                shortcuts = textShortcutsManager.getAll()
                 snapshotClipboard()
             }
         }
@@ -431,6 +448,7 @@ class GrammarKeyboardService : InputMethodService(),
         keyAlphaPercent = prefs.keyAlphaPercent
         keyboardLayout = layoutById(prefs.keyboardLayoutId)
         keySizePreset = prefs.keySizePreset
+        keyHeightDp = prefs.keyHeightDp
         showNumberRow = prefs.showNumberRow
     }
 
@@ -472,6 +490,25 @@ class GrammarKeyboardService : InputMethodService(),
                     suppressSuggestionTriggerCount += 2
                     ic.deleteSurroundingText(lastWord.length, 0)
                     ic.commitText("$expansion ", 1)
+                    lastSpacePressMs = 0L
+                    return
+                }
+            }
+        }
+
+        // Local autocorrect: silently fix common typos on space press.
+        if (ic != null && prefs.autocorrectEnabled && !isPrivateField()) {
+            val before = ic.getTextBeforeCursor(100, 0)?.toString() ?: ""
+            val lastWord = before.trimEnd().substringAfterLast(' ').substringAfterLast('\n')
+            if (lastWord.isNotEmpty()) {
+                val corrected = autoCorrectManager.correct(lastWord)
+                if (corrected != null && corrected != lastWord) {
+                    hapticHelper.tap(keyboardView)
+                    undoState.recordFix(original = lastWord, fixed = corrected)
+                    canUndo = true
+                    suppressSuggestionTriggerCount += 2
+                    ic.deleteSurroundingText(lastWord.length, 0)
+                    ic.commitText("$corrected ", 1)
                     lastSpacePressMs = 0L
                     return
                 }
@@ -660,7 +697,9 @@ class GrammarKeyboardService : InputMethodService(),
             return
         }
 
-        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        val selectedText = if (hasSelection) ic.getSelectedText(0)?.toString() else null
+        val isRealSelection = !selectedText.isNullOrBlank()
+        val textBefore = if (isRealSelection) selectedText!! else ic.getTextBeforeCursor(5000, 0)?.toString()
         if (textBefore.isNullOrBlank()) {
             toneError = getString(R.string.error_no_text)
             return
@@ -676,8 +715,12 @@ class GrammarKeyboardService : InputMethodService(),
                 .fold(
                     onSuccess = { rewritten ->
                         suppressSuggestionTriggerCount += 2
-                        ic.deleteSurroundingText(textBefore.length, 0)
-                        ic.commitText(rewritten, 1)
+                        if (isRealSelection) {
+                            ic.commitText(rewritten, 1)
+                        } else {
+                            ic.deleteSurroundingText(textBefore.length, 0)
+                            ic.commitText(rewritten, 1)
+                        }
                         undoState.recordFix(original = textBefore, fixed = rewritten)
                         canUndo = true
                         isTonePanel = false
@@ -713,7 +756,9 @@ class GrammarKeyboardService : InputMethodService(),
             return
         }
 
-        val textBefore = ic.getTextBeforeCursor(5000, 0)?.toString()
+        val selectedText = if (hasSelection) ic.getSelectedText(0)?.toString() else null
+        val isRealSelection = !selectedText.isNullOrBlank()
+        val textBefore = if (isRealSelection) selectedText!! else ic.getTextBeforeCursor(5000, 0)?.toString()
         if (textBefore.isNullOrBlank()) {
             translateError = getString(R.string.error_no_text)
             return
@@ -729,8 +774,12 @@ class GrammarKeyboardService : InputMethodService(),
                 .fold(
                     onSuccess = { translated ->
                         suppressSuggestionTriggerCount += 2
-                        ic.deleteSurroundingText(textBefore.length, 0)
-                        ic.commitText(translated, 1)
+                        if (isRealSelection) {
+                            ic.commitText(translated, 1)
+                        } else {
+                            ic.deleteSurroundingText(textBefore.length, 0)
+                            ic.commitText(translated, 1)
+                        }
                         undoState.recordFix(original = textBefore, fixed = translated)
                         canUndo = true
                         isTranslatePanel = false
@@ -748,6 +797,7 @@ class GrammarKeyboardService : InputMethodService(),
     // --- Smart Compose ---
 
     fun triggerSmartCompose() {
+        if (!prefs.smartComposeEnabled) return
         if (isSmartComposing || isFixingGrammar || isPrivateField()) return
         val ic = currentInputConnection ?: return
         if (!prefs.isConfigured) return
@@ -797,9 +847,11 @@ class GrammarKeyboardService : InputMethodService(),
         clearUndoState()
         dismissSuggestion()
 
+        val fixingSelection = hasSelection
         serviceScope.launch {
             grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
-                systemPromptSuffix = prefs.grammarInstructionSuffix)
+                systemPromptSuffix = prefs.grammarInstructionSuffix,
+                hasSelection = fixingSelection)
                 .fold(
                     onSuccess = { fixResult ->
                         if (fixResult != null) {
@@ -860,6 +912,18 @@ class GrammarKeyboardService : InputMethodService(),
         } else {
             TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
         }
+        shortcuts = textShortcutsManager.getAll()
+    }
+
+    private fun insertShortcutExpansion(expansion: String) {
+        currentInputConnection?.commitText(expansion, 1)
+    }
+
+    private fun openShortcutsManager() {
+        val intent = Intent(this, ShortcutsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        startActivity(intent)
     }
 
 }

@@ -26,15 +26,23 @@ class PreferencesManager(context: Context) {
         const val KEY_KEY_ALPHA_PERCENT = "key_alpha_percent"
         const val KEY_KEYBOARD_LAYOUT = "keyboard_layout"
         const val KEY_KEY_SIZE_PRESET = "key_size_preset"
+        const val KEY_KEY_HEIGHT_DP = "key_height_dp"
         const val KEY_SHOW_NUMBER_ROW = "show_number_row"
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
         const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period_enabled"
         const val KEY_AUTO_CAP = "auto_cap_enabled"
+        const val KEY_AUTOCORRECT = "autocorrect_enabled"
         const val KEY_GRAMMAR_INSTRUCTION_SUFFIX = "grammar_instruction_suffix"
+        const val KEY_WORD_PREDICTION = "word_prediction_enabled"
+        const val KEY_SMART_COMPOSE = "smart_compose_enabled"
         const val KEY_EMOJI_SUGGESTIONS = "emoji_suggestions_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
+
+        const val KEY_HEIGHT_DP_MIN = 36
+        const val KEY_HEIGHT_DP_MAX = 64
+        const val KEY_HEIGHT_DP_DEFAULT = 46
     }
 
     private val prefs: SharedPreferences =
@@ -106,6 +114,10 @@ class PreferencesManager(context: Context) {
         }
         set(value) = prefs.edit().putString(KEY_KEY_SIZE_PRESET, value.name).apply()
 
+    var keyHeightDp: Int
+        get() = prefs.getInt(KEY_KEY_HEIGHT_DP, KEY_HEIGHT_DP_DEFAULT).coerceIn(KEY_HEIGHT_DP_MIN, KEY_HEIGHT_DP_MAX)
+        set(value) = prefs.edit().putInt(KEY_KEY_HEIGHT_DP, value.coerceIn(KEY_HEIGHT_DP_MIN, KEY_HEIGHT_DP_MAX)).apply()
+
     var showNumberRow: Boolean
         get() = prefs.getBoolean(KEY_SHOW_NUMBER_ROW, true)
         set(value) = prefs.edit().putBoolean(KEY_SHOW_NUMBER_ROW, value).apply()
@@ -122,9 +134,21 @@ class PreferencesManager(context: Context) {
         get() = prefs.getBoolean(KEY_AUTO_CAP, true)
         set(value) = prefs.edit().putBoolean(KEY_AUTO_CAP, value).apply()
 
+    var autocorrectEnabled: Boolean
+        get() = prefs.getBoolean(KEY_AUTOCORRECT, true)
+        set(value) = prefs.edit().putBoolean(KEY_AUTOCORRECT, value).apply()
+
     var grammarInstructionSuffix: String
         get() = prefs.getString(KEY_GRAMMAR_INSTRUCTION_SUFFIX, "") ?: ""
         set(value) = prefs.edit().putString(KEY_GRAMMAR_INSTRUCTION_SUFFIX, value).apply()
+
+    var wordPredictionEnabled: Boolean
+        get() = prefs.getBoolean(KEY_WORD_PREDICTION, true)
+        set(value) = prefs.edit().putBoolean(KEY_WORD_PREDICTION, value).apply()
+
+    var smartComposeEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SMART_COMPOSE, true)
+        set(value) = prefs.edit().putBoolean(KEY_SMART_COMPOSE, value).apply()
 
     var emojiSuggestionsEnabled: Boolean
         get() = prefs.getBoolean(KEY_EMOJI_SUGGESTIONS, true)

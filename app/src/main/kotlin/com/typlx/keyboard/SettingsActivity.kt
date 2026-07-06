@@ -31,6 +31,8 @@ import kotlinx.coroutines.launch
 
 class SettingsActivity : ComponentActivity() {
 
+    private val batteryIgnoring = mutableStateOf(false)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -50,13 +52,22 @@ class SettingsActivity : ComponentActivity() {
                 ) {
                     SettingsScreen(
                         prefsManager = prefsManager,
+                        batteryIgnoring = batteryIgnoring,
                         onOpenImeSettings = {
                             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+                        },
+                        onRequestBatteryExemption = {
+                            startActivity(BatteryOptimizationHelper.buildExemptionIntent(this@SettingsActivity))
                         },
                     )
                 }
             }
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        batteryIgnoring.value = BatteryOptimizationHelper.isIgnoring(this)
     }
 }
 
@@ -64,7 +75,9 @@ class SettingsActivity : ComponentActivity() {
 @Composable
 private fun SettingsScreen(
     prefsManager: PreferencesManager,
+    batteryIgnoring: State<Boolean>,
     onOpenImeSettings: () -> Unit,
+    onRequestBatteryExemption: () -> Unit,
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -132,6 +145,47 @@ private fun SettingsScreen(
             verticalArrangement = Arrangement.Top
         ) {
             Spacer(modifier = Modifier.height(16.dp))
+
+            // Battery optimization warning
+            if (!batteryIgnoring.value) {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer,
+                    ),
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Battery optimization is on",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                            )
+                            Text(
+                                text = "Grammar correction may be interrupted. Grant an exemption to keep Typlx running reliably.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                            )
+                        }
+                        Spacer(Modifier.width(8.dp))
+                        OutlinedButton(
+                            onClick = onRequestBatteryExemption,
+                            colors = ButtonDefaults.outlinedButtonColors(
+                                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                            ),
+                        ) {
+                            Text("Fix")
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+            }
 
             // API provider presets
             Text(

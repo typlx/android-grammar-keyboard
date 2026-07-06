@@ -33,6 +33,7 @@ class OnboardingActivity : ComponentActivity() {
 
     private val imeEnabled = mutableStateOf(false)
     private val isDefault = mutableStateOf(false)
+    private val batteryIgnoring = mutableStateOf(false)
 
     private lateinit var onboardingManager: OnboardingManager
     private lateinit var prefsManager: PreferencesManager
@@ -51,6 +52,7 @@ class OnboardingActivity : ComponentActivity() {
                     OnboardingWizard(
                         imeEnabled = imeEnabled,
                         isDefault = isDefault,
+                        batteryIgnoring = batteryIgnoring,
                         prefsManager = prefsManager,
                         onOpenImeSettings = {
                             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
@@ -59,6 +61,9 @@ class OnboardingActivity : ComponentActivity() {
                             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
                             @Suppress("DEPRECATION")
                             imm.showInputMethodPicker()
+                        },
+                        onRequestBatteryExemption = {
+                            startActivity(BatteryOptimizationHelper.buildExemptionIntent(this@OnboardingActivity))
                         },
                         onFinished = {
                             onboardingManager.markComplete()
@@ -75,6 +80,7 @@ class OnboardingActivity : ComponentActivity() {
         super.onResume()
         imeEnabled.value = onboardingManager.isImeEnabled()
         isDefault.value = onboardingManager.isImeDefault()
+        batteryIgnoring.value = BatteryOptimizationHelper.isIgnoring(this)
     }
 }
 
@@ -82,9 +88,11 @@ class OnboardingActivity : ComponentActivity() {
 private fun OnboardingWizard(
     imeEnabled: State<Boolean>,
     isDefault: State<Boolean>,
+    batteryIgnoring: State<Boolean>,
     prefsManager: PreferencesManager,
     onOpenImeSettings: () -> Unit,
     onShowImePicker: () -> Unit,
+    onRequestBatteryExemption: () -> Unit,
     onFinished: () -> Unit,
 ) {
     var step by remember { mutableIntStateOf(0) }
@@ -93,7 +101,7 @@ private fun OnboardingWizard(
         topBar = {
             if (step > 0) {
                 LinearProgressIndicator(
-                    progress = { step.toFloat() / 3f },
+                    progress = { step.toFloat() / 4f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(4.dp),
@@ -120,8 +128,13 @@ private fun OnboardingWizard(
                         onShowPicker = onShowImePicker,
                         onNext = { step = 3 },
                     )
-                    else -> ConfigureApiStep(
+                    3 -> ConfigureApiStep(
                         prefsManager = prefsManager,
+                        onFinished = { step = 4 },
+                    )
+                    else -> BatteryOptStep(
+                        batteryIgnoring = batteryIgnoring.value,
+                        onRequestExemption = onRequestBatteryExemption,
                         onFinished = onFinished,
                     )
                 }
@@ -176,7 +189,7 @@ private fun EnableImeStep(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Step 1 of 3",
+            text = "Step 1 of 4",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -250,7 +263,7 @@ private fun SetDefaultStep(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Step 2 of 3",
+            text = "Step 2 of 4",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -328,7 +341,7 @@ private fun ConfigureApiStep(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Text(
-            text = "Step 3 of 3",
+            text = "Step 3 of 4",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.primary,
         )
@@ -471,7 +484,7 @@ private fun ConfigureApiStep(
             },
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Save and Finish")
+            Text("Save and Continue")
         }
 
         Spacer(Modifier.height(8.dp))
@@ -489,5 +502,80 @@ private fun ConfigureApiStep(
             textAlign = TextAlign.Center,
         )
         Spacer(Modifier.height(16.dp))
+    }
+}
+
+@Composable
+private fun BatteryOptStep(
+    batteryIgnoring: Boolean,
+    onRequestExemption: () -> Unit,
+    onFinished: () -> Unit,
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = "Step 4 of 4",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+        )
+        Spacer(Modifier.height(16.dp))
+        Text("🔋", style = MaterialTheme.typography.displayMedium)
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "Stay On, Always",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Android's battery optimization can pause the keyboard and interrupt grammar correction. " +
+                "Granting an exemption keeps Typlx running reliably in the background.",
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(32.dp))
+        if (batteryIgnoring) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    text = "Battery exemption granted",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
+            Spacer(Modifier.height(16.dp))
+            Button(onClick = onFinished, modifier = Modifier.fillMaxWidth()) {
+                Text("Finish Setup")
+            }
+        } else {
+            Button(onClick = onRequestExemption, modifier = Modifier.fillMaxWidth()) {
+                Text("Grant Battery Exemption")
+            }
+            Spacer(Modifier.height(8.dp))
+            TextButton(onClick = onFinished, modifier = Modifier.fillMaxWidth()) {
+                Text("Skip — I'll handle this later")
+            }
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "We'll show a reminder in Settings if battery optimization is still on.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+        }
     }
 }

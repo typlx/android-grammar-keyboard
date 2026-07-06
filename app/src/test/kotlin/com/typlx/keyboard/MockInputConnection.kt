@@ -15,8 +15,9 @@ import android.view.inputmethod.InputContentInfo
  *
  * Simulates a simple text buffer. Meaningful implementations:
  *   - getTextBeforeCursor  — returns the last n chars of the buffer
- *   - commitText           — appends text to the buffer and records the call
+ *   - commitText           — appends text (or replaces selection) and records the call
  *   - deleteSurroundingText — removes chars before cursor and records the call
+ *   - getSelectedText      — returns [simulatedSelection] when set
  *
  * Everything else is a no-op so tests can focus on the interactions above.
  *
@@ -25,6 +26,9 @@ import android.view.inputmethod.InputContentInfo
 class MockInputConnection(initialText: String = "") : InputConnection {
 
     private val buffer = StringBuilder(initialText)
+
+    /** Set this to simulate selected text; commitText() will replace it in the buffer. */
+    var simulatedSelection: String? = null
 
     /** All (text, newCursorPosition) pairs passed to commitText in call order. */
     val commitTextCalls = mutableListOf<Pair<String, Int>>()
@@ -49,7 +53,16 @@ class MockInputConnection(initialText: String = "") : InputConnection {
 
     override fun commitText(text: CharSequence, newCursorPosition: Int): Boolean {
         commitTextCalls.add(text.toString() to newCursorPosition)
-        buffer.append(text)
+        val sel = simulatedSelection
+        if (sel != null) {
+            // Simulate replacing selection in-place.
+            val idx = buffer.indexOf(sel)
+            if (idx >= 0) buffer.replace(idx, idx + sel.length, text.toString())
+            else buffer.append(text)
+            simulatedSelection = null
+        } else {
+            buffer.append(text)
+        }
         return true
     }
 
@@ -63,7 +76,7 @@ class MockInputConnection(initialText: String = "") : InputConnection {
     // --- No-op implementations for the rest of the interface ---
 
     override fun getTextAfterCursor(n: Int, flags: Int): CharSequence = ""
-    override fun getSelectedText(flags: Int): CharSequence? = null
+    override fun getSelectedText(flags: Int): CharSequence? = simulatedSelection
     override fun getExtractedText(request: ExtractedTextRequest?, flags: Int): ExtractedText? = null
     override fun deleteSurroundingTextInCodePoints(beforeLength: Int, afterLength: Int): Boolean = false
     override fun setComposingText(text: CharSequence, newCursorPosition: Int): Boolean = false

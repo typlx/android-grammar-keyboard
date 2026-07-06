@@ -54,6 +54,7 @@ import com.typlx.keyboard.KEY_ALTERNATIVES
 import com.typlx.keyboard.KeyboardLayout
 import com.typlx.keyboard.LAYOUT_QWERTY
 import com.typlx.keyboard.SuggestionState
+import com.typlx.keyboard.TextShortcut
 import com.typlx.keyboard.ToneOption
 import com.typlx.keyboard.TranslationLanguage
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
@@ -101,6 +102,9 @@ fun KeyboardScreen(
     isApplyingTranslation: Boolean = false,
     translateError: String? = null,
     clipboardItems: List<String> = emptyList(),
+    shortcuts: List<TextShortcut> = emptyList(),
+    onShortcutInsert: (String) -> Unit = {},
+    onOpenShortcutsManager: () -> Unit = {},
     isVoiceListening: Boolean = false,
     voicePartialText: String = "",
     voiceError: String? = null,
@@ -156,6 +160,7 @@ fun KeyboardScreen(
     var isEmoji by remember { mutableStateOf(false) }
     var isNav by remember { mutableStateOf(false) }
     var isClipboard by remember { mutableStateOf(false) }
+    var isShortcuts by remember { mutableStateOf(false) }
     // Triple: (displayLabel, isCaps, alternatives) — non-null when the alternatives bar is visible.
     var activeAlternatives by remember { mutableStateOf<Triple<String, Boolean, List<String>>?>(null) }
     val colors = LocalKeyboardColors.current
@@ -204,6 +209,49 @@ fun KeyboardScreen(
         return
     }
 
+    if (isShortcuts) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg)
+                .padding(horizontal = 4.dp, vertical = 6.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ToolbarRow(
+                isFixingGrammar = isFixingGrammar,
+                grammarError = grammarError,
+                canUndo = canUndo,
+                isEmoji = false,
+                isNav = false,
+                isClipboard = false,
+                isShortcuts = true,
+                isTonePanel = false,
+                isApplyingTone = isApplyingTone,
+                isTranslatePanel = false,
+                isApplyingTranslation = isApplyingTranslation,
+                isVoiceListening = isVoiceListening,
+                onFixGrammar = onFixGrammar,
+                onErrorDismiss = onErrorDismiss,
+                onUndoGrammarFix = onUndoGrammarFix,
+                onEmojiToggle = { isEmoji = true; isShortcuts = false },
+                onNavToggle = { isNav = true; isShortcuts = false },
+                onClipboardToggle = { isClipboard = true; isShortcuts = false },
+                onShortcutsToggle = { isShortcuts = false },
+                onToneToggle = onToneToggle,
+                onTranslateToggle = onTranslateToggle,
+                onOpenSettings = onOpenSettings,
+                onVoiceToggle = onVoiceToggle,
+            )
+            ShortcutsPanel(
+                shortcuts = shortcuts,
+                onInsert = onShortcutInsert,
+                onManage = onOpenShortcutsManager,
+                colors = colors,
+            )
+        }
+        return
+    }
+
     if (isClipboard) {
         Column(
             modifier = Modifier
@@ -219,6 +267,7 @@ fun KeyboardScreen(
                 isEmoji = false,
                 isNav = false,
                 isClipboard = true,
+                isShortcuts = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
                 isTranslatePanel = false,
@@ -230,6 +279,7 @@ fun KeyboardScreen(
                 onEmojiToggle = { isEmoji = true },
                 onNavToggle = { isNav = true },
                 onClipboardToggle = { isClipboard = false },
+                onShortcutsToggle = { isShortcuts = true; isClipboard = false },
                 onToneToggle = onToneToggle,
                 onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
@@ -260,6 +310,7 @@ fun KeyboardScreen(
                 isEmoji = false,
                 isNav = true,
                 isClipboard = false,
+                isShortcuts = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
                 isTranslatePanel = false,
@@ -271,6 +322,7 @@ fun KeyboardScreen(
                 onEmojiToggle = { isEmoji = true },
                 onNavToggle = { isNav = false },
                 onClipboardToggle = { isClipboard = true },
+                onShortcutsToggle = { isShortcuts = true; isNav = false },
                 onToneToggle = onToneToggle,
                 onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
@@ -309,6 +361,7 @@ fun KeyboardScreen(
                 isEmoji = true,
                 isNav = false,
                 isClipboard = false,
+                isShortcuts = false,
                 isTonePanel = false,
                 isApplyingTone = isApplyingTone,
                 isTranslatePanel = false,
@@ -320,6 +373,7 @@ fun KeyboardScreen(
                 onEmojiToggle = { isEmoji = false },
                 onNavToggle = { isNav = true },
                 onClipboardToggle = { isClipboard = true },
+                onShortcutsToggle = { isShortcuts = true; isEmoji = false },
                 onToneToggle = onToneToggle,
                 onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
@@ -350,6 +404,7 @@ fun KeyboardScreen(
             isEmoji = false,
             isNav = false,
             isClipboard = false,
+            isShortcuts = false,
             isTonePanel = isTonePanel,
             isApplyingTone = isApplyingTone,
             isTranslatePanel = isTranslatePanel,
@@ -361,6 +416,7 @@ fun KeyboardScreen(
             onEmojiToggle = { isEmoji = true },
             onNavToggle = { isNav = true },
             onClipboardToggle = { isClipboard = true },
+            onShortcutsToggle = { isShortcuts = true },
             onToneToggle = onToneToggle,
             onTranslateToggle = onTranslateToggle,
             onOpenSettings = onOpenSettings,
@@ -457,6 +513,7 @@ private fun ToolbarRow(
     isEmoji: Boolean,
     isNav: Boolean,
     isClipboard: Boolean,
+    isShortcuts: Boolean,
     isTonePanel: Boolean,
     isApplyingTone: Boolean,
     isTranslatePanel: Boolean,
@@ -468,6 +525,7 @@ private fun ToolbarRow(
     onEmojiToggle: () -> Unit,
     onNavToggle: () -> Unit,
     onClipboardToggle: () -> Unit,
+    onShortcutsToggle: () -> Unit,
     onToneToggle: () -> Unit,
     onTranslateToggle: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -616,6 +674,21 @@ private fun ToolbarRow(
                 contentDescription = null,
                 tint = if (isClipboard) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(20.dp),
+            )
+        }
+
+        val shortcutsDesc = if (isShortcuts) "Close shortcuts panel" else "Open text shortcuts"
+        IconButton(
+            onClick = onShortcutsToggle,
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = shortcutsDesc },
+        ) {
+            Text(
+                text = "AB",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = if (isShortcuts) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
 
@@ -1744,6 +1817,112 @@ private fun ClipboardPanel(
                             maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ShortcutsPanel(
+    shortcuts: List<TextShortcut>,
+    onInsert: (String) -> Unit,
+    onManage: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    val cornerRadius = colors.cornerRadiusDp.dp
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(cornerRadius + 2.dp))
+            .background(colors.keyActionBg)
+            .padding(horizontal = 8.dp, vertical = 6.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = "Shortcuts",
+                fontSize = 12.sp,
+                fontWeight = FontWeight.Medium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(
+                onClick = onManage,
+                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+                modifier = Modifier
+                    .height(28.dp)
+                    .semantics { contentDescription = "Manage text shortcuts" },
+            ) {
+                Text(text = "Manage", fontSize = 11.sp)
+            }
+        }
+
+        if (shortcuts.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = "No shortcuts — tap Manage to add some",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 120.dp),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                items(shortcuts) { shortcut ->
+                    val expansionPreview = if (shortcut.expansion.length > 60)
+                        shortcut.expansion.take(60) + "…"
+                    else
+                        shortcut.expansion
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(cornerRadius))
+                            .background(colors.keyBg)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = rememberRipple(),
+                                onClick = { onInsert(shortcut.expansion) },
+                            )
+                            .semantics {
+                                contentDescription =
+                                    "Insert shortcut ${shortcut.shortcut}: $expansionPreview"
+                            }
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(
+                                text = shortcut.shortcut,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.widthIn(min = 32.dp),
+                            )
+                            Text(
+                                text = expansionPreview,
+                                fontSize = 12.sp,
+                                color = colors.keyText,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
                 }
             }

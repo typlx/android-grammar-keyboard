@@ -77,6 +77,7 @@ private fun SettingsScreen(
     var selectedProvider by remember { mutableStateOf(ApiProvider.inferFromUrl(prefsManager.apiUrl)) }
     var hapticEnabled by remember { mutableStateOf(prefsManager.hapticFeedbackEnabled) }
     var autoSuggestEnabled by remember { mutableStateOf(prefsManager.autoSuggestEnabled) }
+    var grammarInstructionSuffix by remember { mutableStateOf(prefsManager.grammarInstructionSuffix) }
     var crashReportingEnabled by remember { mutableStateOf(prefsManager.crashReportingEnabled) }
 
     var apiUrlError by remember { mutableStateOf<String?>(null) }
@@ -282,6 +283,28 @@ private fun SettingsScreen(
                     },
                 )
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Grammar instruction suffix
+            OutlinedTextField(
+                value = grammarInstructionSuffix,
+                onValueChange = {
+                    grammarInstructionSuffix = it
+                    prefsManager.grammarInstructionSuffix = it
+                },
+                label = { Text("Writing style instructions (optional)") },
+                placeholder = { Text("e.g. Use formal language; keep medical terms") },
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 2,
+                maxLines = 4,
+                supportingText = {
+                    Text(
+                        "Appended to the grammar correction prompt. Leave blank for default behavior.",
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                },
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 

@@ -16,11 +16,13 @@ class AutoSuggestController(
         apiUrl: String,
         model: String,
         token: String,
+        systemPromptSuffix: String = "",
     ): SuggestionState {
         val text = ic.getTextBeforeCursor(5000, 0)?.toString()
         if (text.isNullOrBlank()) return SuggestionState.Idle
         return try {
-            val fixed = grammarService.fixGrammar(apiUrl, model, token, text)
+            val fixed = grammarService.fixGrammar(apiUrl, model, token, text,
+                systemPromptSuffix = systemPromptSuffix)
             if (fixed != text && !personalWordList.shouldSuppressCorrection(text, fixed))
                 SuggestionState.Available(text, fixed, diffWords(text, fixed))
             else SuggestionState.Idle

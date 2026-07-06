@@ -20,10 +20,12 @@ class GrammarFixController(
         apiUrl: String,
         model: String,
         token: String,
+        systemPromptSuffix: String = "",
     ): Result<FixResult?> = runCatching {
         val text = ic.getTextBeforeCursor(5000, 0)?.toString()
         if (text.isNullOrBlank()) throw GrammarServiceException("No text found")
-        val fixed = grammarService.fixGrammar(apiUrl, model, token, text)
+        val fixed = grammarService.fixGrammar(apiUrl, model, token, text,
+            systemPromptSuffix = systemPromptSuffix)
         if (personalWordList.shouldSuppressCorrection(text, fixed)) return@runCatching null
         ic.deleteSurroundingText(text.length, 0)
         ic.commitText(fixed, 1)

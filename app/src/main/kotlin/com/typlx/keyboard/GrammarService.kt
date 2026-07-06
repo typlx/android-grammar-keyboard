@@ -21,8 +21,11 @@ class GrammarService(
 ) {
 
     companion object {
-        private const val SYSTEM_PROMPT =
+        const val SYSTEM_PROMPT =
             "Fix grammar and spelling in the following text. Return only the corrected text, nothing else. Preserve the original language, tone, and formatting."
+
+        fun buildSystemPrompt(suffix: String): String =
+            if (suffix.isBlank()) SYSTEM_PROMPT else "$SYSTEM_PROMPT $suffix"
         private const val TEMPERATURE = 0.3
         private const val TIMEOUT_SECONDS = 30L
         private const val MAX_RETRIES = 2
@@ -60,11 +63,14 @@ class GrammarService(
         token: String,
         text: String,
         systemPrompt: String = SYSTEM_PROMPT,
+        systemPromptSuffix: String = "",
     ): String {
+        val resolvedPrompt = if (systemPromptSuffix.isBlank()) systemPrompt
+                             else buildSystemPrompt(systemPromptSuffix)
         var lastException: GrammarServiceException? = null
         for (attempt in 0..maxRetries) {
             try {
-                return withContext(Dispatchers.IO) { doAttempt(apiUrl, model, token, text, systemPrompt) }
+                return withContext(Dispatchers.IO) { doAttempt(apiUrl, model, token, text, resolvedPrompt) }
             } catch (e: GrammarServiceException) {
                 lastException = e
                 if (!e.isRetryable || attempt == maxRetries) throw e

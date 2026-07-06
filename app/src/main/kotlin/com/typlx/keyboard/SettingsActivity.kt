@@ -110,6 +110,7 @@ private fun SettingsScreen(
     var showNumberRow by remember { mutableStateOf(prefsManager.showNumberRow) }
     var doubleSpacePeriodEnabled by remember { mutableStateOf(prefsManager.doubleSpacePeriodEnabled) }
     var autoCapEnabled by remember { mutableStateOf(prefsManager.autoCapEnabled) }
+    var autocorrectEnabled by remember { mutableStateOf(prefsManager.autocorrectEnabled) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -360,6 +361,34 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         autoCapEnabled = it
                         prefsManager.autoCapEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Autocorrect toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Autocorrect",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Fix common typos automatically when you press space",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = autocorrectEnabled,
+                    onCheckedChange = {
+                        autocorrectEnabled = it
+                        prefsManager.autocorrectEnabled = it
                     },
                 )
             }

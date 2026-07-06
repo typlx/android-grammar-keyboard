@@ -318,6 +318,7 @@ private fun ConfigureApiStep(
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
     var apiTokenError by remember { mutableStateOf<String?>(null) }
+    var selectedProvider by remember { mutableStateOf(ApiProvider.inferFromUrl(prefsManager.apiUrl)) }
 
     Column(
         modifier = Modifier
@@ -349,9 +350,49 @@ private fun ConfigureApiStep(
         )
         Spacer(Modifier.height(24.dp))
 
+        // Provider presets
+        Text(
+            text = "Choose a provider",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.align(Alignment.Start),
+        )
+        Spacer(Modifier.height(6.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            ApiProvider.entries.forEach { provider ->
+                val label = when (provider) {
+                    ApiProvider.OPENAI -> "OpenAI"
+                    ApiProvider.GROQ -> "Groq"
+                    ApiProvider.OLLAMA -> "Ollama"
+                    ApiProvider.CUSTOM -> "Custom"
+                }
+                FilterChip(
+                    selected = selectedProvider == provider,
+                    onClick = {
+                        selectedProvider = provider
+                        if (provider != ApiProvider.CUSTOM) {
+                            apiUrl = provider.apiUrl
+                            model = provider.defaultModel
+                            apiUrlError = null
+                            modelError = null
+                        }
+                    },
+                    label = { Text(label, style = MaterialTheme.typography.labelMedium) },
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+
         OutlinedTextField(
             value = apiUrl,
-            onValueChange = { apiUrl = it; apiUrlError = null },
+            onValueChange = {
+                apiUrl = it
+                apiUrlError = null
+                selectedProvider = ApiProvider.CUSTOM
+            },
             label = { Text("API URL") },
             placeholder = { Text("https://api.openai.com") },
             isError = apiUrlError != null,
@@ -364,7 +405,11 @@ private fun ConfigureApiStep(
 
         OutlinedTextField(
             value = model,
-            onValueChange = { model = it; modelError = null },
+            onValueChange = {
+                model = it
+                modelError = null
+                selectedProvider = ApiProvider.CUSTOM
+            },
             label = { Text("Model") },
             placeholder = { Text("gpt-4o-mini") },
             isError = modelError != null,

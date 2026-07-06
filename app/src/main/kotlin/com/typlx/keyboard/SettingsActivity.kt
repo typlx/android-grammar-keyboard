@@ -83,6 +83,7 @@ private fun SettingsScreen(
     var apiUrlError by remember { mutableStateOf<String?>(null) }
     var modelError by remember { mutableStateOf<String?>(null) }
     var apiTokenError by remember { mutableStateOf<String?>(null) }
+    var isTestingConnection by remember { mutableStateOf(false) }
 
     var wordListCount by remember {
         val prefs = context.getSharedPreferences(GrammarKeyboardService.WORD_LIST_PREFS, Context.MODE_PRIVATE)
@@ -690,6 +691,41 @@ private fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(stringResource(R.string.settings_save))
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedButton(
+                onClick = {
+                    val testUrl = apiUrl.trim()
+                    val testModel = model.trim()
+                    val testToken = apiToken.trim()
+                    if (testUrl.isBlank() || testModel.isBlank() || testToken.isBlank()) {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Fill in API URL, model, and token first")
+                        }
+                        return@OutlinedButton
+                    }
+                    isTestingConnection = true
+                    scope.launch {
+                        try {
+                            val ms = GrammarService().testConnection(testUrl, testModel, testToken)
+                            snackbarHostState.showSnackbar("Connected (${ms}ms)", duration = SnackbarDuration.Short)
+                        } catch (e: GrammarServiceException) {
+                            snackbarHostState.showSnackbar(e.message ?: "Connection failed", duration = SnackbarDuration.Long)
+                        } finally {
+                            isTestingConnection = false
+                        }
+                    }
+                },
+                enabled = !isTestingConnection,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (isTestingConnection) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+                Text("Test connection")
             }
 
             Spacer(modifier = Modifier.height(16.dp))

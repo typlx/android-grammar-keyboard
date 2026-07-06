@@ -26,6 +26,7 @@ class PreferencesManager(context: Context) {
         const val KEY_KEY_ALPHA_PERCENT = "key_alpha_percent"
         const val KEY_KEYBOARD_LAYOUT = "keyboard_layout"
         const val KEY_KEY_SIZE_PRESET = "key_size_preset"
+        const val KEY_KEY_HEIGHT_DP = "key_height_dp"
         const val KEY_SHOW_NUMBER_ROW = "show_number_row"
         const val KEY_CRASH_REPORTING = "crash_reporting_enabled"
         const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period_enabled"
@@ -34,6 +35,10 @@ class PreferencesManager(context: Context) {
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
+
+        const val KEY_HEIGHT_DP_MIN = 36
+        const val KEY_HEIGHT_DP_MAX = 64
+        const val KEY_HEIGHT_DP_DEFAULT = 46
     }
 
     private val prefs: SharedPreferences =
@@ -104,6 +109,10 @@ class PreferencesManager(context: Context) {
             KeySizePreset.NORMAL
         }
         set(value) = prefs.edit().putString(KEY_KEY_SIZE_PRESET, value.name).apply()
+
+    var keyHeightDp: Int
+        get() = prefs.getInt(KEY_KEY_HEIGHT_DP, KEY_HEIGHT_DP_DEFAULT).coerceIn(KEY_HEIGHT_DP_MIN, KEY_HEIGHT_DP_MAX)
+        set(value) = prefs.edit().putInt(KEY_KEY_HEIGHT_DP, value.coerceIn(KEY_HEIGHT_DP_MIN, KEY_HEIGHT_DP_MAX)).apply()
 
     var showNumberRow: Boolean
         get() = prefs.getBoolean(KEY_SHOW_NUMBER_ROW, true)

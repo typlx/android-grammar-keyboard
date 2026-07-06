@@ -11,6 +11,7 @@ import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.ComposeView
@@ -86,6 +87,8 @@ class GrammarKeyboardService : InputMethodService(),
     var keyboardLayout by mutableStateOf(LAYOUT_QWERTY)
         private set
     var keySizePreset by mutableStateOf(KeySizePreset.NORMAL)
+        private set
+    var keyHeightDp by mutableIntStateOf(PreferencesManager.KEY_HEIGHT_DP_DEFAULT)
         private set
     var showNumberRow by mutableStateOf(true)
         private set
@@ -176,7 +179,7 @@ class GrammarKeyboardService : InputMethodService(),
             setViewTreeSavedStateRegistryOwner(this@GrammarKeyboardService)
 
             setContent {
-                val keyHeight = (46f * keySizePreset.scaleFactor).dp
+                val keyHeight = keyHeightDp.dp
                 TyplxKeyboardTheme(
                     preset = themePreset,
                     cornerRadiusDp = cornerRadiusDp,
@@ -406,6 +409,7 @@ class GrammarKeyboardService : InputMethodService(),
         keyAlphaPercent = prefs.keyAlphaPercent
         keyboardLayout = layoutById(prefs.keyboardLayoutId)
         keySizePreset = prefs.keySizePreset
+        keyHeightDp = prefs.keyHeightDp
         showNumberRow = prefs.showNumberRow
     }
 

@@ -106,6 +106,7 @@ private fun SettingsScreen(
     var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
     var selectedLayoutId by remember { mutableStateOf(prefsManager.keyboardLayoutId) }
     var keySizePreset by remember { mutableStateOf(prefsManager.keySizePreset) }
+    var keyHeightDp by remember { mutableIntStateOf(prefsManager.keyHeightDp) }
     var showNumberRow by remember { mutableStateOf(prefsManager.showNumberRow) }
     var doubleSpacePeriodEnabled by remember { mutableStateOf(prefsManager.doubleSpacePeriodEnabled) }
     var autoCapEnabled by remember { mutableStateOf(prefsManager.autoCapEnabled) }
@@ -552,33 +553,72 @@ private fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                text = "Key size",
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(horizontal = 4.dp),
-            )
-            Spacer(modifier = Modifier.height(6.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "Key height",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                Text(
+                    text = "$keyHeightDp dp",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                KeySizePreset.entries.forEach { preset ->
-                    val label = when (preset) {
-                        KeySizePreset.COMPACT -> "Compact"
-                        KeySizePreset.NORMAL -> "Normal"
-                        KeySizePreset.LARGE -> "Large"
-                    }
+                val presets = listOf(
+                    "Compact" to 39,
+                    "Normal" to 46,
+                    "Large" to 53,
+                )
+                presets.forEach { (label, dp) ->
                     FilterChip(
-                        selected = keySizePreset == preset,
+                        selected = keyHeightDp == dp,
                         onClick = {
-                            keySizePreset = preset
-                            prefsManager.keySizePreset = preset
+                            keyHeightDp = dp
+                            keySizePreset = when (dp) {
+                                39 -> KeySizePreset.COMPACT
+                                53 -> KeySizePreset.LARGE
+                                else -> KeySizePreset.NORMAL
+                            }
+                            prefsManager.keyHeightDp = dp
+                            prefsManager.keySizePreset = keySizePreset
                         },
                         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
+            Slider(
+                value = keyHeightDp.toFloat(),
+                onValueChange = { v ->
+                    val snapped = v.toInt()
+                    keyHeightDp = snapped
+                    prefsManager.keyHeightDp = snapped
+                    val matchedPreset = when (snapped) {
+                        39 -> KeySizePreset.COMPACT
+                        46 -> KeySizePreset.NORMAL
+                        53 -> KeySizePreset.LARGE
+                        else -> null
+                    }
+                    if (matchedPreset != null) {
+                        keySizePreset = matchedPreset
+                        prefsManager.keySizePreset = matchedPreset
+                    }
+                },
+                valueRange = PreferencesManager.KEY_HEIGHT_DP_MIN.toFloat()..PreferencesManager.KEY_HEIGHT_DP_MAX.toFloat(),
+                steps = PreferencesManager.KEY_HEIGHT_DP_MAX - PreferencesManager.KEY_HEIGHT_DP_MIN - 1,
+                modifier = Modifier.fillMaxWidth(),
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 

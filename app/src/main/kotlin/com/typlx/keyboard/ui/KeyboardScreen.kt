@@ -116,6 +116,7 @@ fun KeyboardScreen(
     isSmartComposing: Boolean = false,
     onAcceptSuggestion: () -> Unit = {},
     onDismissSuggestion: () -> Unit = {},
+    onWordSuggestionAccepted: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
     onToneToggle: () -> Unit = {},
     onToneDismiss: () -> Unit = {},
@@ -394,6 +395,7 @@ fun KeyboardScreen(
                 isSmartComposing = isSmartComposing,
                 onAccept = onAcceptSuggestion,
                 onDismiss = onDismissSuggestion,
+                onWordSuggestionAccepted = onWordSuggestionAccepted,
                 onSmartCompose = onSmartCompose,
             )
         }
@@ -1211,6 +1213,7 @@ private fun SuggestionStrip(
     isSmartComposing: Boolean = false,
     onAccept: () -> Unit,
     onDismiss: () -> Unit,
+    onWordSuggestionAccepted: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
 ) {
     when {
@@ -1251,6 +1254,31 @@ private fun SuggestionStrip(
                 fontSize = 11.sp,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+        state is SuggestionState.WordSuggestions -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            state.words.forEach { word ->
+                SuggestionChip(
+                    onClick = { onWordSuggestionAccepted(word) },
+                    label = {
+                        Text(
+                            text = word,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { contentDescription = "Word suggestion: $word" },
+                )
+            }
         }
         state == SuggestionState.Idle -> Row(
             modifier = Modifier

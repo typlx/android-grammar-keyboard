@@ -101,6 +101,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val personalWordList = PersonalWordList()
     private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
+    private val wordPredictor = WordPredictor()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -212,6 +213,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onEmojiPress = ::commitEmoji,
                         onAcceptSuggestion = ::acceptSuggestion,
                         onDismissSuggestion = ::dismissSuggestion,
+                        onWordSuggestionAccepted = ::acceptWordSuggestion,
                         onSmartCompose = ::triggerSmartCompose,
                         onToneToggle = { if (isTonePanel) dismissTonePanel() else openTonePanel() },
                         onToneDismiss = ::dismissTonePanel,
@@ -260,11 +262,27 @@ class GrammarKeyboardService : InputMethodService(),
             suppressSuggestionTriggerCount--
             return
         }
+        updateWordPredictions()
         scheduleAutoSuggest()
     }
 
     private fun isPrivateField(): Boolean =
         isPrivateInputType(currentInputEditorInfo?.inputType ?: 0)
+
+    private fun getCurrentWordPrefix(ic: android.view.inputmethod.InputConnection): String {
+        val before = ic.getTextBeforeCursor(50, 0)?.toString() ?: return ""
+        val lastBoundary = before.lastIndexOfAny(charArrayOf(' ', '\n', '\t', '\r', '.', ',', '!', '?', ';', ':'))
+        return if (lastBoundary == -1) before else before.substring(lastBoundary + 1)
+    }
+
+    private fun updateWordPredictions() {
+        if (suggestionState is SuggestionState.Available || suggestionState == SuggestionState.Loading) return
+        if (isPrivateField()) return
+        val ic = currentInputConnection ?: return
+        val prefix = getCurrentWordPrefix(ic)
+        val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
+        suggestionState = if (predictions.isEmpty()) SuggestionState.Idle else SuggestionState.WordSuggestions(predictions)
+    }
 
     private fun scheduleAutoSuggest() {
         if (!prefs.autoSuggestEnabled || !prefs.isConfigured || isFixingGrammar || isPrivateField()) return
@@ -278,8 +296,15 @@ class GrammarKeyboardService : InputMethodService(),
     private suspend fun runAutoSuggest() {
         val ic = currentInputConnection ?: return
         suggestionState = SuggestionState.Loading
-        suggestionState = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
+        val result = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
             systemPromptSuffix = prefs.grammarInstructionSuffix)
+        if (result == SuggestionState.Idle) {
+            val prefix = getCurrentWordPrefix(ic)
+            val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
+            suggestionState = if (predictions.isEmpty()) SuggestionState.Idle else SuggestionState.WordSuggestions(predictions)
+        } else {
+            suggestionState = result
+        }
     }
 
     fun acceptSuggestion() {
@@ -294,8 +319,19 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     fun dismissSuggestion() {
-        suggestionState = SuggestionState.Idle
         suggestionDebounceJob?.cancel()
+        suggestionState = SuggestionState.Idle
+        updateWordPredictions()
+    }
+
+    fun acceptWordSuggestion(word: String) {
+        val ic = currentInputConnection ?: return
+        val prefix = getCurrentWordPrefix(ic)
+        suppressSuggestionTriggerCount = 2
+        if (prefix.isNotEmpty()) ic.deleteSurroundingText(prefix.length, 0)
+        ic.commitText("$word ", 1)
+        suggestionState = SuggestionState.Idle
+        clearUndoState()
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {

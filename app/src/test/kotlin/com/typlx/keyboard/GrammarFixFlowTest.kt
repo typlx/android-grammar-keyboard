@@ -148,7 +148,8 @@ class GrammarFixFlowTest {
 
     @Test
     fun `API 429 - returns failure with rate-limit message`() = runTest {
-        server.enqueue(MockResponse().setResponseCode(429))
+        // GrammarService retries 429 up to maxRetries (2) times — enqueue enough responses
+        repeat(3) { server.enqueue(MockResponse().setResponseCode(429)) }
         val ic = MockInputConnection("some text")
 
         val result = controller.fix(ic, baseUrl(), "gpt-4o-mini", "token")

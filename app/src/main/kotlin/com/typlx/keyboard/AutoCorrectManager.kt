@@ -85,7 +85,6 @@ class AutoCorrectManager {
                 "cahnge" to "change",
                 "calse" to "false",
                 "carefull" to "careful",
-                "ceiled" to "called",
                 "certian" to "certain",
                 "changeing" to "changing",
                 "cheif" to "chief",
@@ -216,7 +215,6 @@ class AutoCorrectManager {
                 "necesary" to "necessary",
                 "necessery" to "necessary",
                 "neigbor" to "neighbor",
-                "neighbour" to "neighbor",
                 "nieghbor" to "neighbor",
                 "noticable" to "noticeable",
                 "nto" to "not",
@@ -233,7 +231,6 @@ class AutoCorrectManager {
                 "orignally" to "originally",
                 // p
                 "particulary" to "particularly",
-                "pastime" to "pastime",
                 "payed" to "paid",
                 "peice" to "piece",
                 "perse" to "per se",

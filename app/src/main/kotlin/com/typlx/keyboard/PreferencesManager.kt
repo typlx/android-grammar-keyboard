@@ -33,6 +33,8 @@ class PreferencesManager(context: Context) {
         const val KEY_AUTO_CAP = "auto_cap_enabled"
         const val KEY_AUTOCORRECT = "autocorrect_enabled"
         const val KEY_GRAMMAR_INSTRUCTION_SUFFIX = "grammar_instruction_suffix"
+        const val KEY_WORD_PREDICTION = "word_prediction_enabled"
+        const val KEY_SMART_COMPOSE = "smart_compose_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -138,6 +140,14 @@ class PreferencesManager(context: Context) {
     var grammarInstructionSuffix: String
         get() = prefs.getString(KEY_GRAMMAR_INSTRUCTION_SUFFIX, "") ?: ""
         set(value) = prefs.edit().putString(KEY_GRAMMAR_INSTRUCTION_SUFFIX, value).apply()
+
+    var wordPredictionEnabled: Boolean
+        get() = prefs.getBoolean(KEY_WORD_PREDICTION, true)
+        set(value) = prefs.edit().putBoolean(KEY_WORD_PREDICTION, value).apply()
+
+    var smartComposeEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SMART_COMPOSE, true)
+        set(value) = prefs.edit().putBoolean(KEY_SMART_COMPOSE, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

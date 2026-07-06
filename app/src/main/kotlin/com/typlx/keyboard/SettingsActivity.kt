@@ -111,6 +111,8 @@ private fun SettingsScreen(
     var doubleSpacePeriodEnabled by remember { mutableStateOf(prefsManager.doubleSpacePeriodEnabled) }
     var autoCapEnabled by remember { mutableStateOf(prefsManager.autoCapEnabled) }
     var autocorrectEnabled by remember { mutableStateOf(prefsManager.autocorrectEnabled) }
+    var wordPredictionEnabled by remember { mutableStateOf(prefsManager.wordPredictionEnabled) }
+    var smartComposeEnabled by remember { mutableStateOf(prefsManager.smartComposeEnabled) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -389,6 +391,62 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         autocorrectEnabled = it
                         prefsManager.autocorrectEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Word prediction toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Word prediction",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Show word completion suggestions while typing",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = wordPredictionEnabled,
+                    onCheckedChange = {
+                        wordPredictionEnabled = it
+                        prefsManager.wordPredictionEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Smart Compose toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Smart Compose",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Double-tap space to complete your sentence with AI",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = smartComposeEnabled,
+                    onCheckedChange = {
+                        smartComposeEnabled = it
+                        prefsManager.smartComposeEnabled = it
                     },
                 )
             }

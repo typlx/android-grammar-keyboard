@@ -76,6 +76,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var clipboardItems by mutableStateOf<List<String>>(emptyList())
         private set
+    var shortcuts by mutableStateOf<List<TextShortcut>>(emptyList())
+        private set
     var themePreset by mutableStateOf(ThemePreset.SYSTEM)
         private set
     var cornerRadiusDp by mutableStateOf(6)
@@ -169,6 +171,7 @@ class GrammarKeyboardService : InputMethodService(),
                 } else {
                     TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
                 }
+                shortcuts = textShortcutsManager.getAll()
             }
         }
     }
@@ -205,6 +208,9 @@ class GrammarKeyboardService : InputMethodService(),
                         isApplyingTranslation = isApplyingTranslation,
                         translateError = translateError,
                         clipboardItems = clipboardItems,
+                        shortcuts = shortcuts,
+                        onShortcutInsert = ::insertShortcutExpansion,
+                        onOpenShortcutsManager = ::openShortcutsManager,
                         isVoiceListening = isVoiceListening,
                         voicePartialText = voicePartialText,
                         voiceError = voiceError,
@@ -413,6 +419,7 @@ class GrammarKeyboardService : InputMethodService(),
                     textShortcutsManager.loadFromJson("[]")
                     TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
                 }
+                shortcuts = textShortcutsManager.getAll()
                 snapshotClipboard()
             }
         }
@@ -911,6 +918,18 @@ class GrammarKeyboardService : InputMethodService(),
         } else {
             TextShortcutsManager.defaults().forEach { textShortcutsManager.add(it.shortcut, it.expansion) }
         }
+        shortcuts = textShortcutsManager.getAll()
+    }
+
+    private fun insertShortcutExpansion(expansion: String) {
+        currentInputConnection?.commitText(expansion, 1)
+    }
+
+    private fun openShortcutsManager() {
+        val intent = Intent(this, ShortcutsActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        startActivity(intent)
     }
 
 }

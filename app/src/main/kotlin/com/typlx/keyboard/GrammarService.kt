@@ -45,6 +45,19 @@ class GrammarService(
     }
 
     /**
+     * Sends a minimal request to verify the API configuration is reachable.
+     * Returns elapsed time in milliseconds on success, or throws [GrammarServiceException].
+     * Does not retry — a single attempt is enough for a connectivity check.
+     */
+    suspend fun testConnection(apiUrl: String, model: String, token: String): Long {
+        val start = System.currentTimeMillis()
+        withContext(Dispatchers.IO) {
+            doAttempt(apiUrl, model, token, "Hello.", SYSTEM_PROMPT)
+        }
+        return System.currentTimeMillis() - start
+    }
+
+    /**
      * Sends text to the API and returns the rewritten text. Retries up to [maxRetries] times
      * on transient failures (network timeout, connection drop, HTTP 429/503/504) using
      * exponential backoff starting at 1 s.

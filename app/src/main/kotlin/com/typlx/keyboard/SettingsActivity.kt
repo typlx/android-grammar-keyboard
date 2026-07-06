@@ -113,6 +113,7 @@ private fun SettingsScreen(
     var autocorrectEnabled by remember { mutableStateOf(prefsManager.autocorrectEnabled) }
     var wordPredictionEnabled by remember { mutableStateOf(prefsManager.wordPredictionEnabled) }
     var smartComposeEnabled by remember { mutableStateOf(prefsManager.smartComposeEnabled) }
+    var emojiSuggestionsEnabled by remember { mutableStateOf(prefsManager.emojiSuggestionsEnabled) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -447,6 +448,34 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         smartComposeEnabled = it
                         prefsManager.smartComposeEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Emoji suggestions toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Emoji suggestions",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Show relevant emoji chips after completing a word",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = emojiSuggestionsEnabled,
+                    onCheckedChange = {
+                        emojiSuggestionsEnabled = it
+                        prefsManager.emojiSuggestionsEnabled = it
                     },
                 )
             }

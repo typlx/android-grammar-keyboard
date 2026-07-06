@@ -117,6 +117,7 @@ fun KeyboardScreen(
     onAcceptSuggestion: () -> Unit = {},
     onDismissSuggestion: () -> Unit = {},
     onWordSuggestionAccepted: (String) -> Unit = {},
+    onEmojiSuggestionTapped: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
     onToneToggle: () -> Unit = {},
     onToneDismiss: () -> Unit = {},
@@ -398,6 +399,7 @@ fun KeyboardScreen(
                 onAccept = onAcceptSuggestion,
                 onDismiss = onDismissSuggestion,
                 onWordSuggestionAccepted = onWordSuggestionAccepted,
+                onEmojiSuggestionTapped = onEmojiSuggestionTapped,
                 onSmartCompose = onSmartCompose,
             )
         }
@@ -1223,6 +1225,7 @@ private fun SuggestionStrip(
     onAccept: () -> Unit,
     onDismiss: () -> Unit,
     onWordSuggestionAccepted: (String) -> Unit = {},
+    onEmojiSuggestionTapped: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
 ) {
     when {
@@ -1286,6 +1289,29 @@ private fun SuggestionStrip(
                     modifier = Modifier
                         .weight(1f)
                         .semantics { contentDescription = "Word suggestion: $word" },
+                )
+            }
+            if (state.emojis.isNotEmpty() && state.words.isNotEmpty()) {
+                VerticalDivider(
+                    modifier = Modifier
+                        .height(20.dp)
+                        .padding(horizontal = 2.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant,
+                )
+            }
+            state.emojis.forEach { emoji ->
+                SuggestionChip(
+                    onClick = { onEmojiSuggestionTapped(emoji) },
+                    label = {
+                        Text(
+                            text = emoji,
+                            fontSize = 16.sp,
+                            maxLines = 1,
+                        )
+                    },
+                    modifier = Modifier
+                        .wrapContentWidth()
+                        .semantics { contentDescription = "Emoji suggestion: $emoji" },
                 )
             }
         }

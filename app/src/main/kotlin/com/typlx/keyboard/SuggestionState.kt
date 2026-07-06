@@ -8,5 +8,5 @@ sealed class SuggestionState {
         val corrected: String,
         val diff: List<DiffSegment> = emptyList(),
     ) : SuggestionState()
-    data class WordSuggestions(val words: List<String>) : SuggestionState()
+    data class WordSuggestions(val words: List<String>, val emojis: List<String> = emptyList()) : SuggestionState()
 }

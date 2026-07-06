@@ -108,6 +108,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val voiceInputManager = VoiceInputManager()
     private val wordPredictor = WordPredictor()
     private val autoCorrectManager = AutoCorrectManager()
+    private val emojiSuggestionHelper = EmojiSuggestionHelper()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -220,6 +221,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onAcceptSuggestion = ::acceptSuggestion,
                         onDismissSuggestion = ::dismissSuggestion,
                         onWordSuggestionAccepted = ::acceptWordSuggestion,
+                        onEmojiSuggestionTapped = ::acceptEmojiSuggestion,
                         onSmartCompose = ::triggerSmartCompose,
                         onToneToggle = { if (isTonePanel) dismissTonePanel() else openTonePanel() },
                         onToneDismiss = ::dismissTonePanel,
@@ -283,6 +285,13 @@ class GrammarKeyboardService : InputMethodService(),
         return if (lastBoundary == -1) before else before.substring(lastBoundary + 1)
     }
 
+    private fun getLastCompletedWord(ic: android.view.inputmethod.InputConnection): String {
+        val before = ic.getTextBeforeCursor(100, 0)?.toString() ?: return ""
+        val trimmed = before.trimEnd(' ', '\t', '\n')
+        val lastBoundary = trimmed.lastIndexOfAny(charArrayOf(' ', '\n', '\t', '.', ',', '!', '?', ';', ':'))
+        return if (lastBoundary == -1) trimmed else trimmed.substring(lastBoundary + 1)
+    }
+
     private fun updateWordPredictions() {
         if (!prefs.wordPredictionEnabled) return
         if (suggestionState is SuggestionState.Available || suggestionState == SuggestionState.Loading) return
@@ -290,7 +299,13 @@ class GrammarKeyboardService : InputMethodService(),
         val ic = currentInputConnection ?: return
         val prefix = getCurrentWordPrefix(ic)
         val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
-        suggestionState = if (predictions.isEmpty()) SuggestionState.Idle else SuggestionState.WordSuggestions(predictions)
+        val emojis = if (prefs.emojiSuggestionsEnabled && prefix.isEmpty()) {
+            emojiSuggestionHelper.suggest(getLastCompletedWord(ic))
+        } else emptyList()
+        suggestionState = when {
+            predictions.isNotEmpty() || emojis.isNotEmpty() -> SuggestionState.WordSuggestions(predictions, emojis)
+            else -> SuggestionState.Idle
+        }
     }
 
     private fun scheduleAutoSuggest() {
@@ -311,7 +326,13 @@ class GrammarKeyboardService : InputMethodService(),
             if (prefs.wordPredictionEnabled) {
                 val prefix = getCurrentWordPrefix(ic)
                 val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
-                suggestionState = if (predictions.isEmpty()) SuggestionState.Idle else SuggestionState.WordSuggestions(predictions)
+                val emojis = if (prefs.emojiSuggestionsEnabled && prefix.isEmpty()) {
+                    emojiSuggestionHelper.suggest(getLastCompletedWord(ic))
+                } else emptyList()
+                suggestionState = when {
+                    predictions.isNotEmpty() || emojis.isNotEmpty() -> SuggestionState.WordSuggestions(predictions, emojis)
+                    else -> SuggestionState.Idle
+                }
             } else {
                 suggestionState = SuggestionState.Idle
             }
@@ -345,6 +366,13 @@ class GrammarKeyboardService : InputMethodService(),
         ic.commitText("$word ", 1)
         suggestionState = SuggestionState.Idle
         clearUndoState()
+    }
+
+    fun acceptEmojiSuggestion(emoji: String) {
+        val ic = currentInputConnection ?: return
+        suppressSuggestionTriggerCount = 1
+        ic.commitText(emoji, 1)
+        suggestionState = SuggestionState.Idle
     }
 
     override fun onStartInputView(info: EditorInfo?, restarting: Boolean) {

@@ -31,6 +31,7 @@ class PreferencesManager(context: Context) {
         const val KEY_DOUBLE_SPACE_PERIOD = "double_space_period_enabled"
         const val KEY_AUTO_CAP = "auto_cap_enabled"
         const val KEY_GRAMMAR_INSTRUCTION_SUFFIX = "grammar_instruction_suffix"
+        const val KEY_EMOJI_SUGGESTIONS = "emoji_suggestions_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -124,6 +125,10 @@ class PreferencesManager(context: Context) {
     var grammarInstructionSuffix: String
         get() = prefs.getString(KEY_GRAMMAR_INSTRUCTION_SUFFIX, "") ?: ""
         set(value) = prefs.edit().putString(KEY_GRAMMAR_INSTRUCTION_SUFFIX, value).apply()
+
+    var emojiSuggestionsEnabled: Boolean
+        get() = prefs.getBoolean(KEY_EMOJI_SUGGESTIONS, true)
+        set(value) = prefs.edit().putBoolean(KEY_EMOJI_SUGGESTIONS, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

@@ -104,4 +104,22 @@ class AutoCorrectManagerTest {
         // Only first-char capitalisation or all-caps are detected; mixed → lowercase correction
         assertEquals("the", manager.correct("tEh"))
     }
+
+    @Test
+    fun `dictionary has no duplicate keys`() {
+        // The run{} initializer check() already throws on class load if duplicates exist.
+        // This test documents the invariant explicitly.
+        val keys = AutoCorrectManager.TYPO_DICT.keys.toList()
+        assertEquals(keys.size, keys.toSet().size)
+    }
+
+    @Test
+    fun `wanna is not autocorrected`() {
+        assertNull(manager.correct("wanna"))
+    }
+
+    @Test
+    fun `fro is not autocorrected`() {
+        assertNull(manager.correct("fro"))
+    }
 }

@@ -426,6 +426,7 @@ fun KeyboardScreen(
                 onWordSuggestionAccepted = onWordSuggestionAccepted,
                 onEmojiSuggestionTapped = onEmojiSuggestionTapped,
                 onSmartCompose = onSmartCompose,
+                onUndoAutocorrect = onUndoGrammarFix,
             )
         }
 

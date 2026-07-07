@@ -70,4 +70,45 @@ class SuggestionStateTest {
         assertTrue(str.contains("orig"))
         assertTrue(str.contains("fixed"))
     }
+
+    @Test
+    fun `AutoCorrected carries original and corrected word`() {
+        val state = SuggestionState.AutoCorrected("teh", "the")
+        assertEquals("teh", state.original)
+        assertEquals("the", state.corrected)
+    }
+
+    @Test
+    fun `AutoCorrected equality is value-based`() {
+        val a = SuggestionState.AutoCorrected("teh", "the")
+        val b = SuggestionState.AutoCorrected("teh", "the")
+        assertEquals(a, b)
+    }
+
+    @Test
+    fun `AutoCorrected inequality when original differs`() {
+        val a = SuggestionState.AutoCorrected("teh", "the")
+        val b = SuggestionState.AutoCorrected("taht", "that")
+        assertNotEquals(a, b)
+    }
+
+    @Test
+    fun `Idle is not AutoCorrected`() {
+        val state: SuggestionState = SuggestionState.Idle
+        assertFalse(state is SuggestionState.AutoCorrected)
+    }
+
+    @Test
+    fun `cast to AutoCorrected succeeds when state is AutoCorrected`() {
+        val state: SuggestionState = SuggestionState.AutoCorrected("dont", "don't")
+        val cast = state as? SuggestionState.AutoCorrected
+        assertNotNull(cast)
+        assertEquals("don't", cast!!.corrected)
+    }
+
+    @Test
+    fun `cast to AutoCorrected returns null when state is Idle`() {
+        val state: SuggestionState = SuggestionState.Idle
+        assertNull(state as? SuggestionState.AutoCorrected)
+    }
 }

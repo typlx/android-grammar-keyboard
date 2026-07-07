@@ -73,6 +73,13 @@ internal val LocalKeyPositionRegistry = compositionLocalOf<MutableMap<String, Re
 internal val LocalSwipePathReceiver = compositionLocalOf<((List<String>) -> Unit)?> { null }
 
 /**
+ * Called by KeyButton on every pointer-move event during a swipe, with the pointer's
+ * window-coordinate position. Null argument signals swipe end (pointer released).
+ * The keyboard root accumulates these into a visual trail.
+ */
+internal val LocalSwipeTrailUpdater = compositionLocalOf<((Offset?) -> Unit)?> { null }
+
+/**
  * Backspace key with long-press repeat behavior:
  * - Tap: delete one character
  * - Hold 400ms: repeat character delete every 50ms
@@ -166,6 +173,7 @@ internal fun KeyButton(
     val keyPressNotifier = LocalKeyPressNotifier.current
     val keyRegistry = LocalKeyPositionRegistry.current
     val swipeReceiver = LocalSwipePathReceiver.current
+    val swipeTrailUpdater = LocalSwipeTrailUpdater.current
     // Only printable ASCII (0x21-0x7E) triggers the preview and swipe; excludes space and Unicode action keys.
     val isCharKey = label.length == 1 && label[0].code in 33..126
     val swipeEnabled = isCharKey && swipeReceiver != null && keyRegistry != null
@@ -230,6 +238,7 @@ internal fun KeyButton(
                                         if (change != null && change.pressed) {
                                             val keyOrigin = layoutCoords.value?.positionInWindow() ?: Offset.Zero
                                             val windowPos = keyOrigin + change.position
+                                            swipeTrailUpdater?.invoke(windowPos)
                                             val hit = keyRegistry.entries.firstOrNull { (_, rect) -> rect.contains(windowPos) }?.key
                                             if (hit != null && hit != pathKeys.lastOrNull()) {
                                                 pathKeys.add(hit)
@@ -244,6 +253,7 @@ internal fun KeyButton(
 
                                 job.cancel()
                                 if (isCharKey) keyPressNotifier?.invoke(null)
+                                swipeTrailUpdater?.invoke(null)
 
                                 when {
                                     isSwipe && pathKeys != null && swipeReceiver != null -> swipeReceiver(pathKeys)
@@ -278,6 +288,7 @@ internal fun KeyButton(
                                         if (change != null && change.pressed) {
                                             val keyOrigin = layoutCoords.value?.positionInWindow() ?: Offset.Zero
                                             val windowPos = keyOrigin + change.position
+                                            swipeTrailUpdater?.invoke(windowPos)
                                             val hit = keyRegistry.entries.firstOrNull { (_, rect) -> rect.contains(windowPos) }?.key
                                             if (hit != null && hit != pathKeys.lastOrNull()) {
                                                 pathKeys.add(hit)
@@ -288,6 +299,7 @@ internal fun KeyButton(
                                 } while (event.changes.any { it.pressed })
 
                                 keyPressNotifier?.invoke(null)
+                                swipeTrailUpdater?.invoke(null)
 
                                 if (isSwipe && pathKeys != null && swipeReceiver != null) {
                                     swipeReceiver(pathKeys)

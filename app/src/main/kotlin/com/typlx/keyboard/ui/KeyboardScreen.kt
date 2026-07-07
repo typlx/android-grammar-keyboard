@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -134,6 +135,8 @@ fun KeyboardScreen(
     isNumPadSigned: Boolean = false,
     keyHeight: Dp = 46.dp,
     keyPressPreviewEnabled: Boolean = true,
+    swipeTypingEnabled: Boolean = true,
+    onSwipePath: (List<String>) -> Unit = {},
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
@@ -147,6 +150,11 @@ fun KeyboardScreen(
     val colors = LocalKeyboardColors.current
     var pressedKey by remember { mutableStateOf<KeyPressInfo?>(null) }
     var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
+    // Shared registry that each character KeyButton populates with its window-coordinate bounds.
+    val keyRegistry = remember { mutableMapOf<String, Rect>() }
+    val swipePathReceiver: ((List<String>) -> Unit)? = if (swipeTypingEnabled) {
+        { path -> onSwipePath(path) }
+    } else null
 
     val isCaps = shiftState != ShiftState.OFF
 
@@ -377,7 +385,11 @@ fun KeyboardScreen(
         { info -> pressedKey = info }
     } else null
 
-    CompositionLocalProvider(LocalKeyPressNotifier provides notifier) {
+    CompositionLocalProvider(
+        LocalKeyPressNotifier provides notifier,
+        LocalKeyPositionRegistry provides keyRegistry,
+        LocalSwipePathReceiver provides swipePathReceiver,
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()

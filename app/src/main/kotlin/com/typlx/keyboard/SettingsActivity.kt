@@ -128,6 +128,7 @@ private fun SettingsScreen(
     var wordPredictionEnabled by remember { mutableStateOf(prefsManager.wordPredictionEnabled) }
     var smartComposeEnabled by remember { mutableStateOf(prefsManager.smartComposeEnabled) }
     var emojiSuggestionsEnabled by remember { mutableStateOf(prefsManager.emojiSuggestionsEnabled) }
+    var swipeTypingEnabled by remember { mutableStateOf(prefsManager.swipeTypingEnabled) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -559,6 +560,34 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         emojiSuggestionsEnabled = it
                         prefsManager.emojiSuggestionsEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Swipe typing toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Swipe typing",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Drag across keys to type a word without lifting your finger",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = swipeTypingEnabled,
+                    onCheckedChange = {
+                        swipeTypingEnabled = it
+                        prefsManager.swipeTypingEnabled = it
                     },
                 )
             }

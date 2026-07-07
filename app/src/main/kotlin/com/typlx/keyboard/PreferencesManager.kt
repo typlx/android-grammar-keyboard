@@ -37,6 +37,7 @@ class PreferencesManager(context: Context) {
         const val KEY_SMART_COMPOSE = "smart_compose_enabled"
         const val KEY_EMOJI_SUGGESTIONS = "emoji_suggestions_enabled"
         const val KEY_KEY_PRESS_PREVIEW = "key_press_preview_enabled"
+        const val KEY_SWIPE_TYPING = "swipe_typing_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -158,6 +159,10 @@ class PreferencesManager(context: Context) {
     var keyPressPreviewEnabled: Boolean
         get() = prefs.getBoolean(KEY_KEY_PRESS_PREVIEW, true)
         set(value) = prefs.edit().putBoolean(KEY_KEY_PRESS_PREVIEW, value).apply()
+
+    var swipeTypingEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SWIPE_TYPING, true)
+        set(value) = prefs.edit().putBoolean(KEY_SWIPE_TYPING, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

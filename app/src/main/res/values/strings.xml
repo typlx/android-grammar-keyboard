@@ -56,6 +56,11 @@
     <string name="settings_crash_reporting_label">Send crash reports</string>
     <string name="settings_crash_reporting_description">Anonymously report API errors to help fix bugs. No text you type is ever included.</string>
 
+    <!-- Quick Settings Tile -->
+    <string name="tile_auto_suggest_label">Typlx AI</string>
+    <string name="tile_state_on">On</string>
+    <string name="tile_state_off">Off</string>
+
     <!-- Network / API error messages -->
     <string name="error_no_network">No internet connection</string>
     <string name="error_timeout">Request timed out — check your connection</string>

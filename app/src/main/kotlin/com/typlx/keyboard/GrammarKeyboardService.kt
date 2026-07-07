@@ -97,6 +97,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var keyPressPreviewEnabled by mutableStateOf(true)
         private set
+    var swipeTypingEnabled by mutableStateOf(true)
+        private set
     var isSmartComposing by mutableStateOf(false)
         private set
     var hasSelection by mutableStateOf(false)
@@ -114,6 +116,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val wordPredictor = WordPredictor()
     private val autoCorrectManager = AutoCorrectManager()
     private val emojiSuggestionHelper = EmojiSuggestionHelper()
+    private val swipeTypingDecoder = SwipeTypingDecoder()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private lateinit var prefs: PreferencesManager
@@ -265,6 +268,8 @@ class GrammarKeyboardService : InputMethodService(),
                         isNumPadSigned = activeNumPadConfig.isSignedAllowed,
                         keyHeight = keyHeight,
                         keyPressPreviewEnabled = keyPressPreviewEnabled,
+                        swipeTypingEnabled = swipeTypingEnabled,
+                        onSwipePath = ::onSwipePath,
                     )
                 }
             }
@@ -371,6 +376,14 @@ class GrammarKeyboardService : InputMethodService(),
         clearUndoState()
     }
 
+    fun onSwipePath(path: List<String>) {
+        val wordList = WordPredictor.COMMON_WORDS + personalWordList.getAll()
+        val words = swipeTypingDecoder.decode(path, wordList)
+        if (words.isNotEmpty()) {
+            suggestionState = SuggestionState.WordSuggestions(words)
+        }
+    }
+
     fun acceptEmojiSuggestion(emoji: String) {
         val ic = currentInputConnection ?: return
         suppressSuggestionTriggerCount = 1
@@ -454,6 +467,7 @@ class GrammarKeyboardService : InputMethodService(),
         keyHeightDp = prefs.keyHeightDp
         showNumberRow = prefs.showNumberRow
         keyPressPreviewEnabled = prefs.keyPressPreviewEnabled
+        swipeTypingEnabled = prefs.swipeTypingEnabled
     }
 
     // --- Auto-cap ---

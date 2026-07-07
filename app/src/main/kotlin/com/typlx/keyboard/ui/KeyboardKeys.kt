@@ -17,6 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -55,6 +57,20 @@ internal data class KeyPressInfo(
  * Null value means key-press previews are disabled.
  */
 internal val LocalKeyPressNotifier = compositionLocalOf<((KeyPressInfo?) -> Unit)?> { null }
+
+/**
+ * Registry mapping lowercase key label -> window-coordinate Rect.
+ * Populated by each character KeyButton via onGloballyPositioned.
+ * Used by the swipe decoder to map pointer positions to key labels.
+ */
+internal val LocalKeyPositionRegistry = compositionLocalOf<MutableMap<String, Rect>?> { null }
+
+/**
+ * Callback invoked by KeyButton when a swipe gesture completes.
+ * Receives the ordered list of lowercase key labels crossed during the swipe.
+ * Null means swipe typing is disabled.
+ */
+internal val LocalSwipePathReceiver = compositionLocalOf<((List<String>) -> Unit)?> { null }
 
 /**
  * Backspace key with long-press repeat behavior:
@@ -148,8 +164,11 @@ internal fun KeyButton(
     val interactionSource = remember { MutableInteractionSource() }
     val cornerRadius = LocalKeyboardColors.current.cornerRadiusDp.dp
     val keyPressNotifier = LocalKeyPressNotifier.current
-    // Only printable ASCII (0x21-0x7E) triggers the preview; excludes space and Unicode action keys.
-    val isCharKey = keyPressNotifier != null && label.length == 1 && label[0].code in 33..126
+    val keyRegistry = LocalKeyPositionRegistry.current
+    val swipeReceiver = LocalSwipePathReceiver.current
+    // Only printable ASCII (0x21-0x7E) triggers the preview and swipe; excludes space and Unicode action keys.
+    val isCharKey = label.length == 1 && label[0].code in 33..126
+    val swipeEnabled = isCharKey && swipeReceiver != null && keyRegistry != null
     val layoutCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     Box(
@@ -157,59 +176,125 @@ internal fun KeyButton(
             .height(height)
             .clip(RoundedCornerShape(cornerRadius))
             .background(bgColor)
-            .then(if (isCharKey) Modifier.onGloballyPositioned { layoutCoords.value = it } else Modifier)
+            .then(
+                if (isCharKey) Modifier.onGloballyPositioned { coords ->
+                    layoutCoords.value = coords
+                    // Register this key's window rect in the shared registry so swipe detection
+                    // can map pointer positions to key labels.
+                    if (keyRegistry != null) {
+                        val pos = coords.positionInWindow()
+                        keyRegistry[label.lowercase()] = Rect(
+                            pos.x, pos.y,
+                            pos.x + coords.size.width,
+                            pos.y + coords.size.height,
+                        )
+                    }
+                } else Modifier
+            )
             .semantics {
                 this.contentDescription = contentDescription
                 this.role = Role.Button
             }
             .then(
                 when {
-                    onLongPress != null -> Modifier.pointerInput(onClick, onLongPress, isCharKey) {
+                    onLongPress != null -> Modifier.pointerInput(onClick, onLongPress, isCharKey, swipeEnabled) {
                         coroutineScope {
                         val launchScope = this
                         awaitPointerEventScope {
                             while (true) {
                                 awaitFirstDown(requireUnconsumed = false)
-                                if (isCharKey) {
+                                if (isCharKey && keyPressNotifier != null) {
                                     layoutCoords.value?.let { coords ->
                                         val pos = coords.positionInWindow()
-                                        keyPressNotifier!!(KeyPressInfo(label, pos.x, pos.y, coords.size.width.toFloat(), coords.size.height.toFloat()))
+                                        keyPressNotifier(KeyPressInfo(label, pos.x, pos.y, coords.size.width.toFloat(), coords.size.height.toFloat()))
                                     }
                                 }
+
+                                val pathKeys = if (swipeEnabled) mutableListOf(label.lowercase()) else null
+                                var isSwipe = false
                                 var longFired = false
+
                                 val job = launchScope.launch {
                                     delay(400L)
-                                    longFired = true
-                                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                    onLongPress()
+                                    if (!isSwipe) {
+                                        longFired = true
+                                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                        onLongPress()
+                                    }
                                 }
+
                                 do {
                                     val event = awaitPointerEvent()
+                                    if (pathKeys != null && keyRegistry != null) {
+                                        val change = event.changes.firstOrNull()
+                                        if (change != null && change.pressed) {
+                                            val keyOrigin = layoutCoords.value?.positionInWindow() ?: Offset.Zero
+                                            val windowPos = keyOrigin + change.position
+                                            val hit = keyRegistry.entries.firstOrNull { (_, rect) -> rect.contains(windowPos) }?.key
+                                            if (hit != null && hit != pathKeys.lastOrNull()) {
+                                                pathKeys.add(hit)
+                                                if (pathKeys.distinct().size >= 2) {
+                                                    isSwipe = true
+                                                    job.cancel()
+                                                }
+                                            }
+                                        }
+                                    }
                                 } while (event.changes.any { it.pressed })
+
                                 job.cancel()
-                                if (isCharKey) keyPressNotifier!!(null)
-                                if (!longFired) {
-                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                    onClick()
+                                if (isCharKey) keyPressNotifier?.invoke(null)
+
+                                when {
+                                    isSwipe && pathKeys != null && swipeReceiver != null -> swipeReceiver(pathKeys)
+                                    longFired -> { /* long press already handled */ }
+                                    else -> {
+                                        haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                        onClick()
+                                    }
                                 }
                             }
                         }
                         }
                     }
-                    isCharKey -> Modifier.pointerInput(onClick) {
+                    isCharKey -> Modifier.pointerInput(onClick, swipeEnabled) {
                         awaitPointerEventScope {
                             while (true) {
                                 awaitFirstDown(requireUnconsumed = false)
-                                layoutCoords.value?.let { coords ->
-                                    val pos = coords.positionInWindow()
-                                    keyPressNotifier!!(KeyPressInfo(label, pos.x, pos.y, coords.size.width.toFloat(), coords.size.height.toFloat()))
+                                if (keyPressNotifier != null) {
+                                    layoutCoords.value?.let { coords ->
+                                        val pos = coords.positionInWindow()
+                                        keyPressNotifier(KeyPressInfo(label, pos.x, pos.y, coords.size.width.toFloat(), coords.size.height.toFloat()))
+                                    }
                                 }
+
+                                val pathKeys = if (swipeEnabled) mutableListOf(label.lowercase()) else null
+                                var isSwipe = false
+
                                 do {
                                     val event = awaitPointerEvent()
+                                    if (pathKeys != null && keyRegistry != null) {
+                                        val change = event.changes.firstOrNull()
+                                        if (change != null && change.pressed) {
+                                            val keyOrigin = layoutCoords.value?.positionInWindow() ?: Offset.Zero
+                                            val windowPos = keyOrigin + change.position
+                                            val hit = keyRegistry.entries.firstOrNull { (_, rect) -> rect.contains(windowPos) }?.key
+                                            if (hit != null && hit != pathKeys.lastOrNull()) {
+                                                pathKeys.add(hit)
+                                                if (pathKeys.distinct().size >= 2) isSwipe = true
+                                            }
+                                        }
+                                    }
                                 } while (event.changes.any { it.pressed })
-                                keyPressNotifier!!(null)
-                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                                onClick()
+
+                                keyPressNotifier?.invoke(null)
+
+                                if (isSwipe && pathKeys != null && swipeReceiver != null) {
+                                    swipeReceiver(pathKeys)
+                                } else {
+                                    haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                    onClick()
+                                }
                             }
                         }
                     }

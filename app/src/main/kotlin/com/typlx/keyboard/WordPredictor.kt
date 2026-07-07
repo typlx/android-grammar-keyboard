@@ -40,7 +40,7 @@ class WordPredictor {
 
     companion object {
         // ~500 most common English words, sorted by frequency (most common first)
-        private val COMMON_WORDS = listOf(
+        internal val COMMON_WORDS = listOf(
             "the", "be", "to", "of", "and", "in", "that", "have", "it", "for",
             "not", "on", "with", "he", "as", "you", "do", "at", "this", "but",
             "his", "by", "from", "they", "we", "say", "her", "she", "or", "an",

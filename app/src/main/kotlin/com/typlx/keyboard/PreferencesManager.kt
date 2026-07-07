@@ -36,6 +36,7 @@ class PreferencesManager(context: Context) {
         const val KEY_WORD_PREDICTION = "word_prediction_enabled"
         const val KEY_SMART_COMPOSE = "smart_compose_enabled"
         const val KEY_EMOJI_SUGGESTIONS = "emoji_suggestions_enabled"
+        const val KEY_KEY_PRESS_PREVIEW = "key_press_preview_enabled"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -153,6 +154,10 @@ class PreferencesManager(context: Context) {
     var emojiSuggestionsEnabled: Boolean
         get() = prefs.getBoolean(KEY_EMOJI_SUGGESTIONS, true)
         set(value) = prefs.edit().putBoolean(KEY_EMOJI_SUGGESTIONS, value).apply()
+
+    var keyPressPreviewEnabled: Boolean
+        get() = prefs.getBoolean(KEY_KEY_PRESS_PREVIEW, true)
+        set(value) = prefs.edit().putBoolean(KEY_KEY_PRESS_PREVIEW, value).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

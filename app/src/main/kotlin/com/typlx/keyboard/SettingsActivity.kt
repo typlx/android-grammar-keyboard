@@ -89,6 +89,7 @@ private fun SettingsScreen(
     var tokenVisible by remember { mutableStateOf(false) }
     var selectedProvider by remember { mutableStateOf(ApiProvider.inferFromUrl(prefsManager.apiUrl)) }
     var hapticEnabled by remember { mutableStateOf(prefsManager.hapticFeedbackEnabled) }
+    var keyPressPreviewEnabled by remember { mutableStateOf(prefsManager.keyPressPreviewEnabled) }
     var autoSuggestEnabled by remember { mutableStateOf(prefsManager.autoSuggestEnabled) }
     var grammarInstructionSuffix by remember { mutableStateOf(prefsManager.grammarInstructionSuffix) }
     var crashReportingEnabled by remember { mutableStateOf(prefsManager.crashReportingEnabled) }
@@ -312,6 +313,34 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         hapticEnabled = it
                         prefsManager.hapticFeedbackEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Key press preview toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.settings_key_press_preview_label),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = stringResource(R.string.settings_key_press_preview_description),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = keyPressPreviewEnabled,
+                    onCheckedChange = {
+                        keyPressPreviewEnabled = it
+                        prefsManager.keyPressPreviewEnabled = it
                     },
                 )
             }

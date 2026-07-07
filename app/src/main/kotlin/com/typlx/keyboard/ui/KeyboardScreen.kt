@@ -2,6 +2,7 @@ package com.typlx.keyboard.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.EmojiEmotions
@@ -13,13 +14,21 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.typlx.keyboard.KeyboardLayout
 import com.typlx.keyboard.LAYOUT_QWERTY
 import com.typlx.keyboard.SuggestionState
@@ -124,6 +133,7 @@ fun KeyboardScreen(
     isNumPadDecimal: Boolean = false,
     isNumPadSigned: Boolean = false,
     keyHeight: Dp = 46.dp,
+    keyPressPreviewEnabled: Boolean = true,
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
@@ -135,6 +145,8 @@ fun KeyboardScreen(
     // Triple: (displayLabel, isCaps, alternatives) — non-null when the alternatives bar is visible.
     var activeAlternatives by remember { mutableStateOf<Triple<String, Boolean, List<String>>?>(null) }
     val colors = LocalKeyboardColors.current
+    var pressedKey by remember { mutableStateOf<KeyPressInfo?>(null) }
+    var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     val isCaps = shiftState != ShiftState.OFF
 
@@ -361,121 +373,172 @@ fun KeyboardScreen(
         return
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(colors.keyboardBg)
-            .padding(horizontal = 4.dp, vertical = 6.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        ToolbarRow(
-            isFixingGrammar = isFixingGrammar,
-            grammarError = grammarError,
-            canUndo = canUndo,
-            isEmoji = false,
-            isNav = false,
-            isClipboard = false,
-            isShortcuts = false,
-            isTonePanel = isTonePanel,
-            isApplyingTone = isApplyingTone,
-            isTranslatePanel = isTranslatePanel,
-            isApplyingTranslation = isApplyingTranslation,
-            isVoiceListening = isVoiceListening,
-            hasSelection = hasSelection,
-            onFixGrammar = onFixGrammar,
-            onErrorDismiss = onErrorDismiss,
-            onUndoGrammarFix = onUndoGrammarFix,
-            onEmojiToggle = { isEmoji = true },
-            onNavToggle = { isNav = true },
-            onClipboardToggle = { isClipboard = true },
-            onShortcutsToggle = { isShortcuts = true },
-            onToneToggle = onToneToggle,
-            onTranslateToggle = onTranslateToggle,
-            onOpenSettings = onOpenSettings,
-            onVoiceToggle = onVoiceToggle,
-        )
+    val notifier: ((KeyPressInfo?) -> Unit)? = if (keyPressPreviewEnabled) {
+        { info -> pressedKey = info }
+    } else null
 
-        when {
-            isTonePanel -> TonePanel(
-                isApplying = isApplyingTone,
-                error = toneError,
-                onToneSelect = onToneSelect,
-                onDismiss = onToneDismiss,
-                onErrorDismiss = onToneErrorDismiss,
-                colors = colors,
-            )
-            isTranslatePanel -> TranslationPanel(
-                isApplying = isApplyingTranslation,
-                error = translateError,
-                onLanguageSelect = onTranslateSelect,
-                onDismiss = onTranslateDismiss,
-                onErrorDismiss = onTranslateErrorDismiss,
-                colors = colors,
-            )
-            isVoiceListening || voicePartialText.isNotEmpty() || voiceError != null -> VoiceStrip(
-                isListening = isVoiceListening,
-                partialText = voicePartialText,
-                error = voiceError,
-                onDismissError = onVoiceErrorDismiss,
-            )
-            else -> SuggestionStrip(
-                state = suggestionState,
-                isSmartComposing = isSmartComposing,
-                onAccept = onAcceptSuggestion,
-                onDismiss = onDismissSuggestion,
-                onWordSuggestionAccepted = onWordSuggestionAccepted,
-                onEmojiSuggestionTapped = onEmojiSuggestionTapped,
-                onSmartCompose = onSmartCompose,
-                onUndoAutocorrect = onUndoGrammarFix,
-            )
+    CompositionLocalProvider(LocalKeyPressNotifier provides notifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned { rootCoords = it },
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(colors.keyboardBg)
+                    .padding(horizontal = 4.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                ToolbarRow(
+                    isFixingGrammar = isFixingGrammar,
+                    grammarError = grammarError,
+                    canUndo = canUndo,
+                    isEmoji = false,
+                    isNav = false,
+                    isClipboard = false,
+                    isShortcuts = false,
+                    isTonePanel = isTonePanel,
+                    isApplyingTone = isApplyingTone,
+                    isTranslatePanel = isTranslatePanel,
+                    isApplyingTranslation = isApplyingTranslation,
+                    isVoiceListening = isVoiceListening,
+                    hasSelection = hasSelection,
+                    onFixGrammar = onFixGrammar,
+                    onErrorDismiss = onErrorDismiss,
+                    onUndoGrammarFix = onUndoGrammarFix,
+                    onEmojiToggle = { isEmoji = true },
+                    onNavToggle = { isNav = true },
+                    onClipboardToggle = { isClipboard = true },
+                    onShortcutsToggle = { isShortcuts = true },
+                    onToneToggle = onToneToggle,
+                    onTranslateToggle = onTranslateToggle,
+                    onOpenSettings = onOpenSettings,
+                    onVoiceToggle = onVoiceToggle,
+                )
+
+                when {
+                    isTonePanel -> TonePanel(
+                        isApplying = isApplyingTone,
+                        error = toneError,
+                        onToneSelect = onToneSelect,
+                        onDismiss = onToneDismiss,
+                        onErrorDismiss = onToneErrorDismiss,
+                        colors = colors,
+                    )
+                    isTranslatePanel -> TranslationPanel(
+                        isApplying = isApplyingTranslation,
+                        error = translateError,
+                        onLanguageSelect = onTranslateSelect,
+                        onDismiss = onTranslateDismiss,
+                        onErrorDismiss = onTranslateErrorDismiss,
+                        colors = colors,
+                    )
+                    isVoiceListening || voicePartialText.isNotEmpty() || voiceError != null -> VoiceStrip(
+                        isListening = isVoiceListening,
+                        partialText = voicePartialText,
+                        error = voiceError,
+                        onDismissError = onVoiceErrorDismiss,
+                    )
+                    else -> SuggestionStrip(
+                        state = suggestionState,
+                        isSmartComposing = isSmartComposing,
+                        onAccept = onAcceptSuggestion,
+                        onDismiss = onDismissSuggestion,
+                        onWordSuggestionAccepted = onWordSuggestionAccepted,
+                        onEmojiSuggestionTapped = onEmojiSuggestionTapped,
+                        onSmartCompose = onSmartCompose,
+                        onUndoAutocorrect = onUndoGrammarFix,
+                    )
+                }
+
+                activeAlternatives?.let { (label, _, alts) ->
+                    AlternativesBar(
+                        originalKey = label,
+                        alternatives = alts,
+                        colors = colors,
+                        onSelectAlternative = { char -> shiftOnceKeyPress(char) },
+                        onDismiss = { activeAlternatives = null },
+                    )
+                }
+
+                if (showNumberRow) {
+                    val numRowHeight = (keyHeight.value * 38f / 46f).dp
+                    NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
+                }
+
+                if (isSymbols) {
+                    KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
+                    KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
+                    SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = keyHeight)
+                } else {
+                    KeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
+                    KeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
+                    AlphaRow3(
+                        keys = layout.row3,
+                        shiftState = shiftState,
+                        onShiftTap = onShiftTap,
+                        onKeyPress = shiftOnceKeyPress,
+                        onDelete = onDelete,
+                        onDeleteWord = onDeleteWord,
+                        onShowAlternatives = showAlternatives,
+                        alternativesMap = layout.longPressAlternatives,
+                        colors = colors,
+                        height = keyHeight,
+                    )
+                }
+
+                BottomRow(
+                    isSymbols = isSymbols,
+                    onSymbolToggle = { isSymbols = !isSymbols },
+                    onKeyPress = shiftOnceKeyPress,
+                    onSpacePress = onSpacePress,
+                    onReturn = onReturn,
+                    returnKeyDescription = returnKeyDescription,
+                    colors = colors,
+                    height = keyHeight,
+                )
+            }
+
+            // Key press popup overlay
+            if (keyPressPreviewEnabled) {
+                val density = LocalDensity.current
+                pressedKey?.let { info ->
+                    rootCoords?.let { root ->
+                        val rootPos = root.positionInWindow()
+                        val localX = info.windowX - rootPos.x
+                        val localY = info.windowY - rootPos.y
+                        val popupWidthPx = (info.widthPx * 1.5f).coerceIn(
+                            with(density) { 36.dp.toPx() },
+                            with(density) { 72.dp.toPx() },
+                        )
+                        val popupHeightPx = with(density) { 44.dp.toPx() }
+                        val popupX = (localX + info.widthPx / 2f - popupWidthPx / 2f)
+                            .coerceIn(0f, root.size.width.toFloat() - popupWidthPx)
+                        val popupY = (localY - popupHeightPx - with(density) { 2.dp.toPx() })
+                            .coerceAtLeast(0f)
+                        Box(
+                            modifier = Modifier
+                                .zIndex(100f)
+                                .absoluteOffset { IntOffset(popupX.toInt(), popupY.toInt()) }
+                                .width(with(density) { popupWidthPx.toDp() })
+                                .height(44.dp)
+                                .shadow(4.dp, RoundedCornerShape(8.dp))
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(colors.keyBg),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Text(
+                                text = info.label,
+                                color = colors.keyText,
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.Normal,
+                            )
+                        }
+                    }
+                }
+            }
         }
-
-        activeAlternatives?.let { (label, _, alts) ->
-            AlternativesBar(
-                originalKey = label,
-                alternatives = alts,
-                colors = colors,
-                onSelectAlternative = { char -> shiftOnceKeyPress(char) },
-                onDismiss = { activeAlternatives = null },
-            )
-        }
-
-        if (showNumberRow) {
-            val numRowHeight = (keyHeight.value * 38f / 46f).dp
-            NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
-        }
-
-        if (isSymbols) {
-            KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
-            KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
-            SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = keyHeight)
-        } else {
-            KeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
-            KeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
-            AlphaRow3(
-                keys = layout.row3,
-                shiftState = shiftState,
-                onShiftTap = onShiftTap,
-                onKeyPress = shiftOnceKeyPress,
-                onDelete = onDelete,
-                onDeleteWord = onDeleteWord,
-                onShowAlternatives = showAlternatives,
-                alternativesMap = layout.longPressAlternatives,
-                colors = colors,
-                height = keyHeight,
-            )
-        }
-
-        BottomRow(
-            isSymbols = isSymbols,
-            onSymbolToggle = { isSymbols = !isSymbols },
-            onKeyPress = shiftOnceKeyPress,
-            onSpacePress = onSpacePress,
-            onReturn = onReturn,
-            returnKeyDescription = returnKeyDescription,
-            colors = colors,
-            height = keyHeight,
-        )
     }
 }
 

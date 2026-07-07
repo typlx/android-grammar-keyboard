@@ -1,6 +1,8 @@
 package com.typlx.keyboard
 
-class WordPredictor {
+import android.content.Context
+
+class WordPredictor(val wordList: List<String> = FALLBACK_WORDS) {
 
     fun predict(
         prefix: String,
@@ -21,7 +23,7 @@ class WordPredictor {
         val remaining = maxResults - personal.size
         if (remaining == 0) return personal
 
-        val common = COMMON_WORDS
+        val common = wordList
             .asSequence()
             .filter { it.startsWith(lowerPrefix) && !it.equals(lowerPrefix, ignoreCase = true) }
             .filter { candidate -> personal.none { it.equals(candidate, ignoreCase = true) } }
@@ -39,8 +41,21 @@ class WordPredictor {
     }
 
     companion object {
-        // ~500 most common English words, sorted by frequency (most common first)
-        internal val COMMON_WORDS = listOf(
+        fun fromContext(context: Context): WordPredictor {
+            val words = try {
+                context.resources.openRawResource(R.raw.word_list)
+                    .bufferedReader()
+                    .readLines()
+                    .filter { it.isNotBlank() }
+            } catch (_: Exception) {
+                FALLBACK_WORDS
+            }
+            return WordPredictor(words)
+        }
+
+        // Kept for tests that instantiate WordPredictor() without a Context.
+        // Also used as fallback if the raw resource cannot be read.
+        internal val FALLBACK_WORDS = listOf(
             "the", "be", "to", "of", "and", "in", "that", "have", "it", "for",
             "not", "on", "with", "he", "as", "you", "do", "at", "this", "but",
             "his", "by", "from", "they", "we", "say", "her", "she", "or", "an",
@@ -51,73 +66,34 @@ class WordPredictor {
             "see", "other", "than", "then", "now", "look", "only", "come", "its",
             "over", "think", "also", "back", "after", "use", "two", "how", "our",
             "work", "first", "well", "way", "even", "new", "want", "because",
-            "any", "these", "give", "day", "most", "us", "between", "need",
-            "large", "often", "hand", "high", "place", "hold", "turn", "start",
-            "show", "hear", "play", "run", "move", "live", "believe", "hold",
-            "bring", "happen", "must", "write", "provide", "sit", "stand",
-            "lose", "pay", "meet", "include", "continue", "set", "learn",
-            "change", "lead", "understand", "watch", "follow", "stop", "create",
-            "speak", "read", "spend", "grow", "open", "walk", "win", "offer",
-            "remember", "love", "consider", "appear", "buy", "wait", "serve",
-            "seem", "ask", "try", "call", "feel", "help", "talk", "send",
-            "expect", "build", "stay", "fall", "cut", "reach", "kill", "remain",
-            "suggest", "raise", "pass", "sell", "decide", "return", "explain",
-            "hope", "develop", "carry", "break", "receive", "agree", "support",
-            "hit", "produce", "eat", "cover", "catch", "draw", "choose", "cause",
-            "require", "become", "place", "allow", "point", "quite", "little",
-            "being", "know", "feel", "both", "life", "state", "never", "still",
-            "every", "world", "left", "right", "same", "however", "might",
-            "another", "again", "during", "each", "something", "through",
-            "while", "before", "without", "many", "much", "city", "here",
-            "number", "group", "often", "always", "together", "next", "free",
-            "office", "company", "close", "problem", "system", "program",
-            "question", "against", "school", "different", "home", "family",
-            "although", "himself", "herself", "themselves", "everything",
-            "nothing", "someone", "anyone", "everyone", "anything", "somewhere",
-            "really", "because", "already", "certainly", "possible", "probably",
-            "usually", "actually", "quickly", "simply", "clearly", "almost",
-            "perhaps", "especially", "recently", "directly", "suddenly",
-            "immediately", "certainly", "definitely", "obviously", "strongly",
-            "several", "whether", "between", "matter", "thought", "rather",
-            "enough", "around", "example", "called", "known", "given",
-            "further", "getting", "having", "making", "taking", "going",
-            "saying", "looking", "thinking", "coming", "working", "trying",
-            "using", "following", "through", "including", "during", "according",
-            "across", "against", "within", "without", "along", "since",
-            "before", "after", "above", "below", "under", "beyond", "toward",
-            "until", "while", "though", "since", "unless", "because",
-            "better", "best", "great", "important", "national", "local",
-            "public", "private", "real", "true", "early", "late", "long",
-            "short", "small", "big", "hard", "easy", "simple", "clear",
-            "strong", "light", "dark", "young", "old", "white", "black",
-            "full", "open", "far", "near", "wide", "deep", "low", "slow",
-            "fast", "fine", "kind", "nice", "cold", "hot", "fresh", "rich",
-            "poor", "safe", "free", "ready", "able", "available", "certain",
-            "different", "difficult", "possible", "general", "natural",
-            "military", "political", "economic", "social", "human", "personal",
-            "physical", "special", "specific", "major", "central", "original",
-            "ancient", "modern", "common", "medical", "scientific", "legal",
-            "financial", "educational", "environmental", "international",
-            "million", "billion", "hundred", "thousand", "minutes", "hours",
-            "weeks", "months", "years", "morning", "evening", "afternoon",
-            "tonight", "today", "yesterday", "tomorrow", "monday", "tuesday",
-            "wednesday", "thursday", "friday", "saturday", "sunday",
-            "january", "february", "march", "april", "june", "july",
-            "august", "september", "october", "november", "december",
-            "thanks", "thank", "please", "sorry", "hello", "goodbye",
-            "welcome", "okay", "great", "perfect", "wonderful", "amazing",
-            "interesting", "beautiful", "important", "necessary", "useful",
-            "wonderful", "excellent", "fantastic", "terrible", "horrible",
-            "information", "knowledge", "experience", "development", "management",
+            "any", "these", "give", "day", "most", "us", "great", "between",
+            "need", "large", "often", "hand", "high", "place", "hold", "turn",
+            "start", "show", "hear", "play", "run", "move", "live", "believe",
+            "bring", "happen", "must", "write", "provide", "include", "continue",
+            "change", "lead", "understand", "follow", "stop", "create", "learn",
+            "remember", "love", "consider", "appear", "buy", "feel", "help",
+            "think", "call", "expect", "build", "stay", "fall", "reach", "remain",
+            "suggest", "develop", "carry", "break", "receive", "agree", "support",
+            "better", "best", "great", "important", "national", "local", "public",
+            "real", "true", "early", "late", "long", "short", "small", "big",
+            "hard", "easy", "simple", "clear", "strong", "young", "old", "full",
+            "really", "already", "certainly", "possible", "probably", "usually",
+            "actually", "quickly", "simply", "clearly", "almost", "perhaps",
+            "especially", "recently", "definitely", "obviously", "several",
+            "whether", "matter", "thought", "rather", "enough", "around",
+            "example", "information", "knowledge", "experience", "development",
             "community", "technology", "government", "department", "organization",
             "situation", "opportunity", "relationship", "environment",
-            "performance", "responsibility", "investment", "consideration",
-            "improvement", "communication", "understanding", "professional",
-            "successful", "significant", "traditional", "individual", "particular",
-            "additional", "appropriate", "commercial", "comprehensive",
-            "throughout", "themselves", "absolutely", "completely", "different",
-            "especially", "everything", "following", "government", "including",
-            "something", "sometimes", "therefore", "themselves"
+            "performance", "responsibility", "communication", "understanding",
+            "beautiful", "important", "necessary", "excellent", "fantastic",
+            "something", "everything", "nothing", "someone", "anyone", "everyone",
+            "together", "morning", "evening", "afternoon", "tonight", "today",
+            "yesterday", "tomorrow", "thanks", "please", "sorry", "hello",
+            "welcome", "okay", "perfect", "wonderful", "amazing", "interesting"
         )
+
+        // Alias kept for SwipeTypingDecoder call-site in GrammarKeyboardService
+        @Deprecated("Use wordList property on instance instead", ReplaceWith("wordPredictor.wordList"))
+        internal val COMMON_WORDS get() = FALLBACK_WORDS
     }
 }

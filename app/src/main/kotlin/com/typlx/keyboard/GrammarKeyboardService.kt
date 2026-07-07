@@ -510,6 +510,7 @@ class GrammarKeyboardService : InputMethodService(),
                     ic.deleteSurroundingText(lastWord.length, 0)
                     ic.commitText("$corrected ", 1)
                     lastSpacePressMs = 0L
+                    suggestionState = SuggestionState.AutoCorrected(lastWord, corrected)
                     return
                 }
             }
@@ -627,11 +628,13 @@ class GrammarKeyboardService : InputMethodService(),
     private fun clearUndoState() {
         undoState.clear()
         canUndo = false
+        if (suggestionState is SuggestionState.AutoCorrected) suggestionState = SuggestionState.Idle
     }
 
     fun undoGrammarFix() {
         val (original, fixed) = undoState.consume() ?: return
         canUndo = false
+        if (suggestionState is SuggestionState.AutoCorrected) suggestionState = SuggestionState.Idle
         val ic = currentInputConnection ?: return
         ic.deleteSurroundingText(fixed.length, 0)
         ic.commitText(original, 1)

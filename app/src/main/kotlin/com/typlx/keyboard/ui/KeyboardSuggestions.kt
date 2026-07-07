@@ -50,6 +50,7 @@ internal fun SuggestionStrip(
     onWordSuggestionAccepted: (String) -> Unit = {},
     onEmojiSuggestionTapped: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
+    onUndoAutocorrect: () -> Unit = {},
 ) {
     when {
         state == SuggestionState.Loading -> Row(
@@ -210,6 +211,44 @@ internal fun SuggestionStrip(
                 modifier = Modifier
                     .size(28.dp)
                     .semantics { contentDescription = "Dismiss grammar suggestion" },
+            ) {
+                Text(
+                    text = "✕",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        state is SuggestionState.AutoCorrected -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            SuggestionChip(
+                onClick = onUndoAutocorrect,
+                label = {
+                    Text(
+                        text = "${state.original} → ${state.corrected} ↩",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 12.sp,
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics {
+                        contentDescription =
+                            "Autocorrected: ${state.original} to ${state.corrected}. Tap to undo."
+                    },
+            )
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .size(28.dp)
+                    .semantics { contentDescription = "Dismiss autocorrect indicator" },
             ) {
                 Text(
                     text = "✕",

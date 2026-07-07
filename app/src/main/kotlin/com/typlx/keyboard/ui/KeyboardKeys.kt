@@ -148,8 +148,8 @@ internal fun KeyButton(
     val interactionSource = remember { MutableInteractionSource() }
     val cornerRadius = LocalKeyboardColors.current.cornerRadiusDp.dp
     val keyPressNotifier = LocalKeyPressNotifier.current
-    // Only single printable non-space characters trigger the preview.
-    val isCharKey = keyPressNotifier != null && label.length == 1 && label != " "
+    // Only printable ASCII (0x21-0x7E) triggers the preview; excludes space and Unicode action keys.
+    val isCharKey = keyPressNotifier != null && label.length == 1 && label[0].code in 33..126
     val layoutCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     Box(

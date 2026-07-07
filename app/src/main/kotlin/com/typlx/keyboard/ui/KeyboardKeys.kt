@@ -11,6 +11,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +20,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -32,6 +37,24 @@ import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+
+/**
+ * Carries the pressed key's label and its top-left position + dimensions in window coordinates.
+ * Passing null signals key release.
+ */
+internal data class KeyPressInfo(
+    val label: String,
+    val windowX: Float,
+    val windowY: Float,
+    val widthPx: Float,
+    val heightPx: Float,
+)
+
+/**
+ * CompositionLocal that KeyButton reads to notify the keyboard root about press/release.
+ * Null value means key-press previews are disabled.
+ */
+internal val LocalKeyPressNotifier = compositionLocalOf<((KeyPressInfo?) -> Unit)?> { null }
 
 /**
  * Backspace key with long-press repeat behavior:
@@ -124,24 +147,35 @@ internal fun KeyButton(
     val haptic = LocalHapticFeedback.current
     val interactionSource = remember { MutableInteractionSource() }
     val cornerRadius = LocalKeyboardColors.current.cornerRadiusDp.dp
+    val keyPressNotifier = LocalKeyPressNotifier.current
+    // Only single printable non-space characters trigger the preview.
+    val isCharKey = keyPressNotifier != null && label.length == 1 && label != " "
+    val layoutCoords = remember { mutableStateOf<LayoutCoordinates?>(null) }
 
     Box(
         modifier = modifier
             .height(height)
             .clip(RoundedCornerShape(cornerRadius))
             .background(bgColor)
+            .then(if (isCharKey) Modifier.onGloballyPositioned { layoutCoords.value = it } else Modifier)
             .semantics {
                 this.contentDescription = contentDescription
                 this.role = Role.Button
             }
             .then(
-                if (onLongPress != null) {
-                    Modifier.pointerInput(onClick, onLongPress) {
+                when {
+                    onLongPress != null -> Modifier.pointerInput(onClick, onLongPress, isCharKey) {
                         coroutineScope {
                         val launchScope = this
                         awaitPointerEventScope {
                             while (true) {
                                 awaitFirstDown(requireUnconsumed = false)
+                                if (isCharKey) {
+                                    layoutCoords.value?.let { coords ->
+                                        val pos = coords.positionInWindow()
+                                        keyPressNotifier!!(KeyPressInfo(label, pos.x, pos.y, coords.size.width.toFloat(), coords.size.height.toFloat()))
+                                    }
+                                }
                                 var longFired = false
                                 val job = launchScope.launch {
                                     delay(400L)
@@ -153,6 +187,7 @@ internal fun KeyButton(
                                     val event = awaitPointerEvent()
                                 } while (event.changes.any { it.pressed })
                                 job.cancel()
+                                if (isCharKey) keyPressNotifier!!(null)
                                 if (!longFired) {
                                     haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
                                     onClick()
@@ -161,8 +196,24 @@ internal fun KeyButton(
                         }
                         }
                     }
-                } else {
-                    Modifier.clickable(
+                    isCharKey -> Modifier.pointerInput(onClick) {
+                        awaitPointerEventScope {
+                            while (true) {
+                                awaitFirstDown(requireUnconsumed = false)
+                                layoutCoords.value?.let { coords ->
+                                    val pos = coords.positionInWindow()
+                                    keyPressNotifier!!(KeyPressInfo(label, pos.x, pos.y, coords.size.width.toFloat(), coords.size.height.toFloat()))
+                                }
+                                do {
+                                    val event = awaitPointerEvent()
+                                } while (event.changes.any { it.pressed })
+                                keyPressNotifier!!(null)
+                                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                                onClick()
+                            }
+                        }
+                    }
+                    else -> Modifier.clickable(
                         interactionSource = interactionSource,
                         indication = rememberRipple(),
                         onClick = {

@@ -95,6 +95,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var showNumberRow by mutableStateOf(true)
         private set
+    var keyPressPreviewEnabled by mutableStateOf(true)
+        private set
     var isSmartComposing by mutableStateOf(false)
         private set
     var hasSelection by mutableStateOf(false)
@@ -262,6 +264,7 @@ class GrammarKeyboardService : InputMethodService(),
                         isNumPadDecimal = activeNumPadConfig.isDecimalAllowed,
                         isNumPadSigned = activeNumPadConfig.isSignedAllowed,
                         keyHeight = keyHeight,
+                        keyPressPreviewEnabled = keyPressPreviewEnabled,
                     )
                 }
             }
@@ -450,6 +453,7 @@ class GrammarKeyboardService : InputMethodService(),
         keySizePreset = prefs.keySizePreset
         keyHeightDp = prefs.keyHeightDp
         showNumberRow = prefs.showNumberRow
+        keyPressPreviewEnabled = prefs.keyPressPreviewEnabled
     }
 
     // --- Auto-cap ---

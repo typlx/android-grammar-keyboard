@@ -2,6 +2,8 @@
 
 Android custom keyboard (IME) with a grammar-fix button. Uses configurable OpenAI-compatible LLM APIs for grammar and spelling correction. Part of the [Typlx](https://typlx.com) open-source grammar-checking suite.
 
+**→ [Join the Typlx Pro waitlist](https://typlx.com/pro)** — advanced suggestions, multi-language support, and offline mode coming soon.
+
 ## Features
 
 - **Grammar Fix Button** -- tap to send the current input field text to an LLM for grammar and spelling correction
@@ -94,6 +96,14 @@ Tokens are stored with `EncryptedSharedPreferences` backed by the Android Keysto
 - Jetpack Compose + Material 3 for all UI
 - AndroidX Security Crypto for credential encryption
 - Kotlin Coroutines + `SupervisorJob` scoped to the IME service
+
+## Related Projects
+
+| Repo | Platform |
+| ---- | -------- |
+| [typlx/chrome-grammar-fix-extension](https://github.com/typlx/chrome-grammar-fix-extension) | Browser extension (Chrome, Edge, Firefox) |
+| [typlx/ios-grammar-keyboard](https://github.com/typlx/ios-grammar-keyboard) | iOS keyboard extension |
+| [typlx/typlx-website](https://github.com/typlx/typlx-website) | typlx.com website |
 
 ## License
 

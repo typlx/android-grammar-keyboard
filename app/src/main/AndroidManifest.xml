@@ -10,7 +10,10 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TyplxKeyboard">
+        android:theme="@style/Theme.TyplxKeyboard"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/backup_rules"
+        android:fullBackupContent="@xml/backup_rules_legacy">
 
         <!-- IME service -->
         <service
@@ -24,6 +27,18 @@
             <meta-data
                 android:name="android.view.im"
                 android:resource="@xml/method" />
+        </service>
+
+        <!-- Quick Settings Tile: toggle AI grammar assist from the notification shade -->
+        <service
+            android:name=".AutoSuggestTileService"
+            android:label="@string/tile_auto_suggest_label"
+            android:icon="@drawable/ic_tile_grammar"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
         </service>
 
         <!-- Settings activity — also launchable from the app drawer for easy first-run setup -->

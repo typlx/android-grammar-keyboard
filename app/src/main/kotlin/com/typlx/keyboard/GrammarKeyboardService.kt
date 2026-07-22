@@ -99,6 +99,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var swipeTypingEnabled by mutableStateOf(true)
         private set
+    var oneHandedMode by mutableStateOf(OneHandedMode.OFF)
+        private set
     var isSmartComposing by mutableStateOf(false)
         private set
     var hasSelection by mutableStateOf(false)
@@ -270,6 +272,8 @@ class GrammarKeyboardService : InputMethodService(),
                         keyPressPreviewEnabled = keyPressPreviewEnabled,
                         swipeTypingEnabled = swipeTypingEnabled,
                         onSwipePath = ::onSwipePath,
+                        oneHandedMode = oneHandedMode,
+                        onOneHandedModeChange = ::applyOneHandedMode,
                     )
                 }
             }
@@ -468,6 +472,12 @@ class GrammarKeyboardService : InputMethodService(),
         showNumberRow = prefs.showNumberRow
         keyPressPreviewEnabled = prefs.keyPressPreviewEnabled
         swipeTypingEnabled = prefs.swipeTypingEnabled
+        oneHandedMode = prefs.oneHandedMode
+    }
+
+    private fun applyOneHandedMode(mode: OneHandedMode) {
+        oneHandedMode = mode
+        prefs.oneHandedMode = mode
     }
 
     // --- Auto-cap ---

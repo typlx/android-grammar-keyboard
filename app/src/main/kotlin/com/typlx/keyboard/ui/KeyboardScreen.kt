@@ -2,6 +2,7 @@ package com.typlx.keyboard.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
@@ -38,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import com.typlx.keyboard.KeyboardLayout
 import com.typlx.keyboard.LAYOUT_QWERTY
+import com.typlx.keyboard.OneHandedMode
 import com.typlx.keyboard.SuggestionState
 import com.typlx.keyboard.TextShortcut
 import com.typlx.keyboard.ToneOption
@@ -143,6 +146,8 @@ fun KeyboardScreen(
     keyPressPreviewEnabled: Boolean = true,
     swipeTypingEnabled: Boolean = true,
     onSwipePath: (List<String>) -> Unit = {},
+    oneHandedMode: OneHandedMode = OneHandedMode.OFF,
+    onOneHandedModeChange: (OneHandedMode) -> Unit = {},
 ) {
     var shiftState by remember { mutableStateOf(ShiftState.OFF) }
     var lastShiftTapMs by remember { mutableLongStateOf(0L) }
@@ -154,6 +159,14 @@ fun KeyboardScreen(
     // Triple: (displayLabel, isCaps, alternatives) — non-null when the alternatives bar is visible.
     var activeAlternatives by remember { mutableStateOf<Triple<String, Boolean, List<String>>?>(null) }
     val colors = LocalKeyboardColors.current
+    val onOneHandedToggle = {
+        val next = when (oneHandedMode) {
+            OneHandedMode.OFF -> OneHandedMode.LEFT
+            OneHandedMode.LEFT -> OneHandedMode.RIGHT
+            OneHandedMode.RIGHT -> OneHandedMode.OFF
+        }
+        onOneHandedModeChange(next)
+    }
     var pressedKey by remember { mutableStateOf<KeyPressInfo?>(null) }
     var rootCoords by remember { mutableStateOf<LayoutCoordinates?>(null) }
     // Shared registry that each character KeyButton populates with its window-coordinate bounds.
@@ -248,6 +261,8 @@ fun KeyboardScreen(
                 onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
                 onVoiceToggle = onVoiceToggle,
+                oneHandedMode = oneHandedMode,
+                onOneHandedModeToggle = onOneHandedToggle,
             )
             ShortcutsPanel(
                 shortcuts = shortcuts,
@@ -291,6 +306,8 @@ fun KeyboardScreen(
                 onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
                 onVoiceToggle = onVoiceToggle,
+                oneHandedMode = oneHandedMode,
+                onOneHandedModeToggle = onOneHandedToggle,
             )
             ClipboardPanel(
                 items = clipboardItems,
@@ -334,6 +351,8 @@ fun KeyboardScreen(
                 onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
                 onVoiceToggle = onVoiceToggle,
+                oneHandedMode = oneHandedMode,
+                onOneHandedModeToggle = onOneHandedToggle,
             )
             CursorNavPanel(
                 onLeft = onMoveCursorLeft,
@@ -385,6 +404,8 @@ fun KeyboardScreen(
                 onTranslateToggle = onTranslateToggle,
                 onOpenSettings = onOpenSettings,
                 onVoiceToggle = onVoiceToggle,
+                oneHandedMode = oneHandedMode,
+                onOneHandedModeToggle = onOneHandedToggle,
             )
             EmojiKeyboard(
                 recents = emojiRecents,
@@ -407,10 +428,11 @@ fun KeyboardScreen(
         LocalSwipePathReceiver provides swipePathReceiver,
         LocalSwipeTrailUpdater provides swipeTrailUpdater,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .onGloballyPositioned { rootCoords = it },
+        OneHandedWrapper(
+            mode = oneHandedMode,
+            onModeChange = onOneHandedModeChange,
+            colors = colors,
+            onPositioned = { rootCoords = it },
         ) {
             Column(
                 modifier = Modifier
@@ -444,6 +466,8 @@ fun KeyboardScreen(
                     onTranslateToggle = onTranslateToggle,
                     onOpenSettings = onOpenSettings,
                     onVoiceToggle = onVoiceToggle,
+                    oneHandedMode = oneHandedMode,
+                    onOneHandedModeToggle = onOneHandedToggle,
                 )
 
                 when {
@@ -619,6 +643,7 @@ private fun ToolbarRow(
     isApplyingTranslation: Boolean,
     isVoiceListening: Boolean,
     hasSelection: Boolean = false,
+    oneHandedMode: OneHandedMode = OneHandedMode.OFF,
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit,
@@ -630,6 +655,7 @@ private fun ToolbarRow(
     onTranslateToggle: () -> Unit,
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit,
+    onOneHandedModeToggle: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -814,6 +840,29 @@ private fun ToolbarRow(
             )
         }
 
+        val oneHandedDesc = when (oneHandedMode) {
+            OneHandedMode.OFF -> "Enable one-handed mode (left)"
+            OneHandedMode.LEFT -> "Switch to right one-handed mode"
+            OneHandedMode.RIGHT -> "Disable one-handed mode"
+        }
+        IconButton(
+            onClick = onOneHandedModeToggle,
+            modifier = Modifier
+                .size(36.dp)
+                .semantics { contentDescription = oneHandedDesc },
+        ) {
+            Text(
+                text = when (oneHandedMode) {
+                    OneHandedMode.OFF -> "⊣"
+                    OneHandedMode.LEFT -> "⊢"
+                    OneHandedMode.RIGHT -> "⊣"
+                },
+                fontSize = 16.sp,
+                color = if (oneHandedMode != OneHandedMode.OFF) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
         IconButton(
             onClick = onOpenSettings,
             modifier = Modifier
@@ -827,5 +876,90 @@ private fun ToolbarRow(
                 modifier = Modifier.size(20.dp),
             )
         }
+    }
+}
+
+@Composable
+private fun OneHandedWrapper(
+    mode: OneHandedMode,
+    onModeChange: (OneHandedMode) -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+    onPositioned: (LayoutCoordinates) -> Unit,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    when (mode) {
+        OneHandedMode.OFF -> Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .onGloballyPositioned(onPositioned),
+            content = content,
+        )
+        OneHandedMode.LEFT -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Box(
+                modifier = Modifier
+                    .weight(0.7f)
+                    .onGloballyPositioned(onPositioned),
+                content = content,
+            )
+            OneHandedHandle(
+                modifier = Modifier.weight(0.3f),
+                arrowToLeft = false,
+                onFlip = { onModeChange(OneHandedMode.RIGHT) },
+                onExit = { onModeChange(OneHandedMode.OFF) },
+                colors = colors,
+            )
+        }
+        OneHandedMode.RIGHT -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(colors.keyboardBg),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            OneHandedHandle(
+                modifier = Modifier.weight(0.3f),
+                arrowToLeft = true,
+                onFlip = { onModeChange(OneHandedMode.LEFT) },
+                onExit = { onModeChange(OneHandedMode.OFF) },
+                colors = colors,
+            )
+            Box(
+                modifier = Modifier
+                    .weight(0.7f)
+                    .onGloballyPositioned(onPositioned),
+                content = content,
+            )
+        }
+    }
+}
+
+@Composable
+private fun OneHandedHandle(
+    modifier: Modifier,
+    arrowToLeft: Boolean,
+    onFlip: () -> Unit,
+    onExit: () -> Unit,
+    colors: com.typlx.keyboard.ui.theme.KeyboardColors,
+) {
+    Box(
+        modifier = modifier
+            .background(colors.keyboardBg)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = { onExit() },
+                    onTap = { onFlip() },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(
+            text = if (arrowToLeft) "◀" else "▶",
+            color = colors.keyText.copy(alpha = 0.4f),
+            fontSize = 20.sp,
+        )
     }
 }

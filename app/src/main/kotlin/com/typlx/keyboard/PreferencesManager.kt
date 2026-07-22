@@ -38,6 +38,7 @@ class PreferencesManager(context: Context) {
         const val KEY_EMOJI_SUGGESTIONS = "emoji_suggestions_enabled"
         const val KEY_KEY_PRESS_PREVIEW = "key_press_preview_enabled"
         const val KEY_SWIPE_TYPING = "swipe_typing_enabled"
+        const val KEY_ONE_HANDED_MODE = "one_handed_mode"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -163,6 +164,14 @@ class PreferencesManager(context: Context) {
     var swipeTypingEnabled: Boolean
         get() = prefs.getBoolean(KEY_SWIPE_TYPING, true)
         set(value) = prefs.edit().putBoolean(KEY_SWIPE_TYPING, value).apply()
+
+    var oneHandedMode: OneHandedMode
+        get() = try {
+            OneHandedMode.valueOf(prefs.getString(KEY_ONE_HANDED_MODE, "OFF") ?: "OFF")
+        } catch (_: IllegalArgumentException) {
+            OneHandedMode.OFF
+        }
+        set(value) = prefs.edit().putString(KEY_ONE_HANDED_MODE, value.name).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

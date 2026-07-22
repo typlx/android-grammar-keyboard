@@ -49,7 +49,7 @@ import com.typlx.keyboard.ToneOption
 import com.typlx.keyboard.TranslationLanguage
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
-private const val LANDSCAPE_HEIGHT_SCALE = 0.70f
+internal const val LANDSCAPE_HEIGHT_SCALE = 0.70f
 
 private val NUM_ROW = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 

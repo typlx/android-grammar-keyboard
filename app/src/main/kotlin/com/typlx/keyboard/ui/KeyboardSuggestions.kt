@@ -51,6 +51,8 @@ internal fun SuggestionStrip(
     onEmojiSuggestionTapped: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
     onUndoAutocorrect: () -> Unit = {},
+    onSmartClipboardPaste: () -> Unit = {},
+    onSmartClipboardDismiss: () -> Unit = {},
 ) {
     when {
         state == SuggestionState.Loading -> Row(
@@ -249,6 +251,41 @@ internal fun SuggestionStrip(
                 modifier = Modifier
                     .size(28.dp)
                     .semantics { contentDescription = "Dismiss autocorrect indicator" },
+            ) {
+                Text(
+                    text = "✕",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        state is SuggestionState.ClipboardPaste -> Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(32.dp)
+                .padding(horizontal = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            SuggestionChip(
+                onClick = onSmartClipboardPaste,
+                label = {
+                    Text(
+                        text = state.label,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontSize = 12.sp,
+                    )
+                },
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics { contentDescription = state.label },
+            )
+            IconButton(
+                onClick = onSmartClipboardDismiss,
+                modifier = Modifier
+                    .size(28.dp)
+                    .semantics { contentDescription = "Dismiss clipboard suggestion" },
             ) {
                 Text(
                     text = "✕",

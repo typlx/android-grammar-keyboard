@@ -108,6 +108,8 @@ fun KeyboardScreen(
     onWordSuggestionAccepted: (String) -> Unit = {},
     onEmojiSuggestionTapped: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
+    onSmartClipboardPaste: () -> Unit = {},
+    onSmartClipboardDismiss: () -> Unit = {},
     onToneToggle: () -> Unit = {},
     onToneDismiss: () -> Unit = {},
     onToneSelect: (ToneOption) -> Unit = {},
@@ -478,6 +480,8 @@ fun KeyboardScreen(
                         onEmojiSuggestionTapped = onEmojiSuggestionTapped,
                         onSmartCompose = onSmartCompose,
                         onUndoAutocorrect = onUndoGrammarFix,
+                        onSmartClipboardPaste = onSmartClipboardPaste,
+                        onSmartClipboardDismiss = onSmartClipboardDismiss,
                     )
                 }
 

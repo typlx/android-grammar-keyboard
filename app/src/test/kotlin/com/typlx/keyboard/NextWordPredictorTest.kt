@@ -8,9 +8,18 @@ class NextWordPredictorTest {
 
     private lateinit var predictor: NextWordPredictor
 
+    private val testBigrams = mapOf(
+        "i" to listOf("am", "have", "think", "want", "will"),
+        "you" to listOf("can", "are", "will", "have", "should"),
+        "thank" to listOf("you"),
+        "happy" to listOf("birthday", "to", "with", "new", "about"),
+        "good" to listOf("morning", "afternoon", "evening", "night", "luck"),
+        "hello" to listOf("there", "everyone", "team", "world"),
+    )
+
     @Before
     fun setUp() {
-        predictor = NextWordPredictor()
+        predictor = NextWordPredictor(testBigrams)
     }
 
     @Test
@@ -72,8 +81,8 @@ class NextWordPredictorTest {
     }
 
     @Test
-    fun `all bigram keys produce non-empty predictions`() {
-        for (key in NextWordPredictor.BIGRAMS.keys) {
+    fun `all test bigram keys produce non-empty predictions`() {
+        for (key in testBigrams.keys) {
             val result = predictor.predict(key)
             assertTrue("Bigram '$key' should produce results", result.isNotEmpty())
         }
@@ -87,5 +96,12 @@ class NextWordPredictorTest {
     @Test
     fun `hello returns there first`() {
         assertEquals("there", predictor.predict("hello").first())
+    }
+
+    @Test
+    fun `predictor with empty bigrams returns empty for all inputs`() {
+        val empty = NextWordPredictor(emptyMap())
+        assertTrue(empty.predict("hello").isEmpty())
+        assertTrue(empty.predict("i").isEmpty())
     }
 }

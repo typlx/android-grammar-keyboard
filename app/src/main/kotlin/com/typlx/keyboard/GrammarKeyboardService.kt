@@ -120,7 +120,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val wordPredictor by lazy { WordPredictor.fromContext(this) }
     private val autoCorrectManager = AutoCorrectManager()
     private val emojiSuggestionHelper = EmojiSuggestionHelper()
-    private val nextWordPredictor = NextWordPredictor()
+    private val nextWordPredictor by lazy { NextWordPredictor.fromContext(this) }
     private val swipeTypingDecoder = SwipeTypingDecoder()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)

@@ -113,7 +113,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val personalWordList = PersonalWordList()
     private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
-    private val wordPredictor = WordPredictor()
+    private val wordPredictor by lazy { WordPredictor.fromContext(this) }
     private val autoCorrectManager = AutoCorrectManager()
     private val emojiSuggestionHelper = EmojiSuggestionHelper()
     private val swipeTypingDecoder = SwipeTypingDecoder()
@@ -377,7 +377,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     fun onSwipePath(path: List<String>) {
-        val wordList = WordPredictor.COMMON_WORDS + personalWordList.getAll()
+        val wordList = wordPredictor.wordList + personalWordList.getAll()
         val words = swipeTypingDecoder.decode(path, wordList)
         if (words.isNotEmpty()) {
             suggestionState = SuggestionState.WordSuggestions(words)

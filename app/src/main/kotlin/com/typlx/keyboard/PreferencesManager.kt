@@ -39,6 +39,7 @@ class PreferencesManager(context: Context) {
         const val KEY_KEY_PRESS_PREVIEW = "key_press_preview_enabled"
         const val KEY_SWIPE_TYPING = "swipe_typing_enabled"
         const val KEY_LANDSCAPE_SPLIT = "landscape_split_enabled"
+        const val KEY_ONE_HANDED_MODE = "one_handed_mode"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -168,6 +169,14 @@ class PreferencesManager(context: Context) {
     var landscapeSplitEnabled: Boolean
         get() = prefs.getBoolean(KEY_LANDSCAPE_SPLIT, true)
         set(value) = prefs.edit().putBoolean(KEY_LANDSCAPE_SPLIT, value).apply()
+
+    var oneHandedMode: OneHandedMode
+        get() = try {
+            OneHandedMode.valueOf(prefs.getString(KEY_ONE_HANDED_MODE, "OFF") ?: "OFF")
+        } catch (_: IllegalArgumentException) {
+            OneHandedMode.OFF
+        }
+        set(value) = prefs.edit().putString(KEY_ONE_HANDED_MODE, value.name).apply()
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

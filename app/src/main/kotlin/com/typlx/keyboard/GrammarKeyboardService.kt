@@ -101,6 +101,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var landscapeSplitEnabled by mutableStateOf(true)
         private set
+    var oneHandedMode by mutableStateOf(OneHandedMode.OFF)
+        private set
     var isSmartComposing by mutableStateOf(false)
         private set
     var hasSelection by mutableStateOf(false)
@@ -135,9 +137,30 @@ class GrammarKeyboardService : InputMethodService(),
     private var lastSpacePressMs = 0L
 
     private var suggestionDebounceJob: Job? = null
+    private var clipboardSmartPasteJob: Job? = null
     // Counts how many upcoming onUpdateSelection callbacks to suppress (caused by our own
     // deleteSurroundingText / commitText calls when applying a suggestion).
     private var suppressSuggestionTriggerCount = 0
+
+    private val clipboardChangeListener = ClipboardManager.OnPrimaryClipChangedListener {
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return@OnPrimaryClipChangedListener
+        val text = cm.primaryClip
+            ?.takeIf { it.itemCount > 0 }
+            ?.getItemAt(0)
+            ?.coerceToText(applicationContext)
+            ?.toString()
+            ?.takeIf { it.isNotBlank() }
+            ?: return@OnPrimaryClipChangedListener
+        val detection = ClipboardSmartDetector.detect(text)
+        if (detection == ClipboardSmartDetector.Detection.None) return@OnPrimaryClipChangedListener
+        if (suggestionState is SuggestionState.Available || suggestionState == SuggestionState.Loading) return@OnPrimaryClipChangedListener
+        suggestionState = SuggestionState.ClipboardPaste(text, ClipboardSmartDetector.chipLabel(detection))
+        clipboardSmartPasteJob?.cancel()
+        clipboardSmartPasteJob = serviceScope.launch {
+            delay(30_000)
+            if (suggestionState is SuggestionState.ClipboardPaste) suggestionState = SuggestionState.Idle
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -182,6 +205,8 @@ class GrammarKeyboardService : InputMethodService(),
                 shortcuts = textShortcutsManager.getAll()
             }
         }
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        cm?.addPrimaryClipChangedListener(clipboardChangeListener)
     }
 
     override fun onCreateInputView(): View {
@@ -237,6 +262,8 @@ class GrammarKeyboardService : InputMethodService(),
                         onWordSuggestionAccepted = ::acceptWordSuggestion,
                         onEmojiSuggestionTapped = ::acceptEmojiSuggestion,
                         onSmartCompose = ::triggerSmartCompose,
+                        onSmartClipboardPaste = ::pasteSmartClipboard,
+                        onSmartClipboardDismiss = ::dismissSmartClipboard,
                         onToneToggle = { if (isTonePanel) dismissTonePanel() else openTonePanel() },
                         onToneDismiss = ::dismissTonePanel,
                         onToneSelect = ::launchToneRewrite,
@@ -273,6 +300,8 @@ class GrammarKeyboardService : InputMethodService(),
                         swipeTypingEnabled = swipeTypingEnabled,
                         landscapeSplitEnabled = landscapeSplitEnabled,
                         onSwipePath = ::onSwipePath,
+                        oneHandedMode = oneHandedMode,
+                        onOneHandedModeChange = ::applyOneHandedMode,
                     )
                 }
             }
@@ -440,6 +469,7 @@ class GrammarKeyboardService : InputMethodService(),
 
     override fun onFinishInputView(finishingInput: Boolean) {
         suggestionDebounceJob?.cancel()
+        clipboardSmartPasteJob?.cancel()
         suggestionState = SuggestionState.Idle
         isTonePanel = false
         toneError = null
@@ -453,6 +483,8 @@ class GrammarKeyboardService : InputMethodService(),
     override fun onDestroy() {
         keyboardView = null
         voiceInputManager.destroy()
+        val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        cm?.removePrimaryClipChangedListener(clipboardChangeListener)
         serviceScope.cancel()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         vmStore.clear()
@@ -472,6 +504,12 @@ class GrammarKeyboardService : InputMethodService(),
         keyPressPreviewEnabled = prefs.keyPressPreviewEnabled
         swipeTypingEnabled = prefs.swipeTypingEnabled
         landscapeSplitEnabled = prefs.landscapeSplitEnabled
+        oneHandedMode = prefs.oneHandedMode
+    }
+
+    private fun applyOneHandedMode(mode: OneHandedMode) {
+        oneHandedMode = mode
+        prefs.oneHandedMode = mode
     }
 
     // --- Auto-cap ---
@@ -629,6 +667,20 @@ class GrammarKeyboardService : InputMethodService(),
         hapticHelper.tap(keyboardView)
         clearUndoState()
         currentInputConnection?.commitText(text, 1)
+    }
+
+    fun pasteSmartClipboard() {
+        val state = suggestionState as? SuggestionState.ClipboardPaste ?: return
+        clipboardSmartPasteJob?.cancel()
+        hapticHelper.tap(keyboardView)
+        clearUndoState()
+        currentInputConnection?.commitText(state.text, 1)
+        suggestionState = SuggestionState.Idle
+    }
+
+    fun dismissSmartClipboard() {
+        clipboardSmartPasteJob?.cancel()
+        if (suggestionState is SuggestionState.ClipboardPaste) suggestionState = SuggestionState.Idle
     }
 
     fun clearClipboardHistory() {

@@ -130,6 +130,7 @@ private fun SettingsScreen(
     var emojiSuggestionsEnabled by remember { mutableStateOf(prefsManager.emojiSuggestionsEnabled) }
     var swipeTypingEnabled by remember { mutableStateOf(prefsManager.swipeTypingEnabled) }
     var landscapeSplitEnabled by remember { mutableStateOf(prefsManager.landscapeSplitEnabled) }
+    var oneHandedMode by remember { mutableStateOf(prefsManager.oneHandedMode) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -904,6 +905,42 @@ private fun SettingsScreen(
                         prefsManager.showNumberRow = it
                     },
                 )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "One-handed mode",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Text(
+                text = "Shrink keyboard to left or right for easier one-handed typing",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OneHandedMode.entries.forEach { mode ->
+                    FilterChip(
+                        selected = oneHandedMode == mode,
+                        onClick = {
+                            oneHandedMode = mode
+                            prefsManager.oneHandedMode = mode
+                        },
+                        label = {
+                            Text(
+                                text = when (mode) {
+                                    OneHandedMode.OFF -> "Off"
+                                    OneHandedMode.LEFT -> "Left"
+                                    OneHandedMode.RIGHT -> "Right"
+                                },
+                            )
+                        },
+                        modifier = Modifier.padding(horizontal = 4.dp),
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(8.dp))

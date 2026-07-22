@@ -129,6 +129,7 @@ private fun SettingsScreen(
     var smartComposeEnabled by remember { mutableStateOf(prefsManager.smartComposeEnabled) }
     var emojiSuggestionsEnabled by remember { mutableStateOf(prefsManager.emojiSuggestionsEnabled) }
     var swipeTypingEnabled by remember { mutableStateOf(prefsManager.swipeTypingEnabled) }
+    var landscapeSplitEnabled by remember { mutableStateOf(prefsManager.landscapeSplitEnabled) }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -588,6 +589,33 @@ private fun SettingsScreen(
                     onCheckedChange = {
                         swipeTypingEnabled = it
                         prefsManager.swipeTypingEnabled = it
+                    },
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "Split keyboard in landscape",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    Text(
+                        text = "Split the keyboard into two halves when the phone is horizontal",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = landscapeSplitEnabled,
+                    onCheckedChange = {
+                        landscapeSplitEnabled = it
+                        prefsManager.landscapeSplitEnabled = it
                     },
                 )
             }

@@ -99,6 +99,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var swipeTypingEnabled by mutableStateOf(true)
         private set
+    var landscapeSplitEnabled by mutableStateOf(true)
+        private set
     var isSmartComposing by mutableStateOf(false)
         private set
     var hasSelection by mutableStateOf(false)
@@ -269,6 +271,7 @@ class GrammarKeyboardService : InputMethodService(),
                         keyHeight = keyHeight,
                         keyPressPreviewEnabled = keyPressPreviewEnabled,
                         swipeTypingEnabled = swipeTypingEnabled,
+                        landscapeSplitEnabled = landscapeSplitEnabled,
                         onSwipePath = ::onSwipePath,
                     )
                 }
@@ -468,6 +471,7 @@ class GrammarKeyboardService : InputMethodService(),
         showNumberRow = prefs.showNumberRow
         keyPressPreviewEnabled = prefs.keyPressPreviewEnabled
         swipeTypingEnabled = prefs.swipeTypingEnabled
+        landscapeSplitEnabled = prefs.landscapeSplitEnabled
     }
 
     // --- Auto-cap ---

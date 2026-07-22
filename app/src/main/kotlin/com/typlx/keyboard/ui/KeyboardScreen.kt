@@ -38,6 +38,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import com.typlx.keyboard.KeyboardLayout
 import com.typlx.keyboard.LAYOUT_QWERTY
 import com.typlx.keyboard.OneHandedMode
@@ -147,6 +149,7 @@ fun KeyboardScreen(
     keyHeight: Dp = 46.dp,
     keyPressPreviewEnabled: Boolean = true,
     swipeTypingEnabled: Boolean = true,
+    landscapeSplitEnabled: Boolean = true,
     onSwipePath: (List<String>) -> Unit = {},
     oneHandedMode: OneHandedMode = OneHandedMode.OFF,
     onOneHandedModeChange: (OneHandedMode) -> Unit = {},
@@ -161,6 +164,9 @@ fun KeyboardScreen(
     // Triple: (displayLabel, isCaps, alternatives) — non-null when the alternatives bar is visible.
     var activeAlternatives by remember { mutableStateOf<Triple<String, Boolean, List<String>>?>(null) }
     val colors = LocalKeyboardColors.current
+    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isSplitLayout = isLandscape && landscapeSplitEnabled
+    val effectiveKeyHeight = if (isLandscape) (keyHeight.value * 0.70f).dp else keyHeight
     val onOneHandedToggle = {
         val next = when (oneHandedMode) {
             OneHandedMode.OFF -> OneHandedMode.LEFT
@@ -520,17 +526,36 @@ fun KeyboardScreen(
                 }
 
                 if (showNumberRow) {
-                    val numRowHeight = (keyHeight.value * 38f / 46f).dp
-                    NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
+                    val numRowHeight = (effectiveKeyHeight.value * 38f / 46f).dp
+                    if (isSplitLayout) {
+                        SplitNumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
+                    } else {
+                        NumberRow(keys = NUM_ROW, onKeyPress = onKeyPress, colors = colors, height = numRowHeight)
+                    }
                 }
 
                 if (isSymbols) {
-                    KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
-                    KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = keyHeight)
-                    SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = keyHeight)
+                    KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
+                    KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
+                    SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = effectiveKeyHeight)
+                } else if (isSplitLayout) {
+                    SplitKeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = effectiveKeyHeight)
+                    SplitKeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = effectiveKeyHeight)
+                    SplitAlphaRow3(
+                        keys = layout.row3,
+                        shiftState = shiftState,
+                        onShiftTap = onShiftTap,
+                        onKeyPress = shiftOnceKeyPress,
+                        onDelete = onDelete,
+                        onDeleteWord = onDeleteWord,
+                        onShowAlternatives = showAlternatives,
+                        alternativesMap = layout.longPressAlternatives,
+                        colors = colors,
+                        height = effectiveKeyHeight,
+                    )
                 } else {
-                    KeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
-                    KeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = keyHeight)
+                    KeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = effectiveKeyHeight)
+                    KeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = effectiveKeyHeight)
                     AlphaRow3(
                         keys = layout.row3,
                         shiftState = shiftState,
@@ -541,20 +566,33 @@ fun KeyboardScreen(
                         onShowAlternatives = showAlternatives,
                         alternativesMap = layout.longPressAlternatives,
                         colors = colors,
-                        height = keyHeight,
+                        height = effectiveKeyHeight,
                     )
                 }
 
-                BottomRow(
-                    isSymbols = isSymbols,
-                    onSymbolToggle = { isSymbols = !isSymbols },
-                    onKeyPress = shiftOnceKeyPress,
-                    onSpacePress = onSpacePress,
-                    onReturn = onReturn,
-                    returnKeyDescription = returnKeyDescription,
-                    colors = colors,
-                    height = keyHeight,
-                )
+                if (isSplitLayout) {
+                    SplitBottomRow(
+                        isSymbols = isSymbols,
+                        onSymbolToggle = { isSymbols = !isSymbols },
+                        onKeyPress = shiftOnceKeyPress,
+                        onSpacePress = onSpacePress,
+                        onReturn = onReturn,
+                        returnKeyDescription = returnKeyDescription,
+                        colors = colors,
+                        height = effectiveKeyHeight,
+                    )
+                } else {
+                    BottomRow(
+                        isSymbols = isSymbols,
+                        onSymbolToggle = { isSymbols = !isSymbols },
+                        onKeyPress = shiftOnceKeyPress,
+                        onSpacePress = onSpacePress,
+                        onReturn = onReturn,
+                        returnKeyDescription = returnKeyDescription,
+                        colors = colors,
+                        height = effectiveKeyHeight,
+                    )
+                }
             }
 
             // Swipe trail overlay

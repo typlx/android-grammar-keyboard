@@ -99,6 +99,8 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var swipeTypingEnabled by mutableStateOf(true)
         private set
+    var landscapeSplitEnabled by mutableStateOf(true)
+        private set
     var oneHandedMode by mutableStateOf(OneHandedMode.OFF)
         private set
     var isSmartComposing by mutableStateOf(false)
@@ -296,6 +298,7 @@ class GrammarKeyboardService : InputMethodService(),
                         keyHeight = keyHeight,
                         keyPressPreviewEnabled = keyPressPreviewEnabled,
                         swipeTypingEnabled = swipeTypingEnabled,
+                        landscapeSplitEnabled = landscapeSplitEnabled,
                         onSwipePath = ::onSwipePath,
                         oneHandedMode = oneHandedMode,
                         onOneHandedModeChange = ::applyOneHandedMode,
@@ -500,6 +503,7 @@ class GrammarKeyboardService : InputMethodService(),
         showNumberRow = prefs.showNumberRow
         keyPressPreviewEnabled = prefs.keyPressPreviewEnabled
         swipeTypingEnabled = prefs.swipeTypingEnabled
+        landscapeSplitEnabled = prefs.landscapeSplitEnabled
         oneHandedMode = prefs.oneHandedMode
     }
 

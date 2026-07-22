@@ -20,15 +20,15 @@ class ClipboardSmartDetectorTest {
     }
 
     @Test
-    fun `8-digit number is detected as OTP`() {
-        val result = ClipboardSmartDetector.detect("12345678")
-        assertTrue(result is ClipboardSmartDetector.Detection.Otp)
+    fun `7-digit number is NOT detected as OTP — avoids phone misclassification`() {
+        val result = ClipboardSmartDetector.detect("1234567")
+        assertFalse("7-digit number should not be OTP", result is ClipboardSmartDetector.Detection.Otp)
     }
 
     @Test
-    fun `spaced 4+4 digit code is detected as OTP`() {
-        val result = ClipboardSmartDetector.detect("1234 5678")
-        assertTrue(result is ClipboardSmartDetector.Detection.Otp)
+    fun `8-digit number is NOT detected as OTP`() {
+        val result = ClipboardSmartDetector.detect("12345678")
+        assertFalse("8-digit number should not be OTP (narrowed to 4-6)", result is ClipboardSmartDetector.Detection.Otp)
     }
 
     @Test
@@ -41,6 +41,12 @@ class ClipboardSmartDetectorTest {
     fun `9-digit number is NOT detected as OTP`() {
         val result = ClipboardSmartDetector.detect("123456789")
         assertFalse(result is ClipboardSmartDetector.Detection.Otp)
+    }
+
+    @Test
+    fun `5-digit number is detected as OTP`() {
+        val result = ClipboardSmartDetector.detect("12345")
+        assertTrue(result is ClipboardSmartDetector.Detection.Otp)
     }
 
     // URL detection

@@ -14,7 +14,7 @@ object ClipboardSmartDetector {
         object None : Detection()
     }
 
-    private val OTP_REGEX = Regex("""^\d{4,8}$|^\d{3}[\s\-]\d{3,5}$|^\d{4}[\s\-]\d{4}$""")
+    private val OTP_REGEX = Regex("""^\d{4,6}$""")
     private val PHONE_REGEX = Regex("""^\+?[\d\s\-().]{7,15}$""")
     private val URL_REGEX = Regex("""^https?://\S+$""", RegexOption.IGNORE_CASE)
     private val EMAIL_REGEX = Regex("""^\S+@\S+\.\S{2,}$""")

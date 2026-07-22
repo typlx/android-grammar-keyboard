@@ -36,6 +36,33 @@ internal fun NumberRow(
 }
 
 @Composable
+private fun RowScope.KeyCell(
+    key: String,
+    isCaps: Boolean,
+    onKeyPress: (String) -> Unit,
+    colors: KeyboardColors,
+    onShowAlternatives: ((String, Boolean, List<String>) -> Unit)? = null,
+    alternativesMap: Map<String, List<String>> = KEY_ALTERNATIVES,
+    height: Dp = 46.dp,
+) {
+    val label = if (isCaps) key.uppercase() else key
+    val rawAlts = alternativesMap[key.lowercase()]
+    val alts = if (rawAlts != null && onShowAlternatives != null) {
+        if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
+    } else null
+    KeyButton(
+        label = label,
+        contentDescription = "Letter ${label.uppercase()}",
+        modifier = Modifier.weight(1f),
+        height = height,
+        bgColor = colors.keyBg,
+        textColor = colors.keyText,
+        onClick = { onKeyPress(label) },
+        onLongPress = if (alts != null) { { onShowAlternatives!!(label, isCaps, alts) } } else null,
+    )
+}
+
+@Composable
 internal fun KeyRow(
     keys: List<String>,
     isCaps: Boolean,
@@ -50,23 +77,7 @@ internal fun KeyRow(
         horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally),
     ) {
         keys.forEach { key ->
-            val label = if (isCaps) key.uppercase() else key
-            val rawAlts = alternativesMap[key.lowercase()]
-            val alts = if (rawAlts != null && onShowAlternatives != null) {
-                if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
-            } else null
-            KeyButton(
-                label = label,
-                contentDescription = "Letter ${label.uppercase()}",
-                modifier = Modifier.weight(1f),
-                height = height,
-                bgColor = colors.keyBg,
-                textColor = colors.keyText,
-                onClick = { onKeyPress(label) },
-                onLongPress = if (alts != null) {
-                    { onShowAlternatives!!(label, isCaps, alts) }
-                } else null,
-            )
+            KeyCell(key, isCaps, onKeyPress, colors, onShowAlternatives, alternativesMap, height)
         }
     }
 }
@@ -107,23 +118,7 @@ internal fun AlphaRow3(
             onClick = onShiftTap,
         )
         keys.forEach { key ->
-            val label = if (isCaps) key.uppercase() else key
-            val rawAlts = alternativesMap[key.lowercase()]
-            val alts = if (rawAlts != null && onShowAlternatives != null) {
-                if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
-            } else null
-            KeyButton(
-                label = label,
-                contentDescription = "Letter ${label.uppercase()}",
-                modifier = Modifier.weight(1f),
-                height = height,
-                bgColor = colors.keyBg,
-                textColor = colors.keyText,
-                onClick = { onKeyPress(label) },
-                onLongPress = if (alts != null) {
-                    { onShowAlternatives!!(label, isCaps, alts) }
-                } else null,
-            )
+            KeyCell(key, isCaps, onKeyPress, colors, onShowAlternatives, alternativesMap, height)
         }
         DeleteButton(
             modifier = Modifier.weight(1.5f),
@@ -282,29 +277,13 @@ internal fun SplitKeyRow(
     Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally)) {
             leftKeys.forEach { key ->
-                val label = if (isCaps) key.uppercase() else key
-                val rawAlts = alternativesMap[key.lowercase()]
-                val alts = if (rawAlts != null && onShowAlternatives != null) {
-                    if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
-                } else null
-                KeyButton(label = label, contentDescription = "Letter ${label.uppercase()}",
-                    modifier = Modifier.weight(1f), height = height,
-                    bgColor = colors.keyBg, textColor = colors.keyText, onClick = { onKeyPress(label) },
-                    onLongPress = if (alts != null) { { onShowAlternatives!!(label, isCaps, alts) } } else null)
+                KeyCell(key, isCaps, onKeyPress, colors, onShowAlternatives, alternativesMap, height)
             }
         }
         Spacer(Modifier.width(SPLIT_GAP))
         Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally)) {
             rightKeys.forEach { key ->
-                val label = if (isCaps) key.uppercase() else key
-                val rawAlts = alternativesMap[key.lowercase()]
-                val alts = if (rawAlts != null && onShowAlternatives != null) {
-                    if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
-                } else null
-                KeyButton(label = label, contentDescription = "Letter ${label.uppercase()}",
-                    modifier = Modifier.weight(1f), height = height,
-                    bgColor = colors.keyBg, textColor = colors.keyText, onClick = { onKeyPress(label) },
-                    onLongPress = if (alts != null) { { onShowAlternatives!!(label, isCaps, alts) } } else null)
+                KeyCell(key, isCaps, onKeyPress, colors, onShowAlternatives, alternativesMap, height)
             }
         }
     }
@@ -341,29 +320,46 @@ internal fun SplitAlphaRow3(
                 textColor = if (isCaps) MaterialTheme.colorScheme.onPrimary else colors.keyText,
                 onClick = onShiftTap)
             leftKeys.forEach { key ->
-                val label = if (isCaps) key.uppercase() else key
-                val rawAlts = alternativesMap[key.lowercase()]
-                val alts = if (rawAlts != null && onShowAlternatives != null) {
-                    if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
-                } else null
-                KeyButton(label = label, contentDescription = "Letter ${label.uppercase()}",
-                    modifier = Modifier.weight(1f), height = height,
-                    bgColor = colors.keyBg, textColor = colors.keyText, onClick = { onKeyPress(label) },
-                    onLongPress = if (alts != null) { { onShowAlternatives!!(label, isCaps, alts) } } else null)
+                KeyCell(key, isCaps, onKeyPress, colors, onShowAlternatives, alternativesMap, height)
             }
         }
         Spacer(Modifier.width(SPLIT_GAP))
         Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
             rightKeys.forEach { key ->
-                val label = if (isCaps) key.uppercase() else key
-                val rawAlts = alternativesMap[key.lowercase()]
-                val alts = if (rawAlts != null && onShowAlternatives != null) {
-                    if (isCaps) rawAlts.map { it.uppercase() } else rawAlts
-                } else null
-                KeyButton(label = label, contentDescription = "Letter ${label.uppercase()}",
+                KeyCell(key, isCaps, onKeyPress, colors, onShowAlternatives, alternativesMap, height)
+            }
+            DeleteButton(modifier = Modifier.weight(1.5f), colors = colors,
+                height = height, onDelete = onDelete, onDeleteWord = onDeleteWord)
+        }
+    }
+}
+
+@Composable
+internal fun SplitSymbolRow3(
+    keys: List<String>,
+    onKeyPress: (String) -> Unit,
+    onDelete: () -> Unit,
+    onDeleteWord: () -> Unit,
+    colors: KeyboardColors,
+    height: Dp = 46.dp,
+) {
+    val mid = keys.size / 2
+    val leftKeys = keys.take(mid)
+    val rightKeys = keys.drop(mid)
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+            leftKeys.forEach { key ->
+                KeyButton(label = key, contentDescription = key,
                     modifier = Modifier.weight(1f), height = height,
-                    bgColor = colors.keyBg, textColor = colors.keyText, onClick = { onKeyPress(label) },
-                    onLongPress = if (alts != null) { { onShowAlternatives!!(label, isCaps, alts) } } else null)
+                    bgColor = colors.keyBg, textColor = colors.keyText, onClick = { onKeyPress(key) })
+            }
+        }
+        Spacer(Modifier.width(SPLIT_GAP))
+        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
+            rightKeys.forEach { key ->
+                KeyButton(label = key, contentDescription = key,
+                    modifier = Modifier.weight(1f), height = height,
+                    bgColor = colors.keyBg, textColor = colors.keyText, onClick = { onKeyPress(key) })
             }
             DeleteButton(modifier = Modifier.weight(1.5f), colors = colors,
                 height = height, onDelete = onDelete, onDeleteWord = onDeleteWord)

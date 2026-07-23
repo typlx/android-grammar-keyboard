@@ -59,6 +59,30 @@ class LanguageDetectorTest {
         assertNull(LanguageDetector.detectLanguage(text, InputLanguage.ENGLISH, allEnabled))
     }
 
+    // --- Latin diacritics detection ---
+
+    @Test
+    fun `detects Latin script for heavily-accented French text`() {
+        // é è ê à ç ù are Latin Extended — must exceed 70% threshold
+        val text = "éléphant crème brûlée café résumé naïve"
+        val result = LanguageDetector.detectLanguage(text, InputLanguage.UKRAINIAN, enUk)
+        assertEquals(InputLanguage.ENGLISH, result)
+    }
+
+    @Test
+    fun `detects Latin script for Portuguese text with diacritics`() {
+        val text = "ação opinião comunicação nação coração paixão"
+        val result = LanguageDetector.detectLanguage(text, InputLanguage.UKRAINIAN, enUk)
+        assertEquals(InputLanguage.ENGLISH, result)
+    }
+
+    @Test
+    fun `detects Latin script for German text with umlauts`() {
+        val text = "Entschuldigung Straßenbahn Überraschung schöne Möglichkeit"
+        val result = LanguageDetector.detectLanguage(text, InputLanguage.UKRAINIAN, enUk)
+        assertEquals(InputLanguage.ENGLISH, result)
+    }
+
     // --- Mixed / inconclusive ---
 
     @Test

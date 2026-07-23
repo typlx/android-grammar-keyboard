@@ -27,6 +27,7 @@ class FeatureGateTest {
             FeatureGate.Feature.TONE_SUGGESTIONS,
             FeatureGate.Feature.EXTENDED_DOCUMENT_LENGTH,
             FeatureGate.Feature.CUSTOM_DICTIONARY,
+            FeatureGate.Feature.CUSTOM_COLOR_SCHEME,
         )
         premiumOnlyFeatures.forEach { feature ->
             assertFalse(
@@ -48,6 +49,7 @@ class FeatureGateTest {
             FeatureGate.Feature.TONE_SUGGESTIONS,
             FeatureGate.Feature.EXTENDED_DOCUMENT_LENGTH,
             FeatureGate.Feature.CUSTOM_DICTIONARY,
+            FeatureGate.Feature.CUSTOM_COLOR_SCHEME,
         )
         assertEquals(
             "Some Feature values are not covered by FeatureGateTest — add them with an explicit tier assertion",

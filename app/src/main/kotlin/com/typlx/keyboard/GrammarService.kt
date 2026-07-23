@@ -24,8 +24,15 @@ class GrammarService(
         const val SYSTEM_PROMPT =
             "Fix grammar and spelling in the following text. Return only the corrected text, nothing else. Preserve the original language, tone, and formatting."
 
-        fun buildSystemPrompt(suffix: String): String =
-            if (suffix.isBlank()) SYSTEM_PROMPT else "$SYSTEM_PROMPT $suffix"
+        fun buildSystemPrompt(language: InputLanguage? = null, suffix: String = ""): String {
+            val base = if (language != null)
+                "Fix grammar and spelling in the following ${language.displayName} text. Return only the corrected text, nothing else. Preserve the original tone and formatting."
+            else SYSTEM_PROMPT
+            return if (suffix.isBlank()) base else "$base $suffix"
+        }
+
+        /** Kept for callers that don't pass a language yet. */
+        fun buildSystemPrompt(suffix: String): String = buildSystemPrompt(null, suffix)
         private const val TEMPERATURE = 0.3
         private const val TIMEOUT_SECONDS = 30L
         private const val MAX_RETRIES = 2
@@ -77,9 +84,13 @@ class GrammarService(
         text: String,
         systemPrompt: String = SYSTEM_PROMPT,
         systemPromptSuffix: String = "",
+        language: InputLanguage? = null,
     ): String {
-        val resolvedPrompt = if (systemPromptSuffix.isBlank()) systemPrompt
-                             else buildSystemPrompt(systemPromptSuffix)
+        val resolvedPrompt = when {
+            language != null -> buildSystemPrompt(language, systemPromptSuffix)
+            systemPromptSuffix.isNotBlank() -> buildSystemPrompt(suffix = systemPromptSuffix)
+            else -> systemPrompt
+        }
         var lastException: GrammarServiceException? = null
         for (attempt in 0..maxRetries) {
             try {

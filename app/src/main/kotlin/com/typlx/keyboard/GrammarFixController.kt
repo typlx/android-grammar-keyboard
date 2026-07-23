@@ -4,8 +4,10 @@ import android.view.inputmethod.InputConnection
 
 class GrammarFixController(
     private val grammarService: GrammarService,
-    private val personalWordList: PersonalWordList,
+    private val wordListProvider: () -> PersonalWordList,
 ) {
+    constructor(service: GrammarService, wordList: PersonalWordList) : this(service, { wordList })
+
     data class FixResult(val original: String, val fixed: String)
 
     /**
@@ -25,13 +27,15 @@ class GrammarFixController(
         token: String,
         systemPromptSuffix: String = "",
         hasSelection: Boolean = false,
+        language: InputLanguage? = null,
     ): Result<FixResult?> = runCatching {
+        val personalWordList = wordListProvider()
         val selectedText = if (hasSelection) ic.getSelectedText(0)?.toString() else null
         val isRealSelection = !selectedText.isNullOrBlank()
         val text = if (isRealSelection) selectedText!! else ic.getTextBeforeCursor(5000, 0)?.toString()
         if (text.isNullOrBlank()) throw GrammarServiceException("No text found")
         val fixed = grammarService.fixGrammar(apiUrl, model, token, text,
-            systemPromptSuffix = systemPromptSuffix)
+            systemPromptSuffix = systemPromptSuffix, language = language)
         if (personalWordList.shouldSuppressCorrection(text, fixed)) return@runCatching null
         if (isRealSelection) {
             // commitText replaces the current selection in-place

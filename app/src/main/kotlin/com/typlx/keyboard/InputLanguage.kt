@@ -18,7 +18,15 @@ enum class InputLanguage(
     SPANISH("ES", "Spanish", "es_ES", LayoutId.QWERTY),
     FRENCH("FR", "French", "fr_FR", LayoutId.AZERTY),
     GERMAN("DE", "German", "de_DE", LayoutId.QWERTZ),
+    PORTUGUESE("PT", "Portuguese", "pt_BR", LayoutId.QWERTY),
     ;
+
+    /** Unicode script family used for auto-detection heuristics. */
+    val scriptFamily: ScriptFamily
+        get() = when (defaultLayoutId) {
+            LayoutId.CYRILLIC -> ScriptFamily.CYRILLIC
+            else -> ScriptFamily.LATIN
+        }
 
     companion object {
         const val FREE_TIER_LIMIT = 2
@@ -43,3 +51,6 @@ enum class InputLanguage(
         }
     }
 }
+
+/** Unicode script category used for keyboard language auto-detection. */
+enum class ScriptFamily { LATIN, CYRILLIC }

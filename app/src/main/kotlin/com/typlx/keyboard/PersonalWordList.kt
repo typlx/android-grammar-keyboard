@@ -4,6 +4,11 @@ package com.typlx.keyboard
  *  Pure class — no Android dependencies; persistence handled by the caller. */
 class PersonalWordList(val maxSize: Int = 500) {
 
+    companion object {
+        /** Maximum custom words allowed on the free tier. Premium unlocks unlimited. */
+        const val FREE_WORD_LIMIT = 100
+    }
+
     private val words = mutableSetOf<String>()
 
     val size: Int get() = words.size

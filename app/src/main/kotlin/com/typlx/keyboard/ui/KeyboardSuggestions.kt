@@ -1,7 +1,9 @@
 package com.typlx.keyboard.ui
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,12 +46,14 @@ import com.typlx.keyboard.DiffKind
 import com.typlx.keyboard.SuggestionState
 import com.typlx.keyboard.ui.theme.KeyboardColors
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 internal fun SuggestionStrip(
     state: SuggestionState,
     isSmartComposing: Boolean = false,
     onAccept: () -> Unit,
     onDismiss: () -> Unit,
+    onAddToDictionary: (() -> Unit)? = null,
     onWordSuggestionAccepted: (String) -> Unit = {},
     onEmojiSuggestionTapped: (String) -> Unit = {},
     onSmartCompose: () -> Unit = {},
@@ -198,7 +202,7 @@ internal fun SuggestionStrip(
                 }
             }
             SuggestionChip(
-                onClick = onAccept,
+                onClick = {},
                 label = {
                     Text(
                         text = chipLabel,
@@ -209,7 +213,12 @@ internal fun SuggestionStrip(
                 },
                 modifier = Modifier
                     .weight(1f)
-                    .semantics { contentDescription = "Grammar suggestion: ${state.corrected}. Tap to accept." },
+                    .combinedClickable(
+                        onClick = onAccept,
+                        onLongClick = onAddToDictionary,
+                        onLongClickLabel = "Add to dictionary",
+                    )
+                    .semantics { contentDescription = "Grammar suggestion: ${state.corrected}. Tap to accept, long-press to add to dictionary." },
             )
             IconButton(
                 onClick = onDismiss,

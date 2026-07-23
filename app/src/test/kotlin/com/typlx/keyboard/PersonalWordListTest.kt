@@ -20,11 +20,12 @@ class PersonalWordListTest {
     }
 
     @Test
-    fun `add word returns true and is case-insensitively accessible`() {
+    fun `add word returns true and preserves original casing`() {
         assertTrue(list.add("Kotlin"))
         assertEquals(1, list.size)
         assertTrue(list.contains("kotlin"))
         assertTrue(list.contains("Kotlin"))
+        assertEquals(listOf("Kotlin"), list.getAll())
     }
 
     @Test
@@ -209,5 +210,50 @@ class PersonalWordListTest {
         val restored = PersonalWordList(maxSize = 10)
         restored.importFromText(exported)
         assertEquals(list.getAll(), restored.getAll())
+    }
+
+    // --- addChangedTokens ---
+
+    @Test
+    fun `addChangedTokens adds only the differing original tokens`() {
+        val added = list.addChangedTokens("I wrk at home", "I work at home")
+        assertTrue(added)
+        assertTrue(list.contains("wrk"))
+        assertFalse(list.contains("i"))
+        assertFalse(list.contains("at"))
+        assertFalse(list.contains("home"))
+    }
+
+    @Test
+    fun `addChangedTokens returns false when token counts differ`() {
+        val added = list.addChangedTokens("short", "much longer text here")
+        assertFalse(added)
+        assertEquals(0, list.size)
+    }
+
+    @Test
+    fun `addChangedTokens returns false when texts are identical`() {
+        val added = list.addChangedTokens("same text", "same text")
+        assertFalse(added)
+        assertEquals(0, list.size)
+    }
+
+    @Test
+    fun `addChangedTokens preserves original casing of added tokens`() {
+        // Grammar engine "corrects" mixed-case proper noun "GPT-4o" to "gpt4"
+        list.addChangedTokens("GPT-4o is great", "gpt4 is great")
+        assertEquals(listOf("GPT-4o"), list.getAll())
+    }
+
+    @Test
+    fun `addChangedTokens after adding suppresses that correction`() {
+        list.addChangedTokens("I wrk at Google", "I work at Google")
+        assertTrue(list.shouldSuppressCorrection("I wrk at Google", "I work at Google"))
+    }
+
+    @Test
+    fun `addChangedTokens strips trailing punctuation before adding`() {
+        list.addChangedTokens("I like teh.", "I like the.")
+        assertTrue(list.contains("teh"))
     }
 }

@@ -3,15 +3,13 @@ package com.typlx.keyboard
 /**
  * Contract for user authentication.
  *
- * The production implementation will use Supabase Auth (as recommended in TYP-145).
- * The stub ([StubAuthRepository]) is the active implementation until TYP-124 is
- * approved and a Supabase project URL + anon key are available.
+ * The production implementation uses Firebase Auth ([FirebaseAuthRepository]).
+ * The stub ([StubAuthRepository]) remains the active implementation until the
+ * Firebase project is created (TYP-546) and google-services.json is available.
  *
- * Post-approval wiring checklist:
- * 1. Add Supabase Kotlin client to build.gradle.kts:
- *      implementation("io.github.jan-tennert.supabase:auth-kt:2.x.x")
- * 2. Create [SupabaseAuthRepository] implementing this interface.
- * 3. Wire it as the active implementation in the DI graph (or companion factory).
+ * Activation checklist:
+ * 1. Download google-services.json from Firebase console into app/.
+ * 2. Switch the active implementation from [StubAuthRepository] to [FirebaseAuthRepository].
  */
 interface AuthRepository {
     /** The currently authenticated user, or null if not signed in. */
@@ -41,7 +39,7 @@ sealed class AuthResult {
 }
 
 /**
- * Stub implementation — no real auth. Used until Supabase is configured.
+ * Stub implementation — no real auth. Used until Firebase is configured.
  *
  * Always reports no user signed in. This keeps the app fully functional
  * in passthrough mode while [FeatureGate] allows all features regardless.

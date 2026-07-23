@@ -525,6 +525,14 @@ class GrammarKeyboardService : InputMethodService(),
         super.onFinishInputView(finishingInput)
     }
 
+    // onWindowShown() fires every time the keyboard window becomes visible — including when the
+    // user returns from Settings to the same already-focused field (where onStartInputView()
+    // does not re-fire). This ensures theme changes apply immediately without a field-switch.
+    override fun onWindowShown() {
+        super.onWindowShown()
+        reloadThemePrefs()
+    }
+
     override fun onDestroy() {
         keyboardView = null
         voiceInputManager.destroy()

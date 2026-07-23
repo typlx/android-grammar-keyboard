@@ -27,6 +27,8 @@ object FeatureGate {
         EXTENDED_DOCUMENT_LENGTH,
         /** Custom user dictionary */
         CUSTOM_DICTIONARY,
+        /** Custom keyboard color scheme (key background, text color, accent color) */
+        CUSTOM_COLOR_SCHEME,
     }
 
     /**

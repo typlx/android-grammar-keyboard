@@ -24,6 +24,7 @@ import androidx.savedstate.SavedStateRegistryController
 import androidx.savedstate.SavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.Color
 import com.typlx.keyboard.ui.KeyboardScreen
 import com.typlx.keyboard.ui.theme.ThemePreset
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
@@ -84,6 +85,12 @@ class GrammarKeyboardService : InputMethodService(),
     var cornerRadiusDp by mutableStateOf(6)
         private set
     var keyAlphaPercent by mutableStateOf(100)
+        private set
+    var customKeyBgColor by mutableStateOf<Int?>(null)
+        private set
+    var customKeyTextColor by mutableStateOf<Int?>(null)
+        private set
+    var customAccentColor by mutableStateOf<Int?>(null)
         private set
     var activeNumPadConfig by mutableStateOf(NumPadConfig(false, false, false, false))
         private set
@@ -236,6 +243,9 @@ class GrammarKeyboardService : InputMethodService(),
                     preset = themePreset,
                     cornerRadiusDp = cornerRadiusDp,
                     keyAlphaPercent = keyAlphaPercent,
+                    customKeyBg = customKeyBgColor?.let { Color(it) },
+                    customKeyText = customKeyTextColor?.let { Color(it) },
+                    customAccent = customAccentColor?.let { Color(it) },
                 ) {
                     KeyboardScreen(
                         isFixingGrammar = isFixingGrammar,
@@ -533,6 +543,9 @@ class GrammarKeyboardService : InputMethodService(),
         keyAlphaPercent = prefs.keyAlphaPercent
         activeInputLanguage = prefs.activeInputLanguage
         enabledInputLanguages = prefs.enabledInputLanguages
+        customKeyBgColor = prefs.customKeyBgColor
+        customKeyTextColor = prefs.customKeyTextColor
+        customAccentColor = prefs.customAccentColor
         keyboardLayout = layoutById(prefs.keyboardLayoutId)
         keySizePreset = prefs.keySizePreset
         keyHeightDp = prefs.keyHeightDp

@@ -6,9 +6,13 @@ import android.os.Bundle
 import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -24,8 +28,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.dp
 import com.typlx.keyboard.ui.theme.ThemePreset
+import com.typlx.keyboard.ui.theme.ThemePreviewCard
 import com.typlx.keyboard.ui.theme.TyplxKeyboardTheme
 import kotlinx.coroutines.launch
 
@@ -131,6 +139,13 @@ private fun SettingsScreen(
     var swipeTypingEnabled by remember { mutableStateOf(prefsManager.swipeTypingEnabled) }
     var landscapeSplitEnabled by remember { mutableStateOf(prefsManager.landscapeSplitEnabled) }
     var oneHandedMode by remember { mutableStateOf(prefsManager.oneHandedMode) }
+
+    // Pending theme preset — updated on chip tap; saved to prefs only on Apply.
+    var pendingThemePreset by remember { mutableStateOf(prefsManager.themePreset) }
+    var customKeyBgColor by remember { mutableStateOf(prefsManager.customKeyBgColor) }
+    var customKeyTextColor by remember { mutableStateOf(prefsManager.customKeyTextColor) }
+    var customAccentColor by remember { mutableStateOf(prefsManager.customAccentColor) }
+    val customColorEnabled = FeatureGate.isEnabled(FeatureGate.Feature.CUSTOM_COLOR_SCHEME)
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -710,26 +725,137 @@ private fun SettingsScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                ThemePreset.entries.forEach { preset ->
-                    val label = when (preset) {
-                        ThemePreset.SYSTEM -> "System"
-                        ThemePreset.DARK -> "Dark"
-                        ThemePreset.LIGHT -> "Light"
-                        ThemePreset.AMOLED -> "AMOLED"
-                    }
+                val presetLabels = mapOf(
+                    ThemePreset.SYSTEM to "System",
+                    ThemePreset.LIGHT to "Light",
+                    ThemePreset.DARK to "Dark",
+                    ThemePreset.AMOLED to "AMOLED",
+                    ThemePreset.HIGH_CONTRAST to "Contrast",
+                )
+                presetLabels.entries.forEach { (preset, label) ->
                     FilterChip(
-                        selected = themePreset == preset,
-                        onClick = {
-                            themePreset = preset
-                            prefsManager.themePreset = preset
-                        },
+                        selected = pendingThemePreset == preset,
+                        onClick = { pendingThemePreset = preset },
                         label = { Text(label, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.weight(1f),
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
+
+            ThemePreviewCard(
+                preset = pendingThemePreset,
+                cornerRadiusDp = cornerRadiusDp,
+                customKeyBg = if (customColorEnabled) customKeyBgColor?.let { Color(it) } else null,
+                customKeyText = if (customColorEnabled) customKeyTextColor?.let { Color(it) } else null,
+                customAccent = if (customColorEnabled) customAccentColor?.let { Color(it) } else null,
+            )
+
+            if (pendingThemePreset != themePreset) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(
+                        onClick = { pendingThemePreset = themePreset },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Cancel") }
+                    Button(
+                        onClick = {
+                            themePreset = pendingThemePreset
+                            prefsManager.themePreset = pendingThemePreset
+                        },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("Apply Theme") }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Custom color scheme (premium)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = "Custom Colors",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                if (!customColorEnabled) {
+                    SuggestionChip(
+                        onClick = {},
+                        label = { Text("Premium", style = MaterialTheme.typography.labelSmall) },
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(6.dp))
+
+            val customColorPalette: List<Color?> = listOf(
+                null,
+                Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFFC62828),
+                Color(0xFF6A1B9A), Color(0xFFE65100), Color(0xFF00695C),
+                Color(0xFF4E342E), Color(0xFF37474F), Color(0xFF212121),
+                Color(0xFFF5F5F5),
+            )
+
+            listOf(
+                Triple("Key background", customKeyBgColor, { v: Int? ->
+                    customKeyBgColor = v
+                    if (customColorEnabled) prefsManager.customKeyBgColor = v
+                }),
+                Triple("Text color", customKeyTextColor, { v: Int? ->
+                    customKeyTextColor = v
+                    if (customColorEnabled) prefsManager.customKeyTextColor = v
+                }),
+                Triple("Accent color", customAccentColor, { v: Int? ->
+                    customAccentColor = v
+                    if (customColorEnabled) prefsManager.customAccentColor = v
+                }),
+            ).forEach { (label, currentValue, onPick) ->
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp),
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    customColorPalette.forEach { swatchColor ->
+                        val isSelected = if (swatchColor == null) currentValue == null
+                                         else currentValue == swatchColor.toArgb()
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(swatchColor ?: MaterialTheme.colorScheme.surfaceVariant)
+                                .then(
+                                    if (isSelected) Modifier.border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
+                                    else Modifier
+                                )
+                                .then(
+                                    if (customColorEnabled) Modifier.clickable { onPick(swatchColor?.toArgb()) }
+                                    else Modifier
+                                ),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (swatchColor == null) {
+                                Text(
+                                    text = "×",
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    style = MaterialTheme.typography.labelLarge,
+                                )
+                            }
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = "Keyboard layout",

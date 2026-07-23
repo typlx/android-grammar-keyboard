@@ -40,6 +40,9 @@ class PreferencesManager(context: Context) {
         const val KEY_SWIPE_TYPING = "swipe_typing_enabled"
         const val KEY_LANDSCAPE_SPLIT = "landscape_split_enabled"
         const val KEY_ONE_HANDED_MODE = "one_handed_mode"
+        const val KEY_CUSTOM_KEY_BG = "custom_key_bg_color"
+        const val KEY_CUSTOM_KEY_TEXT = "custom_key_text_color"
+        const val KEY_CUSTOM_ACCENT = "custom_accent_color"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -177,6 +180,28 @@ class PreferencesManager(context: Context) {
             OneHandedMode.OFF
         }
         set(value) = prefs.edit().putString(KEY_ONE_HANDED_MODE, value.name).apply()
+
+    // Stored as decimal string of the ARGB Int; null means "use preset default".
+    var customKeyBgColor: Int?
+        get() = prefs.getString(KEY_CUSTOM_KEY_BG, null)?.toIntOrNull()
+        set(value) {
+            if (value == null) prefs.edit().remove(KEY_CUSTOM_KEY_BG).apply()
+            else prefs.edit().putString(KEY_CUSTOM_KEY_BG, value.toString()).apply()
+        }
+
+    var customKeyTextColor: Int?
+        get() = prefs.getString(KEY_CUSTOM_KEY_TEXT, null)?.toIntOrNull()
+        set(value) {
+            if (value == null) prefs.edit().remove(KEY_CUSTOM_KEY_TEXT).apply()
+            else prefs.edit().putString(KEY_CUSTOM_KEY_TEXT, value.toString()).apply()
+        }
+
+    var customAccentColor: Int?
+        get() = prefs.getString(KEY_CUSTOM_ACCENT, null)?.toIntOrNull()
+        set(value) {
+            if (value == null) prefs.edit().remove(KEY_CUSTOM_ACCENT).apply()
+            else prefs.edit().putString(KEY_CUSTOM_ACCENT, value.toString()).apply()
+        }
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

@@ -528,11 +528,8 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     fun switchToNextLanguage() {
-        val enabled = enabledInputLanguages
-        if (enabled.size < 2) return
-        val currentIdx = enabled.indexOf(activeInputLanguage)
-        val nextLang = enabled[(currentIdx + 1) % enabled.size]
-        switchToLanguage(nextLang)
+        val next = InputLanguage.nextLanguage(activeInputLanguage, enabledInputLanguages)
+        if (next != activeInputLanguage) switchToLanguage(next)
     }
 
     fun switchToLanguage(lang: InputLanguage) {

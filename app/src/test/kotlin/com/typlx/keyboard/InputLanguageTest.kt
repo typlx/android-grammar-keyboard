@@ -76,4 +76,76 @@ class InputLanguageTest {
             assertTrue("Locale tag blank for ${lang.name}", lang.localeTag.isNotBlank())
         }
     }
+
+    // --- nextLanguage (switchToNextLanguage logic) ---
+
+    @Test
+    fun `nextLanguage returns current when only one language enabled`() {
+        assertEquals(
+            InputLanguage.ENGLISH,
+            InputLanguage.nextLanguage(InputLanguage.ENGLISH, listOf(InputLanguage.ENGLISH))
+        )
+    }
+
+    @Test
+    fun `nextLanguage cycles forward through two enabled languages`() {
+        val enabled = listOf(InputLanguage.ENGLISH, InputLanguage.UKRAINIAN)
+        assertEquals(InputLanguage.UKRAINIAN, InputLanguage.nextLanguage(InputLanguage.ENGLISH, enabled))
+        assertEquals(InputLanguage.ENGLISH, InputLanguage.nextLanguage(InputLanguage.UKRAINIAN, enabled))
+    }
+
+    @Test
+    fun `nextLanguage cycles through all five enabled languages`() {
+        val all = InputLanguage.ALL
+        var current = all[0]
+        for (i in 1..all.size) {
+            current = InputLanguage.nextLanguage(current, all)
+        }
+        assertEquals("Full cycle should return to start", all[0], current)
+    }
+
+    @Test
+    fun `nextLanguage wraps around from last to first`() {
+        val enabled = listOf(InputLanguage.ENGLISH, InputLanguage.SPANISH, InputLanguage.FRENCH)
+        assertEquals(InputLanguage.ENGLISH, InputLanguage.nextLanguage(InputLanguage.FRENCH, enabled))
+    }
+
+    @Test
+    fun `nextLanguage handles current not in list by defaulting to first`() {
+        val enabled = listOf(InputLanguage.SPANISH, InputLanguage.FRENCH)
+        // ENGLISH is not in the enabled list — should wrap from index 0 to index 1
+        val next = InputLanguage.nextLanguage(InputLanguage.ENGLISH, enabled)
+        assertEquals(InputLanguage.FRENCH, next)
+    }
+
+    @Test
+    fun `nextLanguage returns current when enabled list is empty`() {
+        assertEquals(
+            InputLanguage.ENGLISH,
+            InputLanguage.nextLanguage(InputLanguage.ENGLISH, emptyList())
+        )
+    }
+
+    // --- switchToLanguage side-effects (layout mapping) ---
+
+    @Test
+    fun `switching to UKRAINIAN uses CYRILLIC layout`() {
+        assertEquals(LayoutId.CYRILLIC, layoutById(InputLanguage.UKRAINIAN.defaultLayoutId).id)
+    }
+
+    @Test
+    fun `switching to FRENCH uses AZERTY layout`() {
+        assertEquals(LayoutId.AZERTY, layoutById(InputLanguage.FRENCH.defaultLayoutId).id)
+    }
+
+    @Test
+    fun `switching to GERMAN uses QWERTZ layout`() {
+        assertEquals(LayoutId.QWERTZ, layoutById(InputLanguage.GERMAN.defaultLayoutId).id)
+    }
+
+    @Test
+    fun `switching to ENGLISH or SPANISH uses QWERTY layout`() {
+        assertEquals(LayoutId.QWERTY, layoutById(InputLanguage.ENGLISH.defaultLayoutId).id)
+        assertEquals(LayoutId.QWERTY, layoutById(InputLanguage.SPANISH.defaultLayoutId).id)
+    }
 }

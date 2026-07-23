@@ -29,5 +29,17 @@ enum class InputLanguage(
         fun fromCode(code: String): InputLanguage? = ALL.firstOrNull { it.code == code }
         fun fromName(name: String): InputLanguage? =
             runCatching { valueOf(name) }.getOrNull()
+
+        /**
+         * Pure function: given the current language and the ordered list of enabled
+         * languages, returns the next language to switch to (wraps around). If fewer
+         * than 2 languages are enabled, returns [current] unchanged.
+         */
+        fun nextLanguage(current: InputLanguage, enabled: List<InputLanguage>): InputLanguage {
+            if (enabled.size < 2) return current
+            val idx = enabled.indexOf(current)
+            val effectiveIdx = if (idx < 0) 0 else idx
+            return enabled[(effectiveIdx + 1) % enabled.size]
+        }
     }
 }

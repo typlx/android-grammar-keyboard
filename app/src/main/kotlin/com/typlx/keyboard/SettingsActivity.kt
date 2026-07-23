@@ -785,7 +785,13 @@ private fun SettingsScreen(
                             text = "${lang.code} — ${lang.displayName}",
                             style = MaterialTheme.typography.bodyMedium,
                         )
-                        if (lang.defaultLayoutId == LayoutId.CYRILLIC) {
+                        if (isEnglish) {
+                            Text(
+                                text = "Always on (required)",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        } else if (lang.defaultLayoutId == LayoutId.CYRILLIC) {
                             Text(
                                 text = "Cyrillic layout",
                                 style = MaterialTheme.typography.bodySmall,
@@ -802,7 +808,7 @@ private fun SettingsScreen(
                     }
                     Switch(
                         checked = isEnabled,
-                        enabled = isEnabled || !atLimit || isEnglish,
+                        enabled = !isEnglish && (isEnabled || !atLimit),
                         onCheckedChange = { checked ->
                             val newList = if (checked) {
                                 (enabledInputLanguages + lang).distinct()

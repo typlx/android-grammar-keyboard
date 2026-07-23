@@ -18,7 +18,8 @@ object FeatureGate {
     enum class Feature {
         /** Grammar correction using external LLM API */
         GRAMMAR_FIX,
-        /** Multi-language grammar support */
+        /** Multi-language keyboard: free tier allows [InputLanguage.FREE_TIER_LIMIT] languages;
+         *  premium unlocks all [InputLanguage.ALL] entries. */
         MULTI_LANGUAGE,
         /** Tone and style suggestions */
         TONE_SUGGESTIONS,
@@ -54,4 +55,12 @@ object FeatureGate {
 
     /** True if [feature] is available on the free tier regardless of subscription. */
     fun isFreeTier(feature: Feature): Boolean = feature in freeTierFeatures
+
+    /**
+     * Maximum number of enabled keyboard languages for the current user.
+     * Free tier: [InputLanguage.FREE_TIER_LIMIT]. Premium: all available.
+     */
+    fun maxEnabledLanguages(): Int =
+        if (isEnabled(Feature.MULTI_LANGUAGE)) InputLanguage.ALL.size
+        else InputLanguage.FREE_TIER_LIMIT
 }

@@ -32,15 +32,48 @@ class KeyboardLayoutTest {
         assertEquals(LAYOUT_AZERTY, layoutById(LayoutId.AZERTY))
         assertEquals(LAYOUT_QWERTZ, layoutById(LayoutId.QWERTZ))
         assertEquals(LAYOUT_DVORAK, layoutById(LayoutId.DVORAK))
+        assertEquals(LAYOUT_CYRILLIC, layoutById(LayoutId.CYRILLIC))
     }
 
     @Test
-    fun `ALL_LAYOUTS contains all four layouts`() {
-        assertEquals(4, ALL_LAYOUTS.size)
+    fun `ALL_LAYOUTS contains all five layouts`() {
+        assertEquals(5, ALL_LAYOUTS.size)
         assertTrue(ALL_LAYOUTS.any { it.id == LayoutId.QWERTY })
         assertTrue(ALL_LAYOUTS.any { it.id == LayoutId.AZERTY })
         assertTrue(ALL_LAYOUTS.any { it.id == LayoutId.QWERTZ })
         assertTrue(ALL_LAYOUTS.any { it.id == LayoutId.DVORAK })
+        assertTrue(ALL_LAYOUTS.any { it.id == LayoutId.CYRILLIC })
+    }
+
+    @Test
+    fun `CYRILLIC row1 starts with Ukrainian й`() {
+        assertEquals("й", LAYOUT_CYRILLIC.row1.first())
+    }
+
+    @Test
+    fun `CYRILLIC has 10 keys in row1`() {
+        assertEquals(10, LAYOUT_CYRILLIC.row1.size)
+    }
+
+    @Test
+    fun `CYRILLIC longPressAlternatives includes є for е`() {
+        val alts = LAYOUT_CYRILLIC.longPressAlternatives["е"]
+            ?: throw AssertionError("Missing alternatives for 'е'")
+        assertTrue(alts.contains("є"))
+    }
+
+    @Test
+    fun `CYRILLIC longPressAlternatives includes ї via з`() {
+        val alts = LAYOUT_CYRILLIC.longPressAlternatives["з"]
+            ?: throw AssertionError("Missing alternatives for 'з'")
+        assertTrue(alts.contains("ї"))
+    }
+
+    @Test
+    fun `CYRILLIC longPressAlternatives includes ґ for г`() {
+        val alts = LAYOUT_CYRILLIC.longPressAlternatives["г"]
+            ?: throw AssertionError("Missing alternatives for 'г'")
+        assertTrue(alts.contains("ґ"))
     }
 
     @Test

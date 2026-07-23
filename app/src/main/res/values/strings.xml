@@ -3,6 +3,11 @@
     <string name="app_name">Typlx Keyboard</string>
     <string name="ime_name">Typlx Keyboard</string>
     <string name="subtype_generic">English (US)</string>
+    <string name="subtype_en">English (US)</string>
+    <string name="subtype_uk">Ukrainian</string>
+    <string name="subtype_es">Spanish</string>
+    <string name="subtype_fr">French</string>
+    <string name="subtype_de">German</string>
     <string name="settings_title">Typlx Keyboard Settings</string>
     <string name="settings_api_url_label">API URL</string>
     <string name="settings_api_url_hint">https://api.openai.com</string>

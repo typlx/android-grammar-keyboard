@@ -20,11 +20,22 @@ class PersonalWordListTest {
     }
 
     @Test
-    fun `add word returns true and stores it lowercased`() {
+    fun `add word returns true and is case-insensitively accessible`() {
         assertTrue(list.add("Kotlin"))
         assertEquals(1, list.size)
         assertTrue(list.contains("kotlin"))
         assertTrue(list.contains("Kotlin"))
+    }
+
+    @Test
+    fun `getAll returns words with original casing`() {
+        list.add("London")
+        list.add("iPhone")
+        list.add("coroutines")
+        val all = list.getAll()
+        assertTrue("London" in all)
+        assertTrue("iPhone" in all)
+        assertTrue("coroutines" in all)
     }
 
     @Test

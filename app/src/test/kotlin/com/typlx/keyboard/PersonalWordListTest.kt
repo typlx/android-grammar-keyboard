@@ -20,11 +20,12 @@ class PersonalWordListTest {
     }
 
     @Test
-    fun `add word returns true and is case-insensitively accessible`() {
+    fun `add word returns true and preserves original casing`() {
         assertTrue(list.add("Kotlin"))
         assertEquals(1, list.size)
         assertTrue(list.contains("kotlin"))
         assertTrue(list.contains("Kotlin"))
+        assertEquals(listOf("Kotlin"), list.getAll())
     }
 
     @Test
@@ -235,6 +236,13 @@ class PersonalWordListTest {
         val added = list.addChangedTokens("same text", "same text")
         assertFalse(added)
         assertEquals(0, list.size)
+    }
+
+    @Test
+    fun `addChangedTokens preserves original casing of added tokens`() {
+        // Grammar engine "corrects" mixed-case proper noun "GPT-4o" to "gpt4"
+        list.addChangedTokens("GPT-4o is great", "gpt4 is great")
+        assertEquals(listOf("GPT-4o"), list.getAll())
     }
 
     @Test

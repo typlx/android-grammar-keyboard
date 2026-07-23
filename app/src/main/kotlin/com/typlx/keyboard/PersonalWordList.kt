@@ -23,7 +23,7 @@ class PersonalWordList(val maxSize: Int = 500) {
         return true
     }
 
-    /** Removes a word. No-op if not present. */
+    /** Removes a word (case-insensitive). No-op if not present. */
     fun remove(word: String) {
         words.remove(word.trim().lowercase())
     }
@@ -72,8 +72,8 @@ class PersonalWordList(val maxSize: Int = 500) {
                 .replace("\\\"", "\"")
                 .replace("\\\\", "\\")
             if (entry.isNotBlank()) {
-                val e = entry.trim()
-                words[e.lowercase()] = e
+                val entryTrimmed = entry.trim()
+                words[entryTrimmed.lowercase()] = entryTrimmed
             }
         }
     }
@@ -108,7 +108,8 @@ class PersonalWordList(val maxSize: Int = 500) {
             .count { add(it) }
 
     /**
-     * Adds every token from [original] that differs from its counterpart in [corrected].
+     * Adds every token from [original] that differs from its counterpart in [corrected],
+     * preserving the original casing of each token.
      * Used when the user long-presses a grammar suggestion to suppress that specific correction.
      * Returns true if at least one word was successfully added.
      * Returns false when the token counts differ (structural change) or nothing was added.
@@ -119,9 +120,9 @@ class PersonalWordList(val maxSize: Int = 500) {
         if (origTokens.size != corrTokens.size) return false
         var added = false
         for (i in origTokens.indices) {
-            val ot = origTokens[i].trimEnd('.', ',', '!', '?', ';', ':').lowercase()
-            val ct = corrTokens[i].trimEnd('.', ',', '!', '?', ';', ':').lowercase()
-            if (ot != ct && add(ot)) added = true
+            val origToken = origTokens[i].trimEnd('.', ',', '!', '?', ';', ':')
+            val corrToken = corrTokens[i].trimEnd('.', ',', '!', '?', ';', ':')
+            if (origToken.lowercase() != corrToken.lowercase() && add(origToken)) added = true
         }
         return added
     }

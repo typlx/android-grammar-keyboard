@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.text.InputType
@@ -158,6 +159,10 @@ class GrammarKeyboardService : InputMethodService(),
     // deleteSurroundingText / commitText calls when applying a suggestion).
     private var suppressSuggestionTriggerCount = 0
 
+    private val wordListPrefsChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key == WORD_LIST_KEY) reloadPersonalWordList()
+    }
+
     private val clipboardChangeListener = ClipboardManager.OnPrimaryClipChangedListener {
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager ?: return@OnPrimaryClipChangedListener
         val text = cm.primaryClip
@@ -226,6 +231,8 @@ class GrammarKeyboardService : InputMethodService(),
         }
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         cm?.addPrimaryClipChangedListener(clipboardChangeListener)
+        getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+            .registerOnSharedPreferenceChangeListener(wordListPrefsChangeListener)
     }
 
     override fun onCreateInputView(): View {
@@ -539,6 +546,8 @@ class GrammarKeyboardService : InputMethodService(),
         voiceInputManager.destroy()
         val cm = getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
         cm?.removePrimaryClipChangedListener(clipboardChangeListener)
+        getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+            .unregisterOnSharedPreferenceChangeListener(wordListPrefsChangeListener)
         serviceScope.cancel()
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)
         vmStore.clear()

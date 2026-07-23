@@ -132,9 +132,29 @@ class ClipboardSmartDetectorTest {
     // Chip label formatting
 
     @Test
-    fun `OTP chip label shows code`() {
+    fun `6-digit OTP chip label masks trailing digits for shoulder-surf protection`() {
         val detection = ClipboardSmartDetector.Detection.Otp("123456")
-        assertEquals("Paste OTP: 123456", ClipboardSmartDetector.chipLabel(detection))
+        assertEquals("Paste OTP: 1234••", ClipboardSmartDetector.chipLabel(detection))
+    }
+
+    @Test
+    fun `4-digit OTP chip label shows all digits when length equals visible count`() {
+        val detection = ClipboardSmartDetector.Detection.Otp("9876")
+        assertEquals("Paste OTP: 9876", ClipboardSmartDetector.chipLabel(detection))
+    }
+
+    @Test
+    fun `5-digit OTP chip label masks one trailing digit`() {
+        val detection = ClipboardSmartDetector.Detection.Otp("12345")
+        assertEquals("Paste OTP: 1234•", ClipboardSmartDetector.chipLabel(detection))
+    }
+
+    @Test
+    fun `phone number chip label masks trailing digits`() {
+        val detection = ClipboardSmartDetector.Detection.PhoneNumber("+1 800 555 1234")
+        val label = ClipboardSmartDetector.chipLabel(detection)
+        assertTrue(label.startsWith("Paste number: +1 8"))
+        assertTrue(label.contains("•"))
     }
 
     @Test

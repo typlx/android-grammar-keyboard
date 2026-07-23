@@ -31,9 +31,15 @@ object ClipboardSmartDetector {
         }
     }
 
+    private fun maskTrailing(text: String, visibleCount: Int = 4): String {
+        val visible = text.take(visibleCount)
+        val masked = "•".repeat((text.length - visible.length).coerceAtLeast(0))
+        return "$visible$masked"
+    }
+
     fun chipLabel(detection: Detection): String = when (detection) {
-        is Detection.Otp -> "Paste OTP: ${detection.text.take(12)}"
-        is Detection.PhoneNumber -> "Paste number: ${detection.text.take(12)}"
+        is Detection.Otp -> "Paste OTP: ${maskTrailing(detection.text)}"
+        is Detection.PhoneNumber -> "Paste number: ${maskTrailing(detection.text)}"
         is Detection.Url -> "Paste URL: ${detection.text.take(30).let { if (detection.text.length > 30) "$it…" else it }}"
         is Detection.Email -> "Paste email: ${detection.text.take(20).let { if (detection.text.length > 20) "$it…" else it }}"
         Detection.None -> ""

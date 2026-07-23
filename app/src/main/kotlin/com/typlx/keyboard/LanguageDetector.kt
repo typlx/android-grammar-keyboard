@@ -37,7 +37,7 @@ object LanguageDetector {
 
     private fun dominantScript(letters: String): ScriptFamily? {
         val cyrillicCount = letters.count { it in 'Ѐ'..'ӿ' }
-        val latinCount = letters.count { it in 'a'..'z' || it in 'A'..'Z' }
+        val latinCount = letters.count { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.LATIN }
         val total = letters.length.toFloat()
 
         return when {

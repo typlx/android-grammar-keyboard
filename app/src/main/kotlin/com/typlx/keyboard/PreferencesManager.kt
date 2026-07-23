@@ -40,6 +40,8 @@ class PreferencesManager(context: Context) {
         const val KEY_SWIPE_TYPING = "swipe_typing_enabled"
         const val KEY_LANDSCAPE_SPLIT = "landscape_split_enabled"
         const val KEY_ONE_HANDED_MODE = "one_handed_mode"
+        const val KEY_ACTIVE_INPUT_LANGUAGE = "active_input_language"
+        const val KEY_ENABLED_INPUT_LANGUAGES = "enabled_input_languages"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -177,6 +179,31 @@ class PreferencesManager(context: Context) {
             OneHandedMode.OFF
         }
         set(value) = prefs.edit().putString(KEY_ONE_HANDED_MODE, value.name).apply()
+
+    var activeInputLanguage: InputLanguage
+        get() = try {
+            InputLanguage.valueOf(prefs.getString(KEY_ACTIVE_INPUT_LANGUAGE, "ENGLISH") ?: "ENGLISH")
+        } catch (_: IllegalArgumentException) {
+            InputLanguage.ENGLISH
+        }
+        set(value) = prefs.edit().putString(KEY_ACTIVE_INPUT_LANGUAGE, value.name).apply()
+
+    /**
+     * Ordered list of enabled keyboard languages. English is always first.
+     * Stored as a comma-separated string of [InputLanguage] names.
+     */
+    var enabledInputLanguages: List<InputLanguage>
+        get() {
+            val stored = prefs.getString(KEY_ENABLED_INPUT_LANGUAGES, null)
+            if (stored.isNullOrBlank()) return listOf(InputLanguage.ENGLISH)
+            return stored.split(",")
+                .mapNotNull { runCatching { InputLanguage.valueOf(it.trim()) }.getOrNull() }
+                .ifEmpty { listOf(InputLanguage.ENGLISH) }
+        }
+        set(value) {
+            val list = if (value.contains(InputLanguage.ENGLISH)) value else listOf(InputLanguage.ENGLISH) + value
+            prefs.edit().putString(KEY_ENABLED_INPUT_LANGUAGES, list.joinToString(",") { it.name }).apply()
+        }
 
     val isConfigured: Boolean
         get() = apiUrl.isNotBlank() && model.isNotBlank() && apiToken.isNotBlank()

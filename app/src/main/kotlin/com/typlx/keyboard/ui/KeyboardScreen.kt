@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
+import com.typlx.keyboard.InputLanguage
 import com.typlx.keyboard.KeyboardLayout
 import com.typlx.keyboard.LAYOUT_QWERTY
 import com.typlx.keyboard.OneHandedMode
@@ -141,6 +142,9 @@ fun KeyboardScreen(
     onPasteText: () -> Unit = {},
     hasSelection: Boolean = false,
     showNumberRow: Boolean = true,
+    activeInputLanguage: InputLanguage = InputLanguage.ENGLISH,
+    enabledInputLanguages: List<InputLanguage> = listOf(InputLanguage.ENGLISH),
+    onLanguageSwitch: () -> Unit = {},
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit = {},
     onVoiceErrorDismiss: () -> Unit = {},
@@ -273,6 +277,9 @@ fun KeyboardScreen(
                 onVoiceToggle = onVoiceToggle,
                 oneHandedMode = oneHandedMode,
                 onOneHandedModeToggle = onOneHandedToggle,
+                activeInputLanguage = activeInputLanguage,
+                enabledInputLanguages = enabledInputLanguages,
+                onLanguageSwitch = onLanguageSwitch,
             )
             ShortcutsPanel(
                 shortcuts = shortcuts,
@@ -318,6 +325,9 @@ fun KeyboardScreen(
                 onVoiceToggle = onVoiceToggle,
                 oneHandedMode = oneHandedMode,
                 onOneHandedModeToggle = onOneHandedToggle,
+                activeInputLanguage = activeInputLanguage,
+                enabledInputLanguages = enabledInputLanguages,
+                onLanguageSwitch = onLanguageSwitch,
             )
             ClipboardPanel(
                 items = clipboardItems,
@@ -363,6 +373,9 @@ fun KeyboardScreen(
                 onVoiceToggle = onVoiceToggle,
                 oneHandedMode = oneHandedMode,
                 onOneHandedModeToggle = onOneHandedToggle,
+                activeInputLanguage = activeInputLanguage,
+                enabledInputLanguages = enabledInputLanguages,
+                onLanguageSwitch = onLanguageSwitch,
             )
             CursorNavPanel(
                 onLeft = onMoveCursorLeft,
@@ -416,6 +429,9 @@ fun KeyboardScreen(
                 onVoiceToggle = onVoiceToggle,
                 oneHandedMode = oneHandedMode,
                 onOneHandedModeToggle = onOneHandedToggle,
+                activeInputLanguage = activeInputLanguage,
+                enabledInputLanguages = enabledInputLanguages,
+                onLanguageSwitch = onLanguageSwitch,
             )
             EmojiKeyboard(
                 recents = emojiRecents,
@@ -478,6 +494,9 @@ fun KeyboardScreen(
                     onVoiceToggle = onVoiceToggle,
                     oneHandedMode = oneHandedMode,
                     onOneHandedModeToggle = onOneHandedToggle,
+                    activeInputLanguage = activeInputLanguage,
+                    enabledInputLanguages = enabledInputLanguages,
+                    onLanguageSwitch = onLanguageSwitch,
                 )
 
                 when {
@@ -694,6 +713,8 @@ private fun ToolbarRow(
     isVoiceListening: Boolean,
     hasSelection: Boolean = false,
     oneHandedMode: OneHandedMode = OneHandedMode.OFF,
+    activeInputLanguage: InputLanguage = InputLanguage.ENGLISH,
+    enabledInputLanguages: List<InputLanguage> = listOf(InputLanguage.ENGLISH),
     onFixGrammar: () -> Unit,
     onErrorDismiss: () -> Unit,
     onUndoGrammarFix: () -> Unit,
@@ -706,6 +727,7 @@ private fun ToolbarRow(
     onOpenSettings: () -> Unit,
     onVoiceToggle: () -> Unit,
     onOneHandedModeToggle: () -> Unit = {},
+    onLanguageSwitch: () -> Unit = {},
 ) {
     Row(
         modifier = Modifier
@@ -911,6 +933,23 @@ private fun ToolbarRow(
                 color = if (oneHandedMode != OneHandedMode.OFF) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+
+        if (enabledInputLanguages.size > 1) {
+            TextButton(
+                onClick = onLanguageSwitch,
+                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp),
+                modifier = Modifier
+                    .height(36.dp)
+                    .semantics { contentDescription = "Switch keyboard language, current: ${activeInputLanguage.displayName}" },
+            ) {
+                Text(
+                    text = activeInputLanguage.code,
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
         }
 
         IconButton(

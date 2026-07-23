@@ -89,6 +89,10 @@ class GrammarKeyboardService : InputMethodService(),
         private set
     var keyboardLayout by mutableStateOf(LAYOUT_QWERTY)
         private set
+    var activeInputLanguage by mutableStateOf(InputLanguage.ENGLISH)
+        private set
+    var enabledInputLanguages by mutableStateOf(listOf(InputLanguage.ENGLISH))
+        private set
     var keySizePreset by mutableStateOf(KeySizePreset.NORMAL)
         private set
     var keyHeightDp by mutableIntStateOf(PreferencesManager.KEY_HEIGHT_DP_DEFAULT)
@@ -289,6 +293,9 @@ class GrammarKeyboardService : InputMethodService(),
                         onPasteText = { currentInputConnection?.performContextMenuAction(android.R.id.paste) },
                         hasSelection = hasSelection,
                         showNumberRow = showNumberRow,
+                        activeInputLanguage = activeInputLanguage,
+                        enabledInputLanguages = enabledInputLanguages,
+                        onLanguageSwitch = ::switchToNextLanguage,
                         onOpenSettings = ::openSettings,
                         onVoiceToggle = ::toggleVoiceInput,
                         onVoiceErrorDismiss = { voiceError = null },
@@ -342,6 +349,7 @@ class GrammarKeyboardService : InputMethodService(),
 
     private fun updateWordPredictions() {
         if (!prefs.wordPredictionEnabled) return
+        if (activeInputLanguage != InputLanguage.ENGLISH) return
         if (suggestionState is SuggestionState.Available || suggestionState == SuggestionState.Loading) return
         if (isPrivateField()) return
         val ic = currentInputConnection ?: return
@@ -507,6 +515,8 @@ class GrammarKeyboardService : InputMethodService(),
         themePreset = prefs.themePreset
         cornerRadiusDp = prefs.cornerRadiusDp
         keyAlphaPercent = prefs.keyAlphaPercent
+        activeInputLanguage = prefs.activeInputLanguage
+        enabledInputLanguages = prefs.enabledInputLanguages
         keyboardLayout = layoutById(prefs.keyboardLayoutId)
         keySizePreset = prefs.keySizePreset
         keyHeightDp = prefs.keyHeightDp
@@ -515,6 +525,22 @@ class GrammarKeyboardService : InputMethodService(),
         swipeTypingEnabled = prefs.swipeTypingEnabled
         landscapeSplitEnabled = prefs.landscapeSplitEnabled
         oneHandedMode = prefs.oneHandedMode
+    }
+
+    fun switchToNextLanguage() {
+        val enabled = enabledInputLanguages
+        if (enabled.size < 2) return
+        val currentIdx = enabled.indexOf(activeInputLanguage)
+        val nextLang = enabled[(currentIdx + 1) % enabled.size]
+        switchToLanguage(nextLang)
+    }
+
+    fun switchToLanguage(lang: InputLanguage) {
+        activeInputLanguage = lang
+        prefs.activeInputLanguage = lang
+        val newLayout = layoutById(lang.defaultLayoutId)
+        keyboardLayout = newLayout
+        prefs.keyboardLayoutId = newLayout.id
     }
 
     private fun applyOneHandedMode(mode: OneHandedMode) {
@@ -566,8 +592,9 @@ class GrammarKeyboardService : InputMethodService(),
             }
         }
 
-        // Local autocorrect: silently fix common typos on space press.
-        if (ic != null && prefs.autocorrectEnabled && !isPrivateField()) {
+        // Local autocorrect: silently fix common typos on space press (English dictionary only).
+        if (ic != null && prefs.autocorrectEnabled && !isPrivateField()
+            && activeInputLanguage == InputLanguage.ENGLISH) {
             val before = ic.getTextBeforeCursor(100, 0)?.toString() ?: ""
             val lastWord = before.trimEnd().substringAfterLast(' ').substringAfterLast('\n')
             if (lastWord.isNotEmpty()) {

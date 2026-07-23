@@ -119,6 +119,7 @@ private fun SettingsScreen(
     var cornerRadiusDp by remember { mutableIntStateOf(prefsManager.cornerRadiusDp) }
     var keyAlphaPercent by remember { mutableIntStateOf(prefsManager.keyAlphaPercent) }
     var selectedLayoutId by remember { mutableStateOf(prefsManager.keyboardLayoutId) }
+    var enabledInputLanguages by remember { mutableStateOf(prefsManager.enabledInputLanguages) }
     var keySizePreset by remember { mutableStateOf(prefsManager.keySizePreset) }
     var keyHeightDp by remember { mutableIntStateOf(prefsManager.keyHeightDp) }
     var showNumberRow by remember { mutableStateOf(prefsManager.showNumberRow) }
@@ -750,6 +751,71 @@ private fun SettingsScreen(
                         },
                         label = { Text(layout.displayName, style = MaterialTheme.typography.labelMedium) },
                         modifier = Modifier.weight(1f),
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Text(
+                text = "Keyboard languages",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Text(
+                text = "Free tier: up to ${InputLanguage.FREE_TIER_LIMIT} languages. Enable a language to show the quick-switch button on the keyboard.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp),
+            )
+            val maxLangs = FeatureGate.maxEnabledLanguages()
+            InputLanguage.ALL.forEach { lang ->
+                val isEnabled = enabledInputLanguages.contains(lang)
+                val isEnglish = lang == InputLanguage.ENGLISH
+                val atLimit = enabledInputLanguages.size >= maxLangs && !isEnabled
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "${lang.code} — ${lang.displayName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                        if (lang.defaultLayoutId == LayoutId.CYRILLIC) {
+                            Text(
+                                text = "Cyrillic layout",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                        if (atLimit && !isEnglish) {
+                            Text(
+                                text = "Upgrade to unlock more languages",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.primary,
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = isEnabled,
+                        enabled = isEnabled || !atLimit || isEnglish,
+                        onCheckedChange = { checked ->
+                            val newList = if (checked) {
+                                (enabledInputLanguages + lang).distinct()
+                            } else {
+                                enabledInputLanguages.filter { it != lang }
+                            }
+                            enabledInputLanguages = newList
+                            prefsManager.enabledInputLanguages = newList
+                            if (!newList.contains(prefsManager.activeInputLanguage)) {
+                                prefsManager.activeInputLanguage = newList.firstOrNull() ?: InputLanguage.ENGLISH
+                            }
+                        },
+                        modifier = Modifier.padding(start = 8.dp),
                     )
                 }
             }

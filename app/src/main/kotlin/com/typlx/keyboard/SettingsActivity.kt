@@ -748,6 +748,7 @@ private fun SettingsScreen(
             ThemePreviewCard(
                 preset = pendingThemePreset,
                 cornerRadiusDp = cornerRadiusDp,
+                keyAlphaPercent = keyAlphaPercent,
                 customKeyBg = if (customColorEnabled) customKeyBgColor?.let { Color(it) } else null,
                 customKeyText = if (customColorEnabled) customKeyTextColor?.let { Color(it) } else null,
                 customAccent = if (customColorEnabled) customAccentColor?.let { Color(it) } else null,

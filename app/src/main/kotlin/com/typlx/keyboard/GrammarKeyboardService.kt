@@ -120,6 +120,7 @@ class GrammarKeyboardService : InputMethodService(),
     private val wordPredictor by lazy { WordPredictor.fromContext(this) }
     private val autoCorrectManager = AutoCorrectManager()
     private val emojiSuggestionHelper = EmojiSuggestionHelper()
+    private val nextWordPredictor by lazy { NextWordPredictor.fromContext(this) }
     private val swipeTypingDecoder = SwipeTypingDecoder()
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -350,13 +351,18 @@ class GrammarKeyboardService : InputMethodService(),
     private fun buildWordSuggestionState(ic: InputConnection): SuggestionState {
         if (!prefs.wordPredictionEnabled) return SuggestionState.Idle
         val prefix = getCurrentWordPrefix(ic)
-        val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
-        val emojis = if (prefs.emojiSuggestionsEnabled && prefix.isEmpty()) {
-            emojiSuggestionHelper.suggest(getLastCompletedWord(ic))
-        } else emptyList()
-        return when {
-            predictions.isNotEmpty() || emojis.isNotEmpty() -> SuggestionState.WordSuggestions(predictions, emojis)
-            else -> SuggestionState.Idle
+        if (prefix.isNotEmpty()) {
+            val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
+            return if (predictions.isNotEmpty()) SuggestionState.WordSuggestions(predictions) else SuggestionState.Idle
+        }
+        // Between words: show next-word predictions and emoji suggestions for the last committed word.
+        val lastWord = getLastCompletedWord(ic)
+        val nextWords = nextWordPredictor.predict(lastWord)
+        val emojis = if (prefs.emojiSuggestionsEnabled) emojiSuggestionHelper.suggest(lastWord) else emptyList()
+        return if (nextWords.isNotEmpty() || emojis.isNotEmpty()) {
+            SuggestionState.WordSuggestions(nextWords, emojis)
+        } else {
+            SuggestionState.Idle
         }
     }
 

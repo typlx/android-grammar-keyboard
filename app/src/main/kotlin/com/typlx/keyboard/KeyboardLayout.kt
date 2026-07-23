@@ -1,6 +1,6 @@
 package com.typlx.keyboard
 
-enum class LayoutId { QWERTY, AZERTY, QWERTZ, DVORAK }
+enum class LayoutId { QWERTY, AZERTY, QWERTZ, DVORAK, CYRILLIC }
 
 data class KeyboardLayout(
     val id: LayoutId,
@@ -68,6 +68,22 @@ val LAYOUT_DVORAK = KeyboardLayout(
     ),
 )
 
-val ALL_LAYOUTS = listOf(LAYOUT_QWERTY, LAYOUT_AZERTY, LAYOUT_QWERTZ, LAYOUT_DVORAK)
+val LAYOUT_CYRILLIC = KeyboardLayout(
+    id = LayoutId.CYRILLIC,
+    displayName = "Кирилиця",
+    row1 = listOf("й", "ц", "у", "к", "е", "н", "г", "ш", "щ", "з"),
+    row2 = listOf("ф", "и", "в", "а", "п", "р", "о", "л", "д"),
+    row3 = listOf("я", "ч", "с", "м", "т", "ь", "б"),
+    longPressAlternatives = mapOf(
+        "е" to listOf("є", "э"),
+        "з" to listOf("х", "ї"),
+        "и" to listOf("і"),
+        "д" to listOf("ж"),
+        "б" to listOf("ю"),
+        "г" to listOf("ґ"),
+    ),
+)
+
+val ALL_LAYOUTS = listOf(LAYOUT_QWERTY, LAYOUT_AZERTY, LAYOUT_QWERTZ, LAYOUT_DVORAK, LAYOUT_CYRILLIC)
 
 fun layoutById(id: LayoutId): KeyboardLayout = ALL_LAYOUTS.first { it.id == id }

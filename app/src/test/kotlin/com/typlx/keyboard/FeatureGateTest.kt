@@ -55,4 +55,14 @@ class FeatureGateTest {
             checkedFeatures
         )
     }
+
+    @Test
+    fun `maxEnabledLanguages returns all in passthrough mode`() {
+        assertEquals(InputLanguage.ALL.size, FeatureGate.maxEnabledLanguages())
+    }
+
+    @Test
+    fun `maxEnabledLanguages is at least FREE_TIER_LIMIT`() {
+        assertTrue(FeatureGate.maxEnabledLanguages() >= InputLanguage.FREE_TIER_LIMIT)
+    }
 }

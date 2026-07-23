@@ -9,15 +9,17 @@ class PersonalWordList(val maxSize: Int = 500) {
         const val FREE_WORD_LIMIT = 100
     }
 
-    private val words = mutableSetOf<String>()
+    // lowercase key → original-cased value, for case-insensitive dedup + casing preservation
+    private val words = mutableMapOf<String, String>()
 
     val size: Int get() = words.size
 
-    /** Adds a word (lowercased, trimmed). Returns false if empty, duplicate, or at capacity. */
+    /** Adds a word, preserving original casing. Returns false if empty, duplicate, or at capacity. */
     fun add(word: String): Boolean {
-        val normalized = word.trim().lowercase()
-        if (normalized.isEmpty() || normalized in words || words.size >= maxSize) return false
-        words.add(normalized)
+        val trimmed = word.trim()
+        val key = trimmed.lowercase()
+        if (key.isEmpty() || key in words || words.size >= maxSize) return false
+        words[key] = trimmed
         return true
     }
 
@@ -29,8 +31,8 @@ class PersonalWordList(val maxSize: Int = 500) {
     /** Case-insensitive membership check. */
     fun contains(word: String): Boolean = word.trim().lowercase() in words
 
-    /** Returns all words sorted alphabetically. */
-    fun getAll(): List<String> = words.sorted()
+    /** Returns all words sorted alphabetically (case-insensitive), with original casing. */
+    fun getAll(): List<String> = words.values.sortedWith(String.CASE_INSENSITIVE_ORDER)
 
     /**
      * Returns true when the only textual differences between [original] and [corrected]
@@ -69,13 +71,16 @@ class PersonalWordList(val maxSize: Int = 500) {
             val entry = match.groupValues[1]
                 .replace("\\\"", "\"")
                 .replace("\\\\", "\\")
-            if (entry.isNotBlank()) words.add(entry.trim().lowercase())
+            if (entry.isNotBlank()) {
+                val e = entry.trim()
+                words[e.lowercase()] = e
+            }
         }
     }
 
     fun toJson(): String = buildString {
         append('[')
-        val sorted = words.sorted()
+        val sorted = words.values.sortedWith(String.CASE_INSENSITIVE_ORDER)
         sorted.forEachIndexed { i, word ->
             if (i > 0) append(',')
             append('"')

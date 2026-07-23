@@ -96,6 +96,24 @@ class SwipeTypingDecoderTest {
     }
 
     @Test
+    fun `proper noun from word list is returned with original casing`() {
+        val result = decoder.decode(
+            listOf("l", "o", "n", "d", "o", "n"),
+            listOf("London"),
+        )
+        assertEquals("London", result.firstOrNull())
+    }
+
+    @Test
+    fun `camel-cased brand name from word list preserves casing`() {
+        val result = decoder.decode(
+            listOf("i", "p", "h", "o", "n", "e"),
+            listOf("iPhone"),
+        )
+        assertEquals("iPhone", result.firstOrNull())
+    }
+
+    @Test
     fun `empty word list returns no results`() {
         val result = decoder.decode(listOf("t", "h", "e"), emptyList())
         assertTrue(result.isEmpty())

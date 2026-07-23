@@ -133,6 +133,7 @@ fun TyplxKeyboardTheme(
 fun ThemePreviewCard(
     preset: ThemePreset,
     cornerRadiusDp: Int = 6,
+    keyAlphaPercent: Int = 100,
     customKeyBg: Color? = null,
     customKeyText: Color? = null,
     customAccent: Color? = null,
@@ -140,7 +141,7 @@ fun ThemePreviewCard(
 ) {
     val isDarkSystem = isSystemInDarkTheme()
     val colors = resolveKeyboardColors(
-        preset, isDarkSystem, cornerRadiusDp, keyAlphaPercent = 100,
+        preset, isDarkSystem, cornerRadiusDp, keyAlphaPercent = keyAlphaPercent,
         customKeyBg, customKeyText, customAccent,
     )
     val radius: Dp = cornerRadiusDp.dp.coerceAtLeast(2.dp)

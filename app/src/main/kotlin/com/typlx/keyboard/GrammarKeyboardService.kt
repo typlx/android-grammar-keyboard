@@ -446,6 +446,7 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     fun onSwipePath(path: List<String>) {
+        if (isFixingGrammar || suggestionState == SuggestionState.Loading) return
         val wordList = wordPredictor.wordList + personalWordList.getAll()
         val words = swipeTypingDecoder.decode(path, wordList)
         if (words.isNotEmpty()) {

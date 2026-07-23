@@ -114,7 +114,11 @@ class GrammarKeyboardService : InputMethodService(),
     private val undoState = GrammarUndoState()
     private val emojiRecentsMgr = EmojiRecents()
     private val clipboardHistory = ClipboardHistory()
-    private val personalWordList = PersonalWordList()
+    private val personalWordList = PersonalWordList(
+        maxSize = if (FeatureGate.isEnabled(FeatureGate.Feature.CUSTOM_DICTIONARY)) Int.MAX_VALUE
+                  else PersonalWordList.FREE_WORD_LIMIT,
+    )
+    private val userTypingTracker = UserTypingTracker()
     private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
     private val wordPredictor by lazy { WordPredictor.fromContext(this) }
@@ -193,11 +197,14 @@ class GrammarKeyboardService : InputMethodService(),
                 .getString(WORD_LIST_KEY, null)
             val shortcutsJson = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
                 .getString(SHORTCUTS_KEY, null)
+            val trackerJson = getSharedPreferences(TYPING_TRACKER_PREFS, Context.MODE_PRIVATE)
+                .getString(TYPING_TRACKER_KEY, null)
             GrammarService.prewarm()
             withContext(Dispatchers.Main) {
                 emojiJson?.let { emojiRecentsMgr.loadFromJson(it); emojiRecents = emojiRecentsMgr.recents }
                 clipJson?.let { clipboardHistory.loadFromJson(it); clipboardItems = clipboardHistory.items }
                 if (wordJson != null) personalWordList.loadFromJson(wordJson)
+                if (trackerJson != null) userTypingTracker.loadFromJson(trackerJson)
                 if (shortcutsJson != null) {
                     textShortcutsManager.loadFromJson(shortcutsJson)
                 } else {
@@ -352,7 +359,9 @@ class GrammarKeyboardService : InputMethodService(),
         if (!prefs.wordPredictionEnabled) return SuggestionState.Idle
         val prefix = getCurrentWordPrefix(ic)
         if (prefix.isNotEmpty()) {
-            val predictions = wordPredictor.predict(prefix, personalWordList.getAll())
+            // Merge manually added personal words with words learned from typing frequency.
+            val allPersonalWords = (personalWordList.getAll() + userTypingTracker.getLearnedWords()).distinct()
+            val predictions = wordPredictor.predict(prefix, allPersonalWords)
             return if (predictions.isNotEmpty()) SuggestionState.WordSuggestions(predictions) else SuggestionState.Idle
         }
         // Between words: show next-word predictions and emoji suggestions for the last committed word.
@@ -410,6 +419,10 @@ class GrammarKeyboardService : InputMethodService(),
         suppressSuggestionTriggerCount = 2
         if (prefix.isNotEmpty()) ic.deleteSurroundingText(prefix.length, 0)
         ic.commitText("$word ", 1)
+        if (!isPrivateField()) {
+            userTypingTracker.recordWord(word)
+            saveTypingTracker()
+        }
         suggestionState = SuggestionState.Idle
         clearUndoState()
     }
@@ -463,8 +476,11 @@ class GrammarKeyboardService : InputMethodService(),
                 .getString(WORD_LIST_KEY, null)
             val shortcutsJson = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
                 .getString(SHORTCUTS_KEY, null)
+            val trackerJson = getSharedPreferences(TYPING_TRACKER_PREFS, Context.MODE_PRIVATE)
+                .getString(TYPING_TRACKER_KEY, null)
             withContext(Dispatchers.Main) {
                 if (wordJson != null) personalWordList.loadFromJson(wordJson)
+                if (trackerJson != null) userTypingTracker.loadFromJson(trackerJson)
                 if (shortcutsJson != null) {
                     textShortcutsManager.loadFromJson(shortcutsJson)
                 } else {
@@ -601,8 +617,16 @@ class GrammarKeyboardService : InputMethodService(),
             }
         }
 
+        // Learn the word being completed before committing the space.
+        val wordToLearn = if (ic != null && !isPrivateField()) getLastCompletedWord(ic) else ""
+
         commitText(" ")
         lastSpacePressMs = now
+
+        if (wordToLearn.length >= 2) {
+            userTypingTracker.recordWord(wordToLearn)
+            saveTypingTracker()
+        }
 
         // Auto-cap after sentence-ending punctuation followed by the space we just committed.
         if (prefs.autoCapEnabled) {
@@ -709,6 +733,13 @@ class GrammarKeyboardService : InputMethodService(),
             .apply()
     }
 
+    private fun saveTypingTracker() {
+        getSharedPreferences(TYPING_TRACKER_PREFS, Context.MODE_PRIVATE)
+            .edit()
+            .putString(TYPING_TRACKER_KEY, userTypingTracker.toJson())
+            .apply()
+    }
+
     private fun clearUndoState() {
         undoState.clear()
         canUndo = false
@@ -756,6 +787,8 @@ class GrammarKeyboardService : InputMethodService(),
         const val WORD_LIST_KEY = "words_json"
         const val SHORTCUTS_PREFS = "text_shortcuts_prefs"
         const val SHORTCUTS_KEY = "shortcuts_json"
+        private const val TYPING_TRACKER_PREFS = "typing_tracker_prefs"
+        private const val TYPING_TRACKER_KEY = "word_frequencies"
     }
 
     // --- Tone rewriter ---

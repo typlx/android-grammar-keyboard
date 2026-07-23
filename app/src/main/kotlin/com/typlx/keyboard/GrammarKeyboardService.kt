@@ -281,6 +281,7 @@ class GrammarKeyboardService : InputMethodService(),
                         onEmojiPress = ::commitEmoji,
                         onAcceptSuggestion = ::acceptSuggestion,
                         onDismissSuggestion = ::dismissSuggestion,
+                        onAddToDictionary = ::addSuggestionToDictionary,
                         onWordSuggestionAccepted = ::acceptWordSuggestion,
                         onEmojiSuggestionTapped = ::acceptEmojiSuggestion,
                         onSmartCompose = ::triggerSmartCompose,
@@ -1060,7 +1061,21 @@ class GrammarKeyboardService : InputMethodService(),
         scheduleAutoSuggest()
     }
 
-    // --- Personal word list persistence ---
+    // --- Personal word list persistence and add-from-suggestion ---
+
+    fun addSuggestionToDictionary() {
+        val state = suggestionState as? SuggestionState.Available ?: return
+        val added = personalWordList.addChangedTokens(state.original, state.corrected)
+        if (added) {
+            val json = personalWordList.toJson()
+            getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+                .edit().putString(WORD_LIST_KEY, json).apply()
+            android.widget.Toast.makeText(applicationContext, "Added to dictionary", android.widget.Toast.LENGTH_SHORT).show()
+        } else {
+            android.widget.Toast.makeText(applicationContext, "Could not add to dictionary", android.widget.Toast.LENGTH_SHORT).show()
+        }
+        dismissSuggestion()
+    }
 
     fun reloadPersonalWordList() {
         val json = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)

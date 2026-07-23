@@ -106,4 +106,23 @@ class PersonalWordList(val maxSize: Int = 500) {
             .map { it.trim() }
             .filter { it.isNotBlank() }
             .count { add(it) }
+
+    /**
+     * Adds every token from [original] that differs from its counterpart in [corrected].
+     * Used when the user long-presses a grammar suggestion to suppress that specific correction.
+     * Returns true if at least one word was successfully added.
+     * Returns false when the token counts differ (structural change) or nothing was added.
+     */
+    fun addChangedTokens(original: String, corrected: String): Boolean {
+        val origTokens = original.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        val corrTokens = corrected.split(Regex("\\s+")).filter { it.isNotEmpty() }
+        if (origTokens.size != corrTokens.size) return false
+        var added = false
+        for (i in origTokens.indices) {
+            val ot = origTokens[i].trimEnd('.', ',', '!', '?', ';', ':').lowercase()
+            val ct = corrTokens[i].trimEnd('.', ',', '!', '?', ';', ':').lowercase()
+            if (ot != ct && add(ot)) added = true
+        }
+        return added
+    }
 }

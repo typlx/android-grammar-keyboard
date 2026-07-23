@@ -67,8 +67,10 @@ private fun WordListScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val displayedWords = if (searchQuery.isBlank()) words
-    else words.filter { it.contains(searchQuery.trim(), ignoreCase = true) }
+    val displayedWords = remember(words, searchQuery) {
+        if (searchQuery.isBlank()) words
+        else words.filter { it.contains(searchQuery.trim(), ignoreCase = true) }
+    }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/plain")
@@ -130,7 +132,6 @@ private fun WordListScreen(
                 .fillMaxSize()
                 .padding(padding),
         ) {
-            // Word count row with free-tier limit indicator
             val countLabel = if (isPremium) {
                 "${words.size} word${if (words.size == 1) "" else "s"}"
             } else {
@@ -143,7 +144,6 @@ private fun WordListScreen(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
             )
 
-            // Search bar (visible only when there are words to search)
             if (words.isNotEmpty()) {
                 OutlinedTextField(
                     value = searchQuery,

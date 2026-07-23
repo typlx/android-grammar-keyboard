@@ -49,6 +49,8 @@ import com.typlx.keyboard.ToneOption
 import com.typlx.keyboard.TranslationLanguage
 import com.typlx.keyboard.ui.theme.LocalKeyboardColors
 
+internal const val LANDSCAPE_HEIGHT_SCALE = 0.70f
+
 private val NUM_ROW = listOf("1", "2", "3", "4", "5", "6", "7", "8", "9", "0")
 
 private val SYM_ROW1 = listOf("@", "#", "$", "%", "&", "-", "+", "(", ")")
@@ -166,7 +168,7 @@ fun KeyboardScreen(
     val colors = LocalKeyboardColors.current
     val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val isSplitLayout = isLandscape && landscapeSplitEnabled
-    val effectiveKeyHeight = if (isLandscape) (keyHeight.value * 0.70f).dp else keyHeight
+    val effectiveKeyHeight = if (isLandscape) (keyHeight.value * LANDSCAPE_HEIGHT_SCALE).dp else keyHeight
     val onOneHandedToggle = {
         val next = when (oneHandedMode) {
             OneHandedMode.OFF -> OneHandedMode.LEFT
@@ -535,9 +537,15 @@ fun KeyboardScreen(
                 }
 
                 if (isSymbols) {
-                    KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
-                    KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
-                    SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = effectiveKeyHeight)
+                    if (isSplitLayout) {
+                        SplitKeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
+                        SplitKeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
+                        SplitSymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = effectiveKeyHeight)
+                    } else {
+                        KeyRow(SYM_ROW1, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
+                        KeyRow(SYM_ROW2, isCaps = false, onKeyPress = shiftOnceKeyPress, colors = colors, height = effectiveKeyHeight)
+                        SymbolRow3(SYM_ROW3, onKeyPress = shiftOnceKeyPress, onDelete = onDelete, onDeleteWord = onDeleteWord, colors = colors, height = effectiveKeyHeight)
+                    }
                 } else if (isSplitLayout) {
                     SplitKeyRow(layout.row1, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = effectiveKeyHeight)
                     SplitKeyRow(layout.row2, isCaps = isCaps, onKeyPress = shiftOnceKeyPress, colors = colors, onShowAlternatives = showAlternatives, alternativesMap = layout.longPressAlternatives, height = effectiveKeyHeight)
@@ -987,9 +995,13 @@ private fun OneHandedHandle(
     onExit: () -> Unit,
     colors: com.typlx.keyboard.ui.theme.KeyboardColors,
 ) {
+    val flipDesc = if (arrowToLeft) "Switch to left one-handed mode" else "Switch to right one-handed mode"
     Box(
         modifier = modifier
+            .fillMaxHeight()
+            .sizeIn(minHeight = 48.dp)
             .background(colors.keyboardBg)
+            .semantics { contentDescription = "$flipDesc, long-press to exit one-handed mode" }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onLongPress = { onExit() },

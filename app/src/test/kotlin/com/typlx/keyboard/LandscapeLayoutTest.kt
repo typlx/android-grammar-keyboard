@@ -1,71 +1,65 @@
 package com.typlx.keyboard
 
+import com.typlx.keyboard.ui.LANDSCAPE_HEIGHT_SCALE
 import org.junit.Assert.*
 import org.junit.Test
 
 class LandscapeLayoutTest {
 
-    private fun landscapeHeight(portraitDp: Float, scale: Float = 0.70f) = portraitDp * scale
-
     @Test
-    fun landscapeHeightIsSeventyPercentOfPortrait() {
-        val result = landscapeHeight(46f)
-        assertEquals(32.2f, result, 0.01f)
+    fun `LANDSCAPE_HEIGHT_SCALE constant is 0_70 — compact in landscape`() {
+        // Tests the actual production constant used in KeyboardScreen.effectiveKeyHeight.
+        // If the scale changes, this catches it before users see broken layouts.
+        assertEquals(0.70f, LANDSCAPE_HEIGHT_SCALE, 0.001f)
     }
 
     @Test
-    fun landscapeHeightForSmallKey() {
-        val result = landscapeHeight(36f)
-        assertEquals(25.2f, result, 0.01f)
+    fun `landscape key height stays at or above 32dp Material touch-target minimum`() {
+        val portraitDefault = 46f
+        val landscapeHeight = portraitDefault * LANDSCAPE_HEIGHT_SCALE
+        assertTrue(
+            "Default portrait ${portraitDefault}dp → landscape ${landscapeHeight}dp must be >= 32dp",
+            landscapeHeight >= 32f,
+        )
+        assertTrue("Landscape height must be shorter than portrait", landscapeHeight < portraitDefault)
     }
 
     @Test
-    fun landscapeHeightForLargeKey() {
-        val result = landscapeHeight(64f)
-        assertEquals(44.8f, result, 0.01f)
+    fun `QWERTY row1 splits into equal halves for landscape split layout`() {
+        val row = LAYOUT_QWERTY.row1
+        val splitAt = row.size / 2
+        val left = row.take(splitAt)
+        val right = row.drop(splitAt)
+        assertEquals("Left half must have 5 keys", 5, left.size)
+        assertEquals("Right half must have 5 keys", 5, right.size)
+        assertEquals("Left half starts with q", "q", left.first())
+        assertEquals("Right half ends with p", "p", right.last())
     }
 
     @Test
-    fun landscapeHeightIsLessThanPortrait() {
-        val portrait = 46f
-        val landscape = landscapeHeight(portrait)
-        assertTrue("Landscape key height should be less than portrait", landscape < portrait)
+    fun `QWERTY row2 split gives 4 keys left and 5 keys right`() {
+        val row = LAYOUT_QWERTY.row2
+        val splitAt = row.size / 2
+        assertEquals("Left half of 9-key row2 has 4 keys", 4, row.take(splitAt).size)
+        assertEquals("Right half of 9-key row2 has 5 keys", 5, row.drop(splitAt).size)
     }
 
     @Test
-    fun numberRowScalesRelativeToKeyHeight() {
-        val keyHeight = 46f
-        val numRowScale = 38f / 46f
-        val numRowPortrait = keyHeight * numRowScale
-        val numRowLandscape = landscapeHeight(keyHeight) * numRowScale
-        assertTrue("Landscape number row should be shorter", numRowLandscape < numRowPortrait)
-        assertEquals(26.6f, numRowLandscape, 0.1f)
+    fun `QWERTY row3 split gives 3 keys left and 4 keys right`() {
+        val row = LAYOUT_QWERTY.row3
+        val splitAt = row.size / 2
+        assertEquals("Left half of 7-key row3 has 3 keys", 3, row.take(splitAt).size)
+        assertEquals("Right half of 7-key row3 has 4 keys", 4, row.drop(splitAt).size)
     }
 
     @Test
-    fun splitRowMidpointForRow1() {
-        val row1 = listOf("q", "w", "e", "r", "t", "y", "u", "i", "o", "p")
-        val mid = row1.size / 2
-        assertEquals(5, mid)
-        assertEquals(listOf("q", "w", "e", "r", "t"), row1.take(mid))
-        assertEquals(listOf("y", "u", "i", "o", "p"), row1.drop(mid))
-    }
-
-    @Test
-    fun splitRowMidpointForRow2() {
-        val row2 = listOf("a", "s", "d", "f", "g", "h", "j", "k", "l")
-        val mid = row2.size / 2
-        assertEquals(4, mid)
-        assertEquals(listOf("a", "s", "d", "f"), row2.take(mid))
-        assertEquals(listOf("g", "h", "j", "k", "l"), row2.drop(mid))
-    }
-
-    @Test
-    fun splitRowMidpointForRow3() {
-        val row3 = listOf("z", "x", "c", "v", "b", "n", "m")
-        val mid = row3.size / 2
-        assertEquals(3, mid)
-        assertEquals(listOf("z", "x", "c"), row3.take(mid))
-        assertEquals(listOf("v", "b", "n", "m"), row3.drop(mid))
+    fun `minimum portrait height that stays accessible in landscape is below 46dp default`() {
+        // Minimum portrait height so landscape >= 32dp: 32 / 0.70 ≈ 45.7dp.
+        // The default 46dp clears this floor, keeping keys accessible in landscape.
+        val minPortrait = 32f / LANDSCAPE_HEIGHT_SCALE
+        assertTrue(
+            "Default key height 46dp must exceed minimum portrait floor ${minPortrait}dp",
+            46f >= minPortrait,
+        )
     }
 }

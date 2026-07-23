@@ -428,6 +428,10 @@ class GrammarKeyboardService : InputMethodService(),
         lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_RESUME)
         clearUndoState()
         toneError = null
+        // Clear any clipboard smart-paste chip when the user moves to a new input field
+        // so raw text from one field is never shown as a suggestion in another.
+        clipboardSmartPasteJob?.cancel()
+        if (suggestionState is SuggestionState.ClipboardPaste) suggestionState = SuggestionState.Idle
         lastSpacePressMs = 0L
         // Theme prefs are cached in memory after first access — reading them here is fast.
         reloadThemePrefs()
@@ -669,7 +673,7 @@ class GrammarKeyboardService : InputMethodService(),
         currentInputConnection?.commitText(text, 1)
     }
 
-    fun pasteSmartClipboard() {
+    private fun pasteSmartClipboard() {
         val state = suggestionState as? SuggestionState.ClipboardPaste ?: return
         clipboardSmartPasteJob?.cancel()
         hapticHelper.tap(keyboardView)
@@ -678,7 +682,7 @@ class GrammarKeyboardService : InputMethodService(),
         suggestionState = SuggestionState.Idle
     }
 
-    fun dismissSmartClipboard() {
+    private fun dismissSmartClipboard() {
         clipboardSmartPasteJob?.cancel()
         if (suggestionState is SuggestionState.ClipboardPaste) suggestionState = SuggestionState.Idle
     }

@@ -24,10 +24,19 @@ class GrammarService(
         const val SYSTEM_PROMPT =
             "Fix grammar and spelling in the following text. Return only the corrected text, nothing else. Preserve the original language, tone, and formatting."
 
-        fun buildSystemPrompt(language: InputLanguage? = null, suffix: String = ""): String {
-            val base = if (language != null)
-                "Fix grammar and spelling in the following ${language.displayName} text. Return only the corrected text, nothing else. Preserve the original tone and formatting."
-            else SYSTEM_PROMPT
+        fun buildSystemPrompt(language: InputLanguage? = null, suffix: String = "", enabledRules: Set<GrammarRule> = GrammarRule.ALL): String {
+            val base = when {
+                enabledRules != GrammarRule.ALL && enabledRules.isNotEmpty() -> {
+                    val ruleList = GrammarRule.entries
+                        .filter { it in enabledRules }
+                        .joinToString(" and ") { it.description }
+                    val langPart = if (language != null) "the following ${language.displayName} " else "the following "
+                    "Fix only $ruleList in ${langPart}text. Do not change anything else. Return only the corrected text, nothing else. Preserve the original tone and formatting."
+                }
+                language != null ->
+                    "Fix grammar and spelling in the following ${language.displayName} text. Return only the corrected text, nothing else. Preserve the original tone and formatting."
+                else -> SYSTEM_PROMPT
+            }
             return if (suffix.isBlank()) base else "$base $suffix"
         }
 

@@ -68,6 +68,23 @@ class GrammarRuleTest {
     }
 
     @Test
+    fun `buildSystemPrompt with three rules uses Oxford comma`() {
+        val prompt = GrammarService.buildSystemPrompt(
+            enabledRules = setOf(GrammarRule.SPELLING, GrammarRule.PUNCTUATION, GrammarRule.CAPITALIZATION),
+        )
+        assertTrue(prompt.contains("spelling errors, punctuation errors, and capitalization errors"))
+    }
+
+    @Test
+    fun `buildSystemPrompt with two rules uses and without Oxford comma`() {
+        val prompt = GrammarService.buildSystemPrompt(
+            enabledRules = setOf(GrammarRule.SPELLING, GrammarRule.PUNCTUATION),
+        )
+        assertTrue(prompt.contains("spelling errors and punctuation errors"))
+        assertFalse(prompt.contains("spelling errors,"))
+    }
+
+    @Test
     fun `buildSystemPrompt no-arg variant returns default prompt`() {
         val prompt = GrammarService.buildSystemPrompt()
         assertEquals(GrammarService.SYSTEM_PROMPT, prompt)

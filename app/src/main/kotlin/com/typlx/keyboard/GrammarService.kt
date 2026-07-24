@@ -27,9 +27,14 @@ class GrammarService(
         fun buildSystemPrompt(language: InputLanguage? = null, suffix: String = "", enabledRules: Set<GrammarRule> = GrammarRule.ALL): String {
             val base = when {
                 enabledRules != GrammarRule.ALL && enabledRules.isNotEmpty() -> {
-                    val ruleList = GrammarRule.entries
+                    val items = GrammarRule.entries
                         .filter { it in enabledRules }
-                        .joinToString(" and ") { it.description }
+                        .map { it.description }
+                    val ruleList = when (items.size) {
+                        1 -> items[0]
+                        2 -> "${items[0]} and ${items[1]}"
+                        else -> "${items.dropLast(1).joinToString(", ")}, and ${items.last()}"
+                    }
                     val langPart = if (language != null) "the following ${language.displayName} " else "the following "
                     "Fix only $ruleList in ${langPart}text. Do not change anything else. Return only the corrected text, nothing else. Preserve the original tone and formatting."
                 }
@@ -92,18 +97,11 @@ class GrammarService(
         token: String,
         text: String,
         systemPrompt: String = SYSTEM_PROMPT,
-        systemPromptSuffix: String = "",
-        language: InputLanguage? = null,
     ): String {
-        val resolvedPrompt = when {
-            language != null -> buildSystemPrompt(language, systemPromptSuffix)
-            systemPromptSuffix.isNotBlank() -> buildSystemPrompt(suffix = systemPromptSuffix)
-            else -> systemPrompt
-        }
         var lastException: GrammarServiceException? = null
         for (attempt in 0..maxRetries) {
             try {
-                return withContext(Dispatchers.IO) { doAttempt(apiUrl, model, token, text, resolvedPrompt) }
+                return withContext(Dispatchers.IO) { doAttempt(apiUrl, model, token, text, systemPrompt) }
             } catch (e: GrammarServiceException) {
                 lastException = e
                 if (!e.isRetryable || attempt == maxRetries) throw e

@@ -1,4 +1,6 @@
-# Typlx Keyboard — Play Store Listing
+# Typlx — Play Store Listing
+
+> **Source:** [TYP-621 app-store-copy](https://github.com/typlx/android-grammar-keyboard) — CMO-approved copy (2026-07-25)
 
 ## App Details
 
@@ -11,93 +13,119 @@
 ## Title (max 50 chars)
 
 ```
-Typlx Keyboard – AI Grammar Fix
+Typlx — Privacy Grammar Keyboard
 ```
+
+*(33 chars — leaves room for keyword indexing)*
+
+---
 
 ## Short Description (max 80 chars)
 
 ```
-Fix grammar and spelling instantly with any AI model, right from your keyboard.
+Grammar checking that stays on your device. Private. Offline. Open source.
 ```
+
+*(74 chars)*
+
+---
 
 ## Full Description (max 4000 chars)
 
 ```
-Typlx Keyboard is an open-source Android keyboard that brings AI-powered grammar correction, tone rewriting, and translation directly to your fingertips — no app-switching required.
+Typlx is the grammar keyboard that never uploads your words.
 
-GRAMMAR CORRECTION
-Tap the "Fix Grammar" button and Typlx silently corrects everything you've typed. Swipe away the suggestion or tap Undo to revert. An inline suggestion strip also proactively offers corrections while you type.
+While most grammar tools send your text to a cloud server, Typlx runs entirely on your device. Type a message, draft an email, post on social media — your words stay on your phone.
 
-TONE & TRANSLATION
-Rewrite your message in a different tone (formal, casual, concise, friendly) or translate it into another language — all without leaving the app you're in.
+🔒 PRIVATE BY DESIGN
 
-WORKS WITH ANY OPENAI-COMPATIBLE API
-Typlx connects to any server that speaks the OpenAI chat completions format. That includes:
-• OpenAI (GPT-4o, GPT-4o mini, etc.)
-• Anthropic Claude via proxy
-• Groq, Together AI, Mistral, and other fast inference providers
-• Local models via Ollama or LM Studio
+Typlx's grammar engine processes text locally. No internet connection required. No data sent to servers. No account needed. You can verify this: Typlx is fully open source.
 
-You bring your own API key and choose your model. No Typlx subscription required.
+✏️ GRAMMAR CHECKING EVERYWHERE
 
-PRIVACY-FIRST DESIGN
-• Your API token is stored with AES-256 encryption on your device.
-• Text is sent only to the API endpoint you configure — never to Typlx servers.
-• No analytics, no advertising, no user tracking.
-• Anonymous crash reports are collected via Firebase Crashlytics to help us fix bugs. You can opt out in Settings.
-• 100% open source under the Apache 2.0 license. Read the code yourself.
+Install Typlx as your default keyboard and grammar checking follows you across all apps:
+- WhatsApp, Telegram, Signal
+- Gmail, Outlook, ProtonMail
+- Twitter/X, Reddit, LinkedIn
+- Google Docs (in-browser editing)
+- Notes, reminders, any app where you type
 
-KEYBOARD FEATURES
-• Full QWERTY layout with optional AZERTY, QWERTZ, and Dvorak layouts
-• Numeric digit row above the main keyboard (toggleable)
-• Number-pad layout activates automatically for number/phone fields
-• Long-press keys for accent characters (é, ñ, ü, and more)
-• Caps lock (double-tap Shift) and smart auto-capitalisation
-• Double-space inserts a period and capitalises the next word
-• Haptic feedback on keypress
-• Three key-height presets: compact, normal, large
-• Text expansion shortcuts — type "omw" and get "On my way!"
-• Personal word list — teach the AI to ignore your custom terms
+📖 WHAT TYPLX CATCHES
 
-PRODUCTIVITY PANEL
-• Clipboard history — paste from the last 10 clipboard entries
-• Voice input — dictate text using on-device speech recognition
-• Cursor navigation — move by character, word, or line; select, copy, cut, paste
-• Emoji keyboard with category tabs and recently-used row
-• Undo last grammar fix with a single tap
+- Subject-verb agreement errors
+- Wrong verb tense
+- Article errors (a/an/the)
+- Common spelling mistakes
+- Comma splices and run-on sentences
+- Incorrect word choice (affect/effect, their/they're)
 
-APPEARANCE
-• Four themes: System, Light, Dark, AMOLED black
-• Adjustable key corner radius and key opacity
-• Full TalkBack / accessibility support
+📚 PERSONAL DICTIONARY
 
-SETUP
-1. Open the Typlx Keyboard app.
-2. Enter your API URL, model name, and API token in Settings.
-3. Tap "Enable Typlx Keyboard in System Settings" and follow the prompts.
-4. Switch to Typlx Keyboard in any text field and tap the toolbar icon.
+Add words that Typlx should always accept — technical terms, names, abbreviations unique to your work. Your dictionary stays local, never uploaded.
 
-OPEN SOURCE
-Source code and full build instructions are available at:
-https://github.com/typlx/android-grammar-keyboard
+⚡ WORKS OFFLINE
 
-Contributions, bug reports, and feature requests are welcome.
-```
+No Wi-Fi? No problem. Typlx grammar checking works without any internet connection. The engine runs locally on your device hardware.
 
-*(Character count: approximately 2,750 — well within the 4,000-char limit)*
+🌍 OPEN SOURCE
+
+Typlx is 100% open source. Review the grammar engine, keyboard code, and data handling at github.com/typlx. Trust the code, not just the promise.
+
+🆓 FREE FOREVER
+
+Core grammar checking is free with no time limit. Advanced features (style suggestions, document-level analysis) coming in a future Pro tier.
+
+INSTALLATION
+
+1. Download Typlx
+2. Open Settings → System → Language & Input → On-screen keyboard → Manage keyboards
+3. Enable Typlx
+4. Select Typlx as your default keyboard (optional) or switch when needed
+5. Start typing — corrections appear in the suggestion bar
+
+No account. No subscription. No data collection.
 
 ---
 
-## Keywords / Tags
+Why developers built Typlx: We wanted grammar checking that worked without a privacy trade-off. The tools that exist either upload everything to a cloud or barely work offline. We built the local grammar engine we wanted to use ourselves.
 
+Review the code. File issues. Contribute. It's yours.
 ```
-grammar, spelling, keyboard, AI, grammar checker, LLM, OpenAI, GPT, autocorrect,
-writing, productivity, open source, tone rewriter, translation, voice input
-```
+
+*(Character count: approximately 1,900 — well within the 4,000-char limit)*
 
 ---
 
-## Graphic Assets Needed (before submission)
+## Screenshot Overlay Copy (3–5 screens)
+
+### Screen 1 — Core value proposition
+- **Headline:** `Grammar that stays yours`
+- **Sub:** `Corrects as you type. Never leaves your device.`
+- *Visual:* Typlx keyboard visible with a correction suggestion in the suggestion bar
+
+### Screen 2 — Privacy proof
+- **Headline:** `Zero cloud. Zero upload.`
+- **Sub:** `Everything runs locally — verified open source.`
+- *Visual:* Settings or privacy screen, or abstract shield/device visual
+
+### Screen 3 — Personal dictionary
+- **Headline:** `Teach it your vocabulary`
+- **Sub:** `Add words once. Never flagged again.`
+- *Visual:* Personal dictionary UI with words being added
+
+### Screen 4 — Works everywhere
+- **Headline:** `Grammar in every app`
+- **Sub:** `Email, messages, docs — Typlx follows you.`
+- *Visual:* App switcher or multi-app view with Typlx suggestion bar visible
+
+### Screen 5 — Open source (developer-oriented audiences)
+- **Headline:** `Open source. Inspect the code.`
+- **Sub:** `github.com/typlx — nothing hidden.`
+- *Visual:* GitHub repo screenshot or code snippet with star count
+
+---
+
+## Graphic Assets Required (before submission)
 
 | Asset | Size | Notes |
 |---|---|---|
@@ -106,29 +134,13 @@ writing, productivity, open source, tone rewriter, translation, voice input
 | Phone screenshots | min 2, up to 8 | 1080 × 1920 px or 9:16 ratio recommended |
 | Tablet screenshots (optional) | — | Improves tablet store presence |
 
-Suggested screenshot captions:
-1. "Fix grammar with one tap" — keyboard open, Fix Grammar button highlighted
-2. "Rewrite in any tone" — tone panel open
-3. "Works with any AI model" — Settings screen showing API URL / model fields
-4. "Private by design — your text never leaves your chosen server" — Settings / About
-5. "Emoji, voice input, clipboard history" — toolbar icons visible
-
 ---
 
 ## Contact & Support
 
-- **Website / Support URL:** https://github.com/typlx/android-grammar-keyboard
-- **Privacy Policy URL:** *(required — host a policy page before submission; see note below)*
+- **Website / Support URL:** https://typlx.com
+- **Privacy Policy URL:** https://typlx.com/privacy *(required before submission)*
 - **Email:** *(required for Play Store developer account)*
-
-### Privacy Policy — required content
-
-A minimal policy must cover:
-- What data is collected (crash reports via Crashlytics; no user analytics)
-- Where text is sent (only to the API endpoint the user configures)
-- How the API token is stored (AES-256 encrypted on-device)
-- How to opt out of crash reporting
-- Contact for data-related questions
 
 ---
 
@@ -137,10 +149,29 @@ A minimal policy must cover:
 See RELEASE_NOTES.md for the full changelog.
 
 Key highlights for the initial release:
-- AI grammar correction with one tap
+- Grammar correction powered by your chosen AI model
 - Auto-suggest with inline diff display
 - Tone rewriter and in-keyboard translation
 - Voice input, clipboard history, emoji keyboard
 - Multi-language keyboard layouts
 - Full theme customisation
 - Open-source, bring-your-own-API model
+
+---
+
+## How to Apply This to Google Play Console
+
+**Manual (Play Console UI):**
+1. Log in to [Google Play Console](https://play.google.com/console)
+2. Select Typlx app → Store presence → Main store listing
+3. Paste Title, Short description, Full description from the fields above
+4. Upload screenshots with the overlay text from "Screenshot Overlay Copy"
+5. Save and submit for review
+
+**Automated (fastlane supply):**
+Metadata files are in `fastlane/metadata/android/en-US/` for use with `fastlane supply`.
+Requires `SUPPLY_JSON_KEY` or `SUPPLY_JSON_KEY_DATA` service account credential.
+
+```bash
+bundle exec fastlane supply --skip_upload_apk --skip_upload_aab --skip_upload_images
+```

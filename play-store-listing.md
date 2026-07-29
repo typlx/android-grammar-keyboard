@@ -13,7 +13,7 @@
 ## Title (max 50 chars)
 
 ```
-Typlx — Privacy Grammar Keyboard
+Typlx — AI Grammar Keyboard
 ```
 
 *(33 chars — leaves room for keyword indexing)*

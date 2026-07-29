@@ -1,57 +1,59 @@
-Typlx is the grammar keyboard that never uploads your words.
+Typlx Keyboard is an open-source Android keyboard that brings AI-powered grammar correction, tone rewriting, and translation directly to your fingertips — no app-switching required.
 
-While most grammar tools send your text to a cloud server, Typlx runs entirely on your device. Type a message, draft an email, post on social media — your words stay on your phone.
+GRAMMAR CORRECTION
+Tap the "Fix Grammar" button and Typlx silently corrects everything you've typed. Swipe away the suggestion or tap Undo to revert. An inline suggestion strip also proactively offers corrections while you type.
 
-🔒 PRIVATE BY DESIGN
+TONE & TRANSLATION
+Rewrite your message in a different tone (formal, casual, concise, friendly) or translate it into another language — all without leaving the app you're in.
 
-Typlx's grammar engine processes text locally. No internet connection required. No data sent to servers. No account needed. You can verify this: Typlx is fully open source.
+WORKS WITH ANY OPENAI-COMPATIBLE API
+Typlx connects to any server that speaks the OpenAI chat completions format. That includes:
+• OpenAI (GPT-4o, GPT-4o mini, etc.)
+• Anthropic Claude via proxy
+• Groq, Together AI, Mistral, and other fast inference providers
+• Local models via Ollama or LM Studio
 
-✏️ GRAMMAR CHECKING EVERYWHERE
+You bring your own API key and choose your model. No Typlx subscription required.
 
-Install Typlx as your default keyboard and grammar checking follows you across all apps:
-- WhatsApp, Telegram, Signal
-- Gmail, Outlook, ProtonMail
-- Twitter/X, Reddit, LinkedIn
-- Google Docs (in-browser editing)
-- Notes, reminders, any app where you type
+PRIVACY-FIRST DESIGN
+• Your API token is stored with AES-256 encryption on your device.
+• Text is sent only to the API endpoint you configure — never to Typlx servers.
+• No analytics, no advertising, no user tracking.
+• Anonymous crash reports are collected via Firebase Crashlytics to help us fix bugs. You can opt out in Settings.
+• 100% open source under the Apache 2.0 license. Read the code yourself.
 
-📖 WHAT TYPLX CATCHES
+KEYBOARD FEATURES
+• Full QWERTY layout with optional AZERTY, QWERTZ, and Dvorak layouts
+• Numeric digit row above the main keyboard (toggleable)
+• Number-pad layout activates automatically for number/phone fields
+• Long-press keys for accent characters (é, ñ, ü, and more)
+• Caps lock (double-tap Shift) and smart auto-capitalisation
+• Double-space inserts a period and capitalises the next word
+• Haptic feedback on keypress
+• Three key-height presets: compact, normal, large
+• Text expansion shortcuts — type "omw" and get "On my way!"
+• Personal word list — teach the AI to ignore your custom terms
 
-- Subject-verb agreement errors
-- Wrong verb tense
-- Article errors (a/an/the)
-- Common spelling mistakes
-- Comma splices and run-on sentences
-- Incorrect word choice (affect/effect, their/they're)
+PRODUCTIVITY PANEL
+• Clipboard history — paste from the last 10 clipboard entries
+• Voice input — dictate text using on-device speech recognition
+• Cursor navigation — move by character, word, or line; select, copy, cut, paste
+• Emoji keyboard with category tabs and recently-used row
+• Undo last grammar fix with a single tap
 
-📚 PERSONAL DICTIONARY
+APPEARANCE
+• Four themes: System, Light, Dark, AMOLED black
+• Adjustable key corner radius and key opacity
+• Full TalkBack / accessibility support
 
-Add words that Typlx should always accept — technical terms, names, abbreviations unique to your work. Your dictionary stays local, never uploaded.
+SETUP
+1. Open the Typlx Keyboard app.
+2. Enter your API URL, model name, and API token in Settings.
+3. Tap "Enable Typlx Keyboard in System Settings" and follow the prompts.
+4. Switch to Typlx Keyboard in any text field and tap the toolbar icon.
 
-⚡ WORKS OFFLINE
+OPEN SOURCE
+Source code and full build instructions are available at:
+https://github.com/typlx/android-grammar-keyboard
 
-No Wi-Fi? No problem. Typlx grammar checking works without any internet connection. The engine runs locally on your device hardware.
-
-🌍 OPEN SOURCE
-
-Typlx is 100% open source. Review the grammar engine, keyboard code, and data handling at github.com/typlx. Trust the code, not just the promise.
-
-🆓 FREE FOREVER
-
-Core grammar checking is free with no time limit. Advanced features (style suggestions, document-level analysis) coming in a future Pro tier.
-
-INSTALLATION
-
-1. Download Typlx
-2. Open Settings → System → Language & Input → On-screen keyboard → Manage keyboards
-3. Enable Typlx
-4. Select Typlx as your default keyboard (optional) or switch when needed
-5. Start typing — corrections appear in the suggestion bar
-
-No account. No subscription. No data collection.
-
----
-
-Why developers built Typlx: We wanted grammar checking that worked without a privacy trade-off. The tools that exist either upload everything to a cloud or barely work offline. We built the local grammar engine we wanted to use ourselves.
-
-Review the code. File issues. Contribute. It's yours.
+Contributions, bug reports, and feature requests are welcome.

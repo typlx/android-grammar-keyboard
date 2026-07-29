@@ -31,19 +31,25 @@ class WordListActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val langName = intent.getStringExtra(EXTRA_LANGUAGE_NAME)
+        val lang = langName?.let { InputLanguage.fromName(it) }
+            ?: PreferencesManager(this).activeInputLanguage
+        val wordListKey = GrammarKeyboardService.wordListKey(lang)
+
         val isPremium = FeatureGate.isEnabled(FeatureGate.Feature.CUSTOM_DICTIONARY)
         val maxWords = if (isPremium) Int.MAX_VALUE else PersonalWordList.FREE_WORD_LIMIT
         val sharedPrefs = getSharedPreferences(GrammarKeyboardService.WORD_LIST_PREFS, Context.MODE_PRIVATE)
         val wordList = PersonalWordList(maxSize = maxWords)
-        sharedPrefs.getString(GrammarKeyboardService.WORD_LIST_KEY, null)?.let { wordList.loadFromJson(it) }
+        sharedPrefs.getString(wordListKey, null)?.let { wordList.loadFromJson(it) }
 
         fun persist() {
-            sharedPrefs.edit().putString(GrammarKeyboardService.WORD_LIST_KEY, wordList.toJson()).apply()
+            sharedPrefs.edit().putString(wordListKey, wordList.toJson()).apply()
         }
 
         setContent {
             TyplxKeyboardTheme {
                 WordListScreen(
+                    title = "${lang.displayName} word list",
                     wordList = wordList,
                     isPremium = isPremium,
                     onPersist = ::persist,
@@ -52,11 +58,16 @@ class WordListActivity : ComponentActivity() {
             }
         }
     }
+
+    companion object {
+        const val EXTRA_LANGUAGE_NAME = "language_name"
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WordListScreen(
+    title: String = "Personal word list",
     wordList: PersonalWordList,
     isPremium: Boolean,
     onPersist: () -> Unit,
@@ -105,7 +116,7 @@ private fun WordListScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Personal word list") },
+                title = { Text(title) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")

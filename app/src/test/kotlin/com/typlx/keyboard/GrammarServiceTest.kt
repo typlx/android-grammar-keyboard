@@ -68,4 +68,45 @@ class GrammarServiceTest {
     fun `httpErrorMessage unknown code includes code in message`() {
         assertTrue(httpErrorMessage(418).contains("418"))
     }
+
+    // --- buildSystemPrompt with language ---
+
+    @Test
+    fun `buildSystemPrompt with no language returns default prompt`() {
+        val prompt = GrammarService.buildSystemPrompt()
+        assertEquals(GrammarService.SYSTEM_PROMPT, prompt)
+    }
+
+    @Test
+    fun `buildSystemPrompt with English includes English in prompt`() {
+        val prompt = GrammarService.buildSystemPrompt(language = InputLanguage.ENGLISH)
+        assertTrue(prompt.contains("English"))
+        assertFalse(prompt.contains("Preserve the original language"))
+    }
+
+    @Test
+    fun `buildSystemPrompt with Ukrainian includes Ukrainian in prompt`() {
+        val prompt = GrammarService.buildSystemPrompt(language = InputLanguage.UKRAINIAN)
+        assertTrue(prompt.contains("Ukrainian"))
+    }
+
+    @Test
+    fun `buildSystemPrompt with Portuguese includes Portuguese in prompt`() {
+        val prompt = GrammarService.buildSystemPrompt(language = InputLanguage.PORTUGUESE)
+        assertTrue(prompt.contains("Portuguese"))
+    }
+
+    @Test
+    fun `buildSystemPrompt with language and suffix appends suffix`() {
+        val prompt = GrammarService.buildSystemPrompt(InputLanguage.FRENCH, "Use formal language.")
+        assertTrue(prompt.contains("French"))
+        assertTrue(prompt.contains("Use formal language."))
+    }
+
+    @Test
+    fun `buildSystemPrompt without language with suffix appends to default`() {
+        val prompt = GrammarService.buildSystemPrompt(suffix = "Be concise.")
+        assertTrue(prompt.startsWith(GrammarService.SYSTEM_PROMPT))
+        assertTrue(prompt.contains("Be concise."))
+    }
 }

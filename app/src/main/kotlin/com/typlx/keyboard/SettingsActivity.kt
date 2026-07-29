@@ -644,7 +644,10 @@ private fun SettingsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        context.startActivity(Intent(context, WordListActivity::class.java))
+                        val intent = Intent(context, WordListActivity::class.java).apply {
+                            putExtra(WordListActivity.EXTRA_LANGUAGE_NAME, prefsManager.activeInputLanguage.name)
+                        }
+                        context.startActivity(intent)
                     }
                     .padding(vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,

@@ -6,8 +6,8 @@ import org.junit.Test
 class InputLanguageTest {
 
     @Test
-    fun `ALL contains exactly five languages`() {
-        assertEquals(5, InputLanguage.ALL.size)
+    fun `ALL contains exactly six languages`() {
+        assertEquals(6, InputLanguage.ALL.size)
     }
 
     @Test
@@ -45,9 +45,32 @@ class InputLanguageTest {
     }
 
     @Test
-    fun `ENGLISH and SPANISH use QWERTY layout`() {
+    fun `ENGLISH, SPANISH and PORTUGUESE use QWERTY layout`() {
         assertEquals(LayoutId.QWERTY, InputLanguage.ENGLISH.defaultLayoutId)
         assertEquals(LayoutId.QWERTY, InputLanguage.SPANISH.defaultLayoutId)
+        assertEquals(LayoutId.QWERTY, InputLanguage.PORTUGUESE.defaultLayoutId)
+    }
+
+    @Test
+    fun `PORTUGUESE has PT code and Latin script`() {
+        assertEquals("PT", InputLanguage.PORTUGUESE.code)
+        assertEquals(ScriptFamily.LATIN, InputLanguage.PORTUGUESE.scriptFamily)
+    }
+
+    @Test
+    fun `UKRAINIAN has Cyrillic script`() {
+        assertEquals(ScriptFamily.CYRILLIC, InputLanguage.UKRAINIAN.scriptFamily)
+    }
+
+    @Test
+    fun `all Latin-script languages have LATIN script family`() {
+        val latinLanguages = listOf(
+            InputLanguage.ENGLISH, InputLanguage.SPANISH,
+            InputLanguage.FRENCH, InputLanguage.GERMAN, InputLanguage.PORTUGUESE
+        )
+        latinLanguages.forEach { lang ->
+            assertEquals("${lang.name} should be LATIN", ScriptFamily.LATIN, lang.scriptFamily)
+        }
     }
 
     @Test
@@ -95,7 +118,7 @@ class InputLanguageTest {
     }
 
     @Test
-    fun `nextLanguage cycles through all five enabled languages`() {
+    fun `nextLanguage cycles through all enabled languages`() {
         val all = InputLanguage.ALL
         var current = all[0]
         for (i in 1..all.size) {

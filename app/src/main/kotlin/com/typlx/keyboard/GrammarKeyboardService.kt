@@ -126,10 +126,11 @@ class GrammarKeyboardService : InputMethodService(),
     private val undoState = GrammarUndoState()
     private val emojiRecentsMgr = EmojiRecents()
     private val clipboardHistory = ClipboardHistory()
-    private val personalWordList = PersonalWordList(
-        maxSize = if (FeatureGate.isEnabled(FeatureGate.Feature.CUSTOM_DICTIONARY)) Int.MAX_VALUE
-                  else PersonalWordList.FREE_WORD_LIMIT,
-    )
+    // One PersonalWordList per keyboard language, loaded lazily on language switch.
+    // English uses the legacy "words_json" key for backwards compatibility.
+    private val wordListsByLanguage = mutableMapOf<InputLanguage, PersonalWordList>()
+    private val activeWordList: PersonalWordList
+        get() = wordListsByLanguage.getOrPut(activeInputLanguage) { newWordList() }
     private val userTypingTracker = UserTypingTracker()
     private val textShortcutsManager = TextShortcutsManager()
     private val voiceInputManager = VoiceInputManager()
@@ -160,7 +161,14 @@ class GrammarKeyboardService : InputMethodService(),
     private var suppressSuggestionTriggerCount = 0
 
     private val wordListPrefsChangeListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == WORD_LIST_KEY) reloadPersonalWordList()
+        when {
+            key == null -> Unit
+            key == WORD_LIST_KEY -> reloadWordListForLanguage(InputLanguage.ENGLISH)
+            key.startsWith(WORD_LIST_KEY_PREFIX) -> {
+                val langName = key.removePrefix(WORD_LIST_KEY_PREFIX)
+                InputLanguage.fromName(langName)?.let { reloadWordListForLanguage(it) }
+            }
+        }
     }
 
     private val clipboardChangeListener = ClipboardManager.OnPrimaryClipChangedListener {
@@ -190,8 +198,8 @@ class GrammarKeyboardService : InputMethodService(),
         prefs = PreferencesManager(applicationContext)
         CrashReporter.configure(prefs.crashReportingEnabled)
         grammarService = GrammarService()
-        grammarFixController = GrammarFixController(grammarService, personalWordList)
-        autoSuggestController = AutoSuggestController(grammarService, personalWordList)
+        grammarFixController = GrammarFixController(grammarService) { activeWordList }
+        autoSuggestController = AutoSuggestController(grammarService) { activeWordList }
         toneRewriteController = ToneRewriteController(grammarService)
         translationController = TranslationController(grammarService)
         smartComposeController = SmartComposeController(grammarService)
@@ -209,8 +217,9 @@ class GrammarKeyboardService : InputMethodService(),
                 .getString(EMOJI_RECENTS_KEY, null)
             val clipJson = getSharedPreferences(CLIPBOARD_PREFS, Context.MODE_PRIVATE)
                 .getString(CLIPBOARD_HISTORY_KEY, null)
-            val wordJson = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
-                .getString(WORD_LIST_KEY, null)
+            val sp = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+            val activeLang = prefs.activeInputLanguage
+            val wordJson = sp.getString(wordListKey(activeLang), null)
             val shortcutsJson = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
                 .getString(SHORTCUTS_KEY, null)
             val trackerJson = getSharedPreferences(TYPING_TRACKER_PREFS, Context.MODE_PRIVATE)
@@ -219,7 +228,10 @@ class GrammarKeyboardService : InputMethodService(),
             withContext(Dispatchers.Main) {
                 emojiJson?.let { emojiRecentsMgr.loadFromJson(it); emojiRecents = emojiRecentsMgr.recents }
                 clipJson?.let { clipboardHistory.loadFromJson(it); clipboardItems = clipboardHistory.items }
-                if (wordJson != null) personalWordList.loadFromJson(wordJson)
+                if (wordJson != null) {
+                    val wl = wordListsByLanguage.getOrPut(activeLang) { newWordList() }
+                    wl.loadFromJson(wordJson)
+                }
                 if (trackerJson != null) userTypingTracker.loadFromJson(trackerJson)
                 if (shortcutsJson != null) {
                     textShortcutsManager.loadFromJson(shortcutsJson)
@@ -353,7 +365,18 @@ class GrammarKeyboardService : InputMethodService(),
             return
         }
         updateWordPredictions()
+        maybeAutoDetectLanguage()
         scheduleAutoSuggest()
+    }
+
+    private fun maybeAutoDetectLanguage() {
+        if (!FeatureGate.isEnabled(FeatureGate.Feature.MULTI_LANGUAGE)) return
+        if (enabledInputLanguages.size < 2) return
+        if (isPrivateField()) return
+        val ic = currentInputConnection ?: return
+        val text = ic.getTextBeforeCursor(100, 0)?.toString() ?: return
+        val suggested = LanguageDetector.detectLanguage(text, activeInputLanguage, enabledInputLanguages) ?: return
+        switchToLanguage(suggested)
     }
 
     private fun isPrivateField(): Boolean =
@@ -386,7 +409,7 @@ class GrammarKeyboardService : InputMethodService(),
         val prefix = getCurrentWordPrefix(ic)
         if (prefix.isNotEmpty()) {
             // Merge manually added personal words with words learned from typing frequency.
-            val allPersonalWords = (personalWordList.getAll() + userTypingTracker.getLearnedWords()).distinct()
+            val allPersonalWords = (activeWordList.getAll() + userTypingTracker.getLearnedWords()).distinct()
             val predictions = wordPredictor.predict(prefix, allPersonalWords)
             return if (predictions.isNotEmpty()) SuggestionState.WordSuggestions(predictions) else SuggestionState.Idle
         }
@@ -414,7 +437,8 @@ class GrammarKeyboardService : InputMethodService(),
         val ic = currentInputConnection ?: return
         suggestionState = SuggestionState.Loading
         val result = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
-            systemPromptSuffix = prefs.grammarInstructionSuffix)
+            systemPromptSuffix = prefs.grammarInstructionSuffix,
+            language = activeInputLanguage)
         if (result == SuggestionState.Idle) {
             suggestionState = buildWordSuggestionState(ic)
         } else {
@@ -455,7 +479,7 @@ class GrammarKeyboardService : InputMethodService(),
 
     fun onSwipePath(path: List<String>) {
         if (isFixingGrammar || suggestionState == SuggestionState.Loading) return
-        val wordList = wordPredictor.wordList + personalWordList.getAll()
+        val wordList = wordPredictor.wordList + activeWordList.getAll()
         val words = swipeTypingDecoder.decode(path, wordList)
         if (words.isNotEmpty()) {
             suggestionState = SuggestionState.WordSuggestions(words)
@@ -499,14 +523,18 @@ class GrammarKeyboardService : InputMethodService(),
         // by SharedPreferences access or JSON parsing. Clipboard snapshot runs on main
         // thread afterwards (ClipboardManager access is UI-thread-bound on API 29+).
         serviceScope.launch(Dispatchers.IO) {
-            val wordJson = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
-                .getString(WORD_LIST_KEY, null)
+            val sp = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+            val curLang = activeInputLanguage
+            val wordJson = sp.getString(wordListKey(curLang), null)
             val shortcutsJson = getSharedPreferences(SHORTCUTS_PREFS, Context.MODE_PRIVATE)
                 .getString(SHORTCUTS_KEY, null)
             val trackerJson = getSharedPreferences(TYPING_TRACKER_PREFS, Context.MODE_PRIVATE)
                 .getString(TYPING_TRACKER_KEY, null)
             withContext(Dispatchers.Main) {
-                if (wordJson != null) personalWordList.loadFromJson(wordJson)
+                if (wordJson != null) {
+                    val wl = wordListsByLanguage.getOrPut(curLang) { newWordList() }
+                    wl.loadFromJson(wordJson)
+                }
                 if (trackerJson != null) userTypingTracker.loadFromJson(trackerJson)
                 if (shortcutsJson != null) {
                     textShortcutsManager.loadFromJson(shortcutsJson)
@@ -586,6 +614,19 @@ class GrammarKeyboardService : InputMethodService(),
         val newLayout = layoutById(lang.defaultLayoutId)
         keyboardLayout = newLayout
         prefs.keyboardLayoutId = newLayout.id
+        ensureWordListLoaded(lang)
+    }
+
+    private fun ensureWordListLoaded(lang: InputLanguage) {
+        if (wordListsByLanguage.containsKey(lang)) return
+        serviceScope.launch(Dispatchers.IO) {
+            val json = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
+                .getString(wordListKey(lang), null)
+            withContext(Dispatchers.Main) {
+                val wl = wordListsByLanguage.getOrPut(lang) { newWordList() }
+                if (json != null) wl.loadFromJson(json)
+            }
+        }
     }
 
     private fun applyOneHandedMode(mode: OneHandedMode) {
@@ -841,11 +882,22 @@ class GrammarKeyboardService : InputMethodService(),
         private const val CLIPBOARD_HISTORY_KEY = "clipboard_history"
         const val WORD_LIST_PREFS = "personal_word_list_prefs"
         const val WORD_LIST_KEY = "words_json"
+        const val WORD_LIST_KEY_PREFIX = "words_json_"
         const val SHORTCUTS_PREFS = "text_shortcuts_prefs"
         const val SHORTCUTS_KEY = "shortcuts_json"
         private const val TYPING_TRACKER_PREFS = "typing_tracker_prefs"
         private const val TYPING_TRACKER_KEY = "word_frequencies"
+
+        /** SharedPreferences key for [lang]'s word list. English uses the legacy key. */
+        fun wordListKey(lang: InputLanguage): String =
+            if (lang == InputLanguage.ENGLISH) WORD_LIST_KEY
+            else "$WORD_LIST_KEY_PREFIX${lang.name}"
     }
+
+    private fun newWordList() = PersonalWordList(
+        maxSize = if (FeatureGate.isEnabled(FeatureGate.Feature.CUSTOM_DICTIONARY)) Int.MAX_VALUE
+                  else PersonalWordList.FREE_WORD_LIMIT,
+    )
 
     // --- Tone rewriter ---
 
@@ -1027,7 +1079,8 @@ class GrammarKeyboardService : InputMethodService(),
         serviceScope.launch {
             grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
                 systemPromptSuffix = prefs.grammarInstructionSuffix,
-                hasSelection = fixingSelection)
+                hasSelection = fixingSelection,
+                language = activeInputLanguage)
                 .fold(
                     onSuccess = { fixResult ->
                         if (fixResult != null) {
@@ -1074,11 +1127,12 @@ class GrammarKeyboardService : InputMethodService(),
 
     fun addSuggestionToDictionary() {
         val state = suggestionState as? SuggestionState.Available ?: return
-        val added = personalWordList.addChangedTokens(state.original, state.corrected)
+        val wl = activeWordList
+        val added = wl.addChangedTokens(state.original, state.corrected)
         if (added) {
-            val json = personalWordList.toJson()
+            val json = wl.toJson()
             getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
-                .edit().putString(WORD_LIST_KEY, json).apply()
+                .edit().putString(wordListKey(activeInputLanguage), json).apply()
             android.widget.Toast.makeText(applicationContext, "Added to dictionary", android.widget.Toast.LENGTH_SHORT).show()
         } else {
             android.widget.Toast.makeText(applicationContext, "Could not add to dictionary", android.widget.Toast.LENGTH_SHORT).show()
@@ -1087,9 +1141,14 @@ class GrammarKeyboardService : InputMethodService(),
     }
 
     fun reloadPersonalWordList() {
+        reloadWordListForLanguage(activeInputLanguage)
+    }
+
+    private fun reloadWordListForLanguage(lang: InputLanguage) {
         val json = getSharedPreferences(WORD_LIST_PREFS, Context.MODE_PRIVATE)
-            .getString(WORD_LIST_KEY, null) ?: return
-        personalWordList.loadFromJson(json)
+            .getString(wordListKey(lang), null) ?: return
+        val wl = wordListsByLanguage.getOrPut(lang) { newWordList() }
+        wl.loadFromJson(json)
     }
 
     // --- Text shortcuts persistence ---

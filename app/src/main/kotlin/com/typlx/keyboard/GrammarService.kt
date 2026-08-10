@@ -45,7 +45,6 @@ class GrammarService(
             return if (suffix.isBlank()) base else "$base $suffix"
         }
 
-        /** Kept for callers that don't pass a language yet. */
         fun buildSystemPrompt(suffix: String): String = buildSystemPrompt(null, suffix)
         private const val TEMPERATURE = 0.3
         private const val TIMEOUT_SECONDS = 30L

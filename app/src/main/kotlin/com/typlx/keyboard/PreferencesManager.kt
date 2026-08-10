@@ -229,11 +229,12 @@ class PreferencesManager(context: Context) {
     var enabledGrammarRules: Set<GrammarRule>
         get() {
             val stored = prefs.getString(KEY_ENABLED_GRAMMAR_RULES, null)
-            if (stored.isNullOrBlank()) return GrammarRule.ALL
+                ?: return GrammarRule.ALL  // null = never configured
+            if (stored.isEmpty()) return emptySet()  // explicitly cleared
             return stored.split(",")
                 .mapNotNull { runCatching { GrammarRule.valueOf(it.trim()) }.getOrNull() }
                 .toSet()
-                .ifEmpty { GrammarRule.ALL }
+                .ifEmpty { GrammarRule.ALL }  // corrupt data fallback
         }
         set(value) {
             val serialized = value.joinToString(",") { it.name }

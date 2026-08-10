@@ -45,6 +45,7 @@ class PreferencesManager(context: Context) {
         const val KEY_CUSTOM_KEY_BG = "custom_key_bg_color"
         const val KEY_CUSTOM_KEY_TEXT = "custom_key_text_color"
         const val KEY_CUSTOM_ACCENT = "custom_accent_color"
+        const val KEY_ENABLED_GRAMMAR_RULES = "enabled_grammar_rules"
 
         private const val DEFAULT_API_URL = "https://api.openai.com"
         private const val DEFAULT_MODEL = "gpt-4o-mini"
@@ -223,6 +224,21 @@ class PreferencesManager(context: Context) {
         set(value) {
             if (value == null) prefs.edit().remove(KEY_CUSTOM_ACCENT).apply()
             else prefs.edit().putString(KEY_CUSTOM_ACCENT, value.toString()).apply()
+        }
+
+    var enabledGrammarRules: Set<GrammarRule>
+        get() {
+            val stored = prefs.getString(KEY_ENABLED_GRAMMAR_RULES, null)
+                ?: return GrammarRule.ALL  // null = never configured
+            if (stored.isEmpty()) return emptySet()  // explicitly cleared
+            return stored.split(",")
+                .mapNotNull { runCatching { GrammarRule.valueOf(it.trim()) }.getOrNull() }
+                .toSet()
+                .ifEmpty { GrammarRule.ALL }  // corrupt data fallback
+        }
+        set(value) {
+            val serialized = value.joinToString(",") { it.name }
+            prefs.edit().putString(KEY_ENABLED_GRAMMAR_RULES, serialized).apply()
         }
 
     val isConfigured: Boolean

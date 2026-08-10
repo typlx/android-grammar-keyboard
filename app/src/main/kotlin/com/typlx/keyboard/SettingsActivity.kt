@@ -141,6 +141,8 @@ private fun SettingsScreen(
     var landscapeSplitEnabled by remember { mutableStateOf(prefsManager.landscapeSplitEnabled) }
     var oneHandedMode by remember { mutableStateOf(prefsManager.oneHandedMode) }
 
+    var enabledGrammarRules by remember { mutableStateOf(prefsManager.enabledGrammarRules) }
+
     // Pending theme preset — updated on chip tap; saved to prefs only on Apply.
     var pendingThemePreset by remember { mutableStateOf(prefsManager.themePreset) }
     var customKeyBgColor by remember { mutableStateOf(prefsManager.customKeyBgColor) }
@@ -413,6 +415,52 @@ private fun SettingsScreen(
                     )
                 },
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Grammar correction rules
+            Text(
+                text = "Grammar correction rules",
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.padding(horizontal = 4.dp),
+            )
+            Text(
+                text = "Choose which types of errors are fixed when you tap \"Fix Grammar\"",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            GrammarRule.entries.forEach { rule ->
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = rule.label,
+                            style = MaterialTheme.typography.bodyLarge,
+                        )
+                        Text(
+                            text = rule.settingsDescription,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(
+                        checked = rule in enabledGrammarRules,
+                        onCheckedChange = { checked ->
+                            val newRules = if (checked) enabledGrammarRules + rule
+                                           else enabledGrammarRules - rule
+                            enabledGrammarRules = newRules
+                            prefsManager.enabledGrammarRules = newRules
+                        },
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(16.dp))
 

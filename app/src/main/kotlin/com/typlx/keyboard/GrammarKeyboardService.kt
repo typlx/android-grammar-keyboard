@@ -438,7 +438,8 @@ class GrammarKeyboardService : InputMethodService(),
         suggestionState = SuggestionState.Loading
         val result = autoSuggestController.suggest(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
             systemPromptSuffix = prefs.grammarInstructionSuffix,
-            language = activeInputLanguage)
+            language = activeInputLanguage,
+            enabledRules = prefs.enabledGrammarRules)
         if (result == SuggestionState.Idle) {
             suggestionState = buildWordSuggestionState(ic)
         } else {
@@ -1080,7 +1081,8 @@ class GrammarKeyboardService : InputMethodService(),
             grammarFixController.fix(ic, prefs.apiUrl, prefs.model, prefs.apiToken,
                 systemPromptSuffix = prefs.grammarInstructionSuffix,
                 hasSelection = fixingSelection,
-                language = activeInputLanguage)
+                language = activeInputLanguage,
+                enabledRules = prefs.enabledGrammarRules)
                 .fold(
                     onSuccess = { fixResult ->
                         if (fixResult != null) {
